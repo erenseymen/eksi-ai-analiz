@@ -178,11 +178,8 @@ const runGemini = async (type, customPrompt = null) => {
     }
 
     let promptTemplate = customPrompt || PROMPTS[type];
-    // Simple truncation to avoid huge payloads (Gemini Pro has 32k context, approx 100-150 entries might fit depending on length)
-    // We'll send as much as we can but let's limit to last 100 entries for now to be safe and fast, or maybe first 50 and last 50?
-    // Let's try sending all text but if it's too huge we might error. 
-    // For this MVP, let's take the first 200 entries.
-    const limitedEntries = allEntries.slice(0, 200);
+    // Sending all entries. Gemini 1.5 Flash has a 1M token context window, which should be sufficient for most topics.
+    const limitedEntries = allEntries;
     const entriesJson = JSON.stringify(limitedEntries);
 
     const finalPrompt = promptTemplate.replace('{{ENTRIES}}', entriesJson);
