@@ -1,0 +1,120 @@
+/* Ekşi Sözlük AI Analiz Styles */
+
+.eksi-ai-container {
+    margin: 15px 0;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.eksi-ai-btn {
+    background-color: #81c14b;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-right: 10px;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+.eksi-ai-btn:hover {
+    background-color: #6da53e;
+}
+
+.eksi-ai-btn.secondary {
+    background-color: #555;
+}
+
+.eksi-ai-btn.secondary:hover {
+    background-color: #333;
+}
+
+.eksi-ai-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.eksi-ai-result-area {
+    margin-top: 15px;
+    padding: 15px;
+    background: white;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    display: none;
+    max-height: 500px;
+    overflow-y: auto;
+    white-space: pre-wrap; /* Preserve formatting */
+}
+
+.eksi-ai-loading {
+    display: inline-block;
+    margin-left: 10px;
+    font-style: italic;
+    color: #666;
+}
+
+.eksi-ai-actions {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.eksi-ai-warning {
+    color: #721c24;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 4px;
+    display: none;
+}
+
+/* Modal for Custom Prompt */
+.eksi-ai-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.eksi-ai-modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 50%;
+    border-radius: 5px;
+}
+
+.eksi-ai-close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.eksi-ai-close:hover,
+.eksi-ai-close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.eksi-ai-textarea {
+    width: 100%;
+    height: 100px;
+    margin: 10px 0;
+    padding: 10px;
+    box-sizing: border-box;
+}

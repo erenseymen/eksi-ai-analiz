@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ekşi Sözlük AI Analiz Ayarları</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #81c14b; /* Ekşi green-ish */
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 10px;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box; /* Fix padding issue */
+            margin-bottom: 15px;
+        }
+        button {
+            background-color: #81c14b;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #6da53e;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            display: block;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
+        .info {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+        }
+        a {
+            color: #81c14b;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Ayarlar</h1>
+        
+        <label for="apiKey">Gemini API Key</label>
+        <input type="text" id="apiKey" placeholder="API Key'inizi buraya yapıştırın">
+        
+        <button id="saveBtn">Kaydet</button>
+        
+        <div id="status" class="status"></div>
+
+        <div class="info">
+            <h3>Gemini API Key Nasıl Alınır?</h3>
+            <ol>
+                <li><a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a> sayfasına gidin.</li>
+                <li>Google hesabınızla giriş yapın.</li>
+                <li>"Create API key" butonuna tıklayın.</li>
+                <li>Oluşturulan anahtarı kopyalayıp yukarıdaki kutucuğa yapıştırın ve Kaydet'e basın.</li>
+            </ol>
+            <p><strong>Not:</strong> API anahtarınız sadece tarayıcınızın yerel hafızasında saklanır ve sadece Google sunucularına istek atmak için kullanılır.</p>
+        </div>
+    </div>
+    <script src="options.js"></script>
+</body>
+</html>
