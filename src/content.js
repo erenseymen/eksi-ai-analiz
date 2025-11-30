@@ -178,7 +178,6 @@ const runGemini = async (type, customPrompt = null) => {
     }
 
     let promptTemplate = customPrompt || PROMPTS[type];
-    // Sending all entries. Gemini 1.5 Flash has a 1M token context window, which should be sufficient for most topics.
     const limitedEntries = allEntries;
     const entriesJson = JSON.stringify(limitedEntries);
 
