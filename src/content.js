@@ -3,14 +3,64 @@ let allEntries = [];
 let topicTitle = "";
 let topicId = "";
 
-// Prompts (Hardcoded for now, or we can fetch them if we bundle them accessible via web_accessible_resources, 
-// but hardcoding is easier for a simple extension structure without complex build steps)
 const PROMPTS = {
-    summary: `Aşağıdaki JSON formatındaki ekşi sözlük entry'lerini incele. Bu başlık altında konuşulanları, genel havayı, öne çıkan noktaları ve tartışmaları kapsayan detaylı ve akıcı bir özet çıkar. Ekşi sözlük jargonuna hakim bir dil kullan ancak çok laubali olma. Objektif olmaya çalış.
+    summary: `Aşağıda JSON formatında verilen Ekşi Sözlük entry'lerini analiz ederek kapsamlı bir özet hazırla.
+
+## Görev:
+- Ana konuları ve tartışma başlıklarını belirle
+- Farklı görüşler ve fikir ayrılıklarını dengeli bir şekilde sun
+- Mizahi, ironik veya dikkat çekici entry'leri vurgula
+- Özgün ve derinlemesine görüşleri öne çıkar
+- Entry'lerin kronolojik veya tematik akışını göz önünde bulundur
+
+## Format ve Dil:
+- Markdown formatında yaz (başlıklar, listeler, vurgular kullan)
+- Bilgi verici, tarafsız ve profesyonel bir dil kullan
+- Akıcı ve okunabilir bir metin oluştur
+- Gereksiz spekülasyon veya çıkarımdan kaçın
+- Entry'lerden kısa ve anlamlı alıntılar ekle (tırnak işareti ile)
+
+## Link Formatı:
+- Entry'lere referans verirken Markdown link formatı kullan: [link metni](https://eksisozluk.com/entry/{entry_id})
+- JSON'daki entry_id değerini kullanarak link oluştur
+- Link metni entry'nin anahtar kelimesini veya bağlama uygun bir ifadeyi içersin
+
+## Çıktı:
+Yanıtın sadece özet metni olsun, ek açıklama veya meta bilgi içermesin.
 
 Entry'ler:
 {{ENTRIES}}`,
-    blog: `Aşağıdaki JSON formatındaki ekşi sözlük entry'lerini kaynak alarak, bu konu hakkında ilgi çekici, okunabilirliği yüksek ve SEO uyumlu bir blog yazısı hazırla. Yazıda başlıklar, maddeler ve akıcı bir anlatım kullan. Ekşi sözlük yazarlarının deneyimlerinden ve yorumlarından alıntılar (anonim olarak) yapabilirsin. Yazının tonu bilgilendirici ve samimi olsun.
+    blog: `Aşağıda JSON formatında verilen Ekşi Sözlük entry'lerine dayalı, kapsamlı ve okunabilir bir blog yazısı yaz.
+
+## Görev
+Entry'lerdeki farklı görüşleri, deneyimleri, mizahı ve eleştirileri sentezleyerek, konuyu derinlemesine ele alan bir blog yazısı oluştur.
+
+## Yazı Üslubu ve Stil
+- Akıcı, samimi ve erişilebilir bir dil kullan
+- Analitik ve düşündürücü ol, ancak akademik bir üsluptan kaçın
+- Farklı perspektifleri dengeli bir şekilde sun
+- Gerektiğinde örnekler, anekdotlar ve ilginç detaylar ekle
+- Spekülasyondan kaçın, yalnızca entry'lerdeki bilgileri kullan
+
+## İçerik Yapısı
+1. Giriş: Konuyu kısa bir özetle tanıt ve entry'lerden çıkan ana temaları belirt
+2. Gelişme: Farklı bakış açılarını, görüşleri ve deneyimleri kategorize ederek sun
+3. Sonuç: Genel gözlemler ve öne çıkan noktaları özetle
+
+## Alıntı Formatı
+Her alıntı şu formatta olsun:
+> [Entry içeriği]
+> 
+> — **{yazar}** · [{tarih}](https://eksisozluk.com/entry/{entry_id})
+
+Notlar:
+- Yukarıdaki satırı aynen bu Markdown yapısıyla üret (tarih tıklanabilir link olsun).
+
+## Çıktı Formatı
+- Yanıt YALNIZCA blog yazısı olsun (Markdown formatında)
+- Başlık, alt başlıklar ve paragrafları uygun şekilde formatla
+- Entry'lerden bol bol alıntı yap, farklı görüşleri yansıt
+- Her alıntıda yazar, tarih ve link bilgilerini mutlaka ekle
 
 Entry'ler:
 {{ENTRIES}}`,
