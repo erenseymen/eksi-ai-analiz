@@ -64,17 +64,7 @@ Notlar:
 
 Entry'ler:
 {{ENTRIES}}`,
-    opinions: `Aşağıdaki JSON formatındaki ekşi sözlük entry'lerini analiz et. Bu başlık altındaki temel görüşleri/argümanları gruplandır. Her bir görüşün ne olduğunu açıkla ve yazarların tahmini olarak yüzde kaçının bu görüşü desteklediğini belirt.
 
-Çıktı formatı şöyle olsun:
-- **Görüş 1:** [Görüşün Açıklaması] (%XX)
-- **Görüş 2:** [Görüşün Açıklaması] (%XX)
-...
-
-Ayrıca en sonunda genel bir değerlendirme yap.
-
-Entry'ler:
-{{ENTRIES}}`
 };
 
 // Helper to get API Key
@@ -183,7 +173,7 @@ const renderActions = (container) => {
             <button id="btn-download" class="eksi-ai-btn secondary">JSON İndir</button>
             <button id="btn-summary" class="eksi-ai-btn">Özet</button>
             <button id="btn-blog" class="eksi-ai-btn">Blog</button>
-            <button id="btn-opinions" class="eksi-ai-btn">Görüşler</button>
+
             <button id="btn-custom" class="eksi-ai-btn">Özel Prompt</button>
         </div>
         <div id="ai-result" class="eksi-ai-result-area"></div>
@@ -193,7 +183,7 @@ const renderActions = (container) => {
     document.getElementById('btn-download').onclick = downloadJson;
     document.getElementById('btn-summary').onclick = () => runGemini('summary');
     document.getElementById('btn-blog').onclick = () => runGemini('blog');
-    document.getElementById('btn-opinions').onclick = () => runGemini('opinions');
+
     document.getElementById('btn-custom').onclick = openCustomPromptModal;
 };
 
