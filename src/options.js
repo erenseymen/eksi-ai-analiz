@@ -4,8 +4,15 @@ const saveOptions = () => {
     const status = document.getElementById('status');
 
     if (!apiKey) {
-        status.textContent = 'Lütfen bir API Key girin.';
-        status.className = 'status error';
+        // If apiKey is empty, we still save it (as empty string) to effectively delete it.
+        chrome.storage.sync.remove('geminiApiKey', () => {
+            status.textContent = 'API Key silindi.';
+            status.className = 'status success';
+            setTimeout(() => {
+                status.textContent = '';
+                status.className = 'status';
+            }, 3000);
+        });
         return;
     }
 
