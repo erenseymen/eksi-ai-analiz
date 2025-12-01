@@ -212,7 +212,7 @@ const runGemini = async (type, customPrompt = null) => {
         warningArea.innerHTML = 'Gemini API Key bulunamadı. Lütfen <a href="#" id="open-settings">Ayarlar</a> sayfasından ekleyin.';
         document.getElementById('open-settings').onclick = (e) => {
             e.preventDefault();
-            chrome.runtime.openOptionsPage();
+            window.open(chrome.runtime.getURL('src/options.html'), '_blank');
         };
         return;
     }
