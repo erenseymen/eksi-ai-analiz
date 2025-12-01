@@ -53,7 +53,8 @@
     display: none;
     max-height: 500px;
     overflow-y: auto;
-    white-space: pre-wrap; /* Preserve formatting */
+    white-space: pre-wrap;
+    /* Preserve formatting */
 }
 
 .eksi-ai-loading {
@@ -80,6 +81,16 @@
     display: none;
 }
 
+.eksi-ai-info {
+    color: #004085;
+    background-color: #cce5ff;
+    border: 1px solid #b8daff;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
 /* Modal for Custom Prompt */
 .eksi-ai-modal {
     display: none;
@@ -90,7 +101,7 @@
     width: 100%;
     height: 100%;
     overflow: auto;
-    background-color: rgba(0,0,0,0.4);
+    background-color: rgba(0, 0, 0, 0.4);
 }
 
 .eksi-ai-modal-content {

@@ -2,6 +2,7 @@
 let allEntries = [];
 let topicTitle = "";
 let topicId = "";
+let shouldStopScraping = false;
 
 const PROMPTS = {
     summary: `Aşağıda "{{TITLE}}" başlığı altındaki Ekşi Sözlük entry'leri JSON formatında verilmiştir. Bu entry'leri analiz ederek kapsamlı bir özet hazırla.
@@ -120,21 +121,42 @@ const startAnalysis = async () => {
     const btn = document.getElementById('eksi-ai-main-btn');
     const container = document.getElementById('eksi-ai-container');
 
-    btn.disabled = true;
-    btn.textContent = "Analiz Ediliyor...";
+    // Reset stop flag
+    shouldStopScraping = false;
+
+    // Change button to "Stop" button
+    btn.textContent = "Durdur";
+    btn.onclick = stopScraping;
+    btn.disabled = false;
+
     container.style.display = 'block';
     container.innerHTML = '<span class="eksi-ai-loading">Entry\'ler toplanıyor... Lütfen bekleyin.</span>';
 
     try {
         await scrapeEntries();
-        renderActions(container);
+
+        // Render actions if we have entries (even if stopped early)
+        if (allEntries.length > 0) {
+            renderActions(container, shouldStopScraping);
+        } else {
+            container.innerHTML = '<div class="eksi-ai-warning">Hiç entry toplanamadı.</div>';
+        }
     } catch (err) {
         console.error(err);
         container.innerHTML = `<div class="eksi-ai-warning">Hata oluştu: ${err.message}</div>`;
     } finally {
+        // Restore original button
         btn.disabled = false;
         btn.textContent = "Entry'leri Analiz Et";
+        btn.onclick = startAnalysis;
     }
+};
+
+const stopScraping = () => {
+    shouldStopScraping = true;
+    const btn = document.getElementById('eksi-ai-main-btn');
+    btn.disabled = true;
+    btn.textContent = "Durduruluyor...";
 };
 
 const scrapeEntries = async () => {
@@ -154,6 +176,12 @@ const scrapeEntries = async () => {
     const statusSpan = document.querySelector('.eksi-ai-loading');
 
     for (let i = 1; i <= totalPages; i++) {
+        // Check if user requested to stop
+        if (shouldStopScraping) {
+            if (statusSpan) statusSpan.textContent = `İşlem durduruldu. ${allEntries.length} entry toplandı.`;
+            break;
+        }
+
         if (statusSpan) statusSpan.textContent = `Sayfa ${i}/${totalPages} taranıyor...`;
 
         const url = `${currentUrl}?p=${i}`;
@@ -184,9 +212,13 @@ const scrapeEntries = async () => {
     }
 };
 
-const renderActions = (container) => {
+const renderActions = (container, wasStopped = false) => {
+    const statusMessage = wasStopped
+        ? `<div class="eksi-ai-info">İşlem durduruldu. ${allEntries.length} entry toplandı.</div>`
+        : `<h3>${allEntries.length} entry toplandı.</h3>`;
+
     container.innerHTML = `
-        <h3>${allEntries.length} entry toplandı.</h3>
+        ${statusMessage}
         <div class="eksi-ai-actions">
             <button id="btn-download" class="eksi-ai-btn secondary">JSON İndir</button>
             <button id="btn-summary" class="eksi-ai-btn">Özet</button>
