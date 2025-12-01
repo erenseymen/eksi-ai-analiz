@@ -4,7 +4,7 @@ let topicTitle = "";
 let topicId = "";
 
 const PROMPTS = {
-    summary: `Aşağıda JSON formatında verilen Ekşi Sözlük entry'lerini analiz ederek kapsamlı bir özet hazırla.
+    summary: `Aşağıda "{{TITLE}}" başlığı altındaki Ekşi Sözlük entry'leri JSON formatında verilmiştir. Bu entry'leri analiz ederek kapsamlı bir özet hazırla.
 
 ## Görev:
 - Ana konuları ve tartışma başlıklarını belirle
@@ -30,7 +30,7 @@ Yanıtın sadece özet metni olsun, ek açıklama veya meta bilgi içermesin.
 
 Entry'ler:
 {{ENTRIES}}`,
-    blog: `Aşağıda JSON formatında verilen Ekşi Sözlük entry'lerine dayalı, kapsamlı ve okunabilir bir blog yazısı yaz.
+    blog: `Aşağıda "{{TITLE}}" başlığı altındaki Ekşi Sözlük entry'leri JSON formatında verilmiştir. Bu entry'lere dayalı, kapsamlı ve okunabilir bir blog yazısı yaz.
 
 ## Görev
 Entry'lerdeki farklı görüşleri, deneyimleri, mizahı ve eleştirileri sentezleyerek, konuyu derinlemesine ele alan bir blog yazısı oluştur.
@@ -221,7 +221,9 @@ const runGemini = async (type, customPrompt = null) => {
     const limitedEntries = allEntries;
     const entriesJson = JSON.stringify(limitedEntries);
 
-    const finalPrompt = promptTemplate.replace('{{ENTRIES}}', entriesJson);
+    const finalPrompt = promptTemplate
+        .replace('{{ENTRIES}}', entriesJson)
+        .replace('{{TITLE}}', topicTitle);
 
     try {
         const response = await callGeminiApi(apiKey, finalPrompt);
@@ -259,7 +261,7 @@ const callGeminiApi = async (apiKey, prompt) => {
 
 const openCustomPromptModal = () => {
     // Simple prompt for now
-    const userPrompt = prompt("Özel promptunuzu girin ({{ENTRIES}} yer tutucusu entry'lerin geleceği yerdir):", "Aşağıdaki entry'leri analiz et:\n{{ENTRIES}}");
+    const userPrompt = prompt("Özel promptunuzu girin ({{ENTRIES}} ve {{TITLE}} yer tutucularını kullanabilirsiniz):", "Konu: {{TITLE}}\n\nAşağıdaki JSON formatındaki entry'leri analiz et:\n{{ENTRIES}}");
     if (userPrompt) {
         runGemini('custom', userPrompt);
     }
