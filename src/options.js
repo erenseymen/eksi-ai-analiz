@@ -43,3 +43,8 @@ const restoreOptions = () => {
 
 document.addEventListener('DOMContentLoaded', restoreOptions);
 document.getElementById('saveBtn').addEventListener('click', saveOptions);
+document.getElementById('apiKey').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        saveOptions();
+    }
+});
