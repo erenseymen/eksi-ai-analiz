@@ -22,6 +22,11 @@
     transition: background-color 0.2s;
 }
 
+#eksi-ai-main-btn {
+    margin-top: 5px;
+    margin-bottom: 10px;
+}
+
 .eksi-ai-btn:hover {
     background-color: #6da53e;
 }

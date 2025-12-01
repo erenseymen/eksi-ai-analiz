@@ -78,7 +78,14 @@ const getApiKey = async () => {
 
 // Initialization
 const init = () => {
-    const topicHeader = document.getElementById('topic');
+    let topicHeader = document.getElementById('topic');
+    let topicTitleH1 = topicHeader ? topicHeader.querySelector('h1') : document.querySelector('h1');
+
+    // If we found h1 but not topicHeader (or topicHeader didn't contain h1), update topicHeader
+    if (topicTitleH1 && (!topicHeader || !topicHeader.contains(topicTitleH1))) {
+        topicHeader = topicTitleH1.parentElement;
+    }
+
     if (topicHeader && !document.getElementById('eksi-ai-main-btn')) {
         const btn = document.createElement('button');
         btn.id = 'eksi-ai-main-btn';
@@ -86,15 +93,26 @@ const init = () => {
         btn.textContent = "Entry'leri Analiz Et";
         btn.onclick = startAnalysis;
 
-        // Insert after the title
-        topicHeader.appendChild(btn);
+        if (topicTitleH1) {
+            // Insert after the h1 title
+            topicTitleH1.parentNode.insertBefore(btn, topicTitleH1.nextSibling);
+        } else {
+            // Fallback: Insert at the top of topicHeader
+            topicHeader.insertBefore(btn, topicHeader.firstChild);
+        }
 
         // Container for results/actions
         const container = document.createElement('div');
         container.id = 'eksi-ai-container';
         container.className = 'eksi-ai-container';
         container.style.display = 'none';
-        topicHeader.parentNode.insertBefore(container, topicHeader.nextSibling);
+
+        // Insert container after the button
+        if (topicTitleH1) {
+            topicTitleH1.parentNode.insertBefore(container, btn.nextSibling);
+        } else {
+            topicHeader.appendChild(container);
+        }
     }
 };
 
@@ -121,7 +139,7 @@ const startAnalysis = async () => {
 
 const scrapeEntries = async () => {
     allEntries = [];
-    topicTitle = document.querySelector('#topic h1')?.innerText || "Basliksiz";
+    topicTitle = document.querySelector('h1')?.innerText || document.querySelector('#topic h1')?.innerText || "Basliksiz";
 
     // Determine total pages
     const pager = document.querySelector('.pager');
