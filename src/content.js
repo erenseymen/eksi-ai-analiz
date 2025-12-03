@@ -110,6 +110,11 @@ const init = () => {
         container.className = 'eksi-ai-container';
         container.style.display = 'none';
 
+        // Apply theme
+        if (detectTheme()) {
+            container.classList.add('eksi-ai-dark');
+        }
+
         // Insert container after the button
         if (topicTitleH1) {
             topicTitleH1.parentNode.insertBefore(container, btn.nextSibling);
@@ -117,6 +122,19 @@ const init = () => {
             topicHeader.appendChild(container);
         }
     }
+};
+
+const detectTheme = () => {
+    // Check for dark mode based on body background color or specific classes
+    // Ekşi Sözlük dark mode usually has a dark background color
+    const bodyBg = window.getComputedStyle(document.body).backgroundColor;
+    // Simple check: if background is dark (brightness < 128), it's dark mode
+    const rgb = bodyBg.match(/\d+/g);
+    if (rgb) {
+        const brightness = (parseInt(rgb[0]) * 299 + parseInt(rgb[1]) * 587 + parseInt(rgb[2]) * 114) / 1000;
+        return brightness < 128;
+    }
+    return false;
 };
 
 const startAnalysis = async () => {
@@ -332,68 +350,30 @@ const openCustomPromptModal = () => {
     // Create modal overlay
     const overlay = document.createElement('div');
     overlay.id = 'eksi-ai-modal-overlay';
-    overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.7);
-        z-index: 10000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    `;
+    overlay.className = 'eksi-ai-modal-overlay';
+
+    // Apply theme to overlay/modal if needed (though overlay handles it via CSS vars usually, 
+    // but we might need the class on the overlay to cascade)
+    if (detectTheme()) {
+        overlay.classList.add('eksi-ai-dark');
+    }
 
     // Create modal content
     const modal = document.createElement('div');
-    modal.style.cssText = `
-        background: #fff;
-        padding: 25px;
-        border-radius: 6px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-        max-width: 500px;
-        width: 90%;
-    `;
+    modal.className = 'eksi-ai-modal-content';
 
     modal.innerHTML = `
-        <h3 style="margin: 0 0 20px 0; color: #333; font-size: 18px; font-weight: 600;">Ne yapmamı istersin?</h3>
+        <h3 class="eksi-ai-modal-title">Ne yapmamı istersin?</h3>
         <textarea id="eksi-ai-custom-prompt" 
-                  style="width: 100%; 
-                         height: 120px; 
-                         padding: 12px; 
-                         border: 1px solid #ccc; 
-                         border-radius: 4px; 
-                         font-family: inherit;
-                         font-size: 14px;
-                         box-sizing: border-box;
-                         resize: vertical;
-                         background: #fff;
-                         color: #333;"
+                  class="eksi-ai-textarea"
                   placeholder="Örnek: Bu konudaki mizahi entry'leri listele"></textarea>
-        <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+        <div class="eksi-ai-modal-actions">
             <button id="eksi-ai-modal-cancel" 
-                    class="eksi-ai-modal-btn eksi-ai-modal-cancel-btn"
-                    style="padding: 10px 20px; 
-                           border: 1px solid #ccc; 
-                           background: #f5f5f5; 
-                           color: #333;
-                           border-radius: 4px; 
-                           cursor: pointer;
-                           font-size: 14px;
-                           font-weight: 500;">
+                    class="eksi-ai-modal-btn eksi-ai-modal-cancel-btn">
                 vazgeç
             </button>
             <button id="eksi-ai-modal-submit" 
-                    class="eksi-ai-modal-btn eksi-ai-modal-submit-btn"
-                    style="padding: 10px 20px; 
-                           border: none; 
-                           background: #81c14b; 
-                           color: #fff; 
-                           border-radius: 4px; 
-                           cursor: pointer;
-                           font-size: 14px;
-                           font-weight: 500;">
+                    class="eksi-ai-modal-btn eksi-ai-modal-submit-btn">
                 gönder
             </button>
         </div>
@@ -408,21 +388,6 @@ const openCustomPromptModal = () => {
     const submitBtn = document.getElementById('eksi-ai-modal-submit');
 
     setTimeout(() => textarea.focus(), 100);
-
-    // Add hover effects
-    cancelBtn.onmouseenter = () => {
-        cancelBtn.style.background = '#e8e8e8';
-    };
-    cancelBtn.onmouseleave = () => {
-        cancelBtn.style.background = '#f5f5f5';
-    };
-
-    submitBtn.onmouseenter = () => {
-        submitBtn.style.background = '#6da53e';
-    };
-    submitBtn.onmouseleave = () => {
-        submitBtn.style.background = '#81c14b';
-    };
 
     // Close modal function
     const closeModal = () => {
@@ -464,7 +429,7 @@ const openCustomPromptModal = () => {
     textarea.onkeydown = (e) => {
         // Reset border color on typing
         if (textarea.style.borderColor === 'rgb(217, 83, 79)') {
-            textarea.style.borderColor = '#ccc';
+            textarea.style.borderColor = ''; // Let CSS handle it
         }
 
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {

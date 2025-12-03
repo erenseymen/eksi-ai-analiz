@@ -1,17 +1,70 @@
 /* Ekşi Sözlük AI Analiz Styles */
 
+:root {
+    --eksi-ai-bg: #f9f9f9;
+    --eksi-ai-text: #333;
+    --eksi-ai-border: #ddd;
+    --eksi-ai-btn-bg: #81c14b;
+    --eksi-ai-btn-hover: #6da53e;
+    --eksi-ai-btn-text: white;
+    --eksi-ai-secondary-bg: #555;
+    --eksi-ai-secondary-hover: #333;
+    --eksi-ai-warning-bg: #f8d7da;
+    --eksi-ai-warning-text: #721c24;
+    --eksi-ai-warning-border: #f5c6cb;
+    --eksi-ai-info-bg: #cce5ff;
+    --eksi-ai-info-text: #004085;
+    --eksi-ai-info-border: #b8daff;
+    --eksi-ai-modal-bg: #fefefe;
+    --eksi-ai-modal-overlay: rgba(0, 0, 0, 0.4);
+    --eksi-ai-input-bg: #fff;
+    --eksi-ai-input-border: #ccc;
+    --eksi-ai-input-text: #333;
+    --eksi-ai-cancel-bg: #f5f5f5;
+    --eksi-ai-cancel-hover: #e8e8e8;
+    --eksi-ai-cancel-text: #333;
+}
+
+/* Dark Mode Overrides */
+.eksi-ai-dark {
+    --eksi-ai-bg: #2d2d2d;
+    --eksi-ai-text: #ccc;
+    --eksi-ai-border: #444;
+    --eksi-ai-btn-bg: #81c14b;
+    /* Keep brand color or adjust if needed */
+    --eksi-ai-btn-hover: #6da53e;
+    --eksi-ai-btn-text: white;
+    --eksi-ai-secondary-bg: #444;
+    --eksi-ai-secondary-hover: #222;
+    --eksi-ai-warning-bg: #4c2f32;
+    --eksi-ai-warning-text: #ffb3b3;
+    --eksi-ai-warning-border: #663333;
+    --eksi-ai-info-bg: #2a3b4d;
+    --eksi-ai-info-text: #b3d1ff;
+    --eksi-ai-info-border: #334455;
+    --eksi-ai-modal-bg: #222;
+    --eksi-ai-modal-overlay: rgba(0, 0, 0, 0.7);
+    --eksi-ai-input-bg: #333;
+    --eksi-ai-input-border: #555;
+    --eksi-ai-input-text: #eee;
+    --eksi-ai-cancel-bg: #444;
+    --eksi-ai-cancel-hover: #555;
+    --eksi-ai-cancel-text: #ddd;
+}
+
 .eksi-ai-container {
     margin: 15px 0;
     padding: 15px;
-    background-color: #f9f9f9;
-    border: 1px solid #ddd;
+    background-color: var(--eksi-ai-bg);
+    border: 1px solid var(--eksi-ai-border);
     border-radius: 5px;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--eksi-ai-text);
 }
 
 .eksi-ai-btn {
-    background-color: #81c14b;
-    color: white;
+    background-color: var(--eksi-ai-btn-bg) !important;
+    color: var(--eksi-ai-btn-text) !important;
     border: none;
     padding: 8px 15px;
     border-radius: 4px;
@@ -27,41 +80,43 @@
     margin-bottom: 10px;
 }
 
-.eksi-ai-btn:hover {
-    background-color: #6da53e;
+#eksi-ai-container .eksi-ai-btn:hover {
+    background-color: var(--eksi-ai-btn-hover) !important;
 }
 
-.eksi-ai-btn.secondary {
-    background-color: #555;
+#eksi-ai-container .eksi-ai-btn.secondary {
+    background-color: var(--eksi-ai-secondary-bg) !important;
 }
 
-.eksi-ai-btn.secondary:hover {
-    background-color: #333;
+#eksi-ai-container .eksi-ai-btn.secondary:hover {
+    background-color: var(--eksi-ai-secondary-hover) !important;
 }
 
-.eksi-ai-btn:disabled {
-    background-color: #ccc;
+#eksi-ai-container .eksi-ai-btn:disabled {
+    background-color: #ccc !important;
     cursor: not-allowed;
+    opacity: 0.7;
 }
 
 .eksi-ai-result-area {
     margin-top: 15px;
     padding: 15px;
-    background: white;
-    border: 1px solid #eee;
+    background: var(--eksi-ai-input-bg);
+    border: 1px solid var(--eksi-ai-border);
     border-radius: 4px;
     display: none;
     max-height: 500px;
     overflow-y: auto;
     white-space: pre-wrap;
-    /* Preserve formatting */
+    color: var(--eksi-ai-text);
 }
 
 .eksi-ai-loading {
     display: inline-block;
     margin-left: 10px;
     font-style: italic;
-    color: #666;
+    color: var(--eksi-ai-text);
+    opacity: 0.8;
 }
 
 .eksi-ai-actions {
@@ -72,19 +127,20 @@
 }
 
 .eksi-ai-warning {
-    color: #721c24;
-    background-color: #f8d7da;
-    border-color: #f5c6cb;
+    color: var(--eksi-ai-warning-text);
+    background-color: var(--eksi-ai-warning-bg);
+    border-color: var(--eksi-ai-warning-border);
     padding: 10px;
     margin-top: 10px;
     border-radius: 4px;
     display: none;
+    border: 1px solid transparent;
 }
 
 .eksi-ai-info {
-    color: #004085;
-    background-color: #cce5ff;
-    border: 1px solid #b8daff;
+    color: var(--eksi-ai-info-text);
+    background-color: var(--eksi-ai-info-bg);
+    border: 1px solid var(--eksi-ai-info-border);
     padding: 10px;
     margin-bottom: 10px;
     border-radius: 4px;
@@ -92,45 +148,87 @@
 }
 
 /* Modal for Custom Prompt */
-.eksi-ai-modal {
-    display: none;
+.eksi-ai-modal-overlay {
     position: fixed;
-    z-index: 1000;
-    left: 0;
     top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
-    overflow: auto;
-    background-color: rgba(0, 0, 0, 0.4);
+    background: var(--eksi-ai-modal-overlay);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .eksi-ai-modal-content {
-    background-color: #fefefe;
-    margin: 15% auto;
-    padding: 20px;
-    border: 1px solid #888;
-    width: 50%;
-    border-radius: 5px;
+    background: var(--eksi-ai-modal-bg);
+    padding: 25px;
+    border-radius: 6px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    max-width: 500px;
+    width: 90%;
+    color: var(--eksi-ai-text);
+    border: 1px solid var(--eksi-ai-border);
 }
 
-.eksi-ai-close {
-    color: #aaa;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-}
-
-.eksi-ai-close:hover,
-.eksi-ai-close:focus {
-    color: black;
-    text-decoration: none;
-    cursor: pointer;
+.eksi-ai-modal-title {
+    margin: 0 0 20px 0;
+    color: var(--eksi-ai-text);
+    font-size: 18px;
+    font-weight: 600;
 }
 
 .eksi-ai-textarea {
     width: 100%;
-    height: 100px;
-    margin: 10px 0;
-    padding: 10px;
+    height: 120px;
+    padding: 12px;
+    border: 1px solid var(--eksi-ai-input-border);
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 14px;
     box-sizing: border-box;
+    resize: vertical;
+    background: var(--eksi-ai-input-bg);
+    color: var(--eksi-ai-input-text);
+    margin-bottom: 20px;
+}
+
+.eksi-ai-textarea:focus {
+    outline: none;
+    border-color: var(--eksi-ai-btn-bg);
+}
+
+.eksi-ai-modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.eksi-ai-modal-btn {
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    border: none;
+}
+
+.eksi-ai-modal-cancel-btn {
+    background: var(--eksi-ai-cancel-bg);
+    color: var(--eksi-ai-cancel-text);
+    border: 1px solid var(--eksi-ai-border);
+}
+
+.eksi-ai-modal-cancel-btn:hover {
+    background: var(--eksi-ai-cancel-hover);
+}
+
+.eksi-ai-modal-submit-btn {
+    background: var(--eksi-ai-btn-bg);
+    color: var(--eksi-ai-btn-text);
+}
+
+.eksi-ai-modal-submit-btn:hover {
+    background: var(--eksi-ai-btn-hover);
 }
