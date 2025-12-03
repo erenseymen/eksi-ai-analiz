@@ -4,8 +4,10 @@ let topicTitle = "";
 let topicId = "";
 let shouldStopScraping = false;
 
-const PROMPTS = {
-    summary: `Aşağıda "{{TITLE}}" başlığı altındaki Ekşi Sözlük entry'leri JSON formatında verilmiştir. Bu entry'leri analiz ederek kapsamlı bir özet hazırla.
+const DEFAULT_PROMPTS = [
+    {
+        name: "Özet",
+        prompt: `Aşağıda "{{TITLE}}" başlığı altındaki Ekşi Sözlük entry'leri JSON formatında verilmiştir. Bu entry'leri analiz ederek kapsamlı bir özet hazırla.
 
 ## Görev:
 - Ana konuları ve tartışma başlıklarını belirle
@@ -27,11 +29,14 @@ const PROMPTS = {
 - Link metni entry'nin anahtar kelimesini veya bağlama uygun bir ifadeyi içersin
 
 ## Çıktı:
-Yanıtın sadece özet metni olsun, ek açıklama veya meta bilgi içermesin.
+- Yanıtın sadece özet metni olsun, ek açıklama veya meta bilgi içermesin.
 
 Entry'ler:
-{{ENTRIES}}`,
-    blog: `Aşağıda "{{TITLE}}" başlığı altındaki Ekşi Sözlük entry'leri JSON formatında verilmiştir. Bu entry'lere dayalı, kapsamlı ve okunabilir bir blog yazısı yaz.
+{{ENTRIES}}`
+    },
+    {
+        name: "Blog",
+        prompt: `Aşağıda "{{TITLE}}" başlığı altındaki Ekşi Sözlük entry'leri JSON formatında verilmiştir. Bu entry'lere dayalı, kapsamlı ve okunabilir bir blog yazısı yaz.
 
 ## Görev
 Entry'lerdeki farklı görüşleri, deneyimleri, mizahı ve eleştirileri sentezleyerek, konuyu derinlemesine ele alan bir blog yazısı oluştur.
@@ -64,15 +69,18 @@ Notlar:
 - Her alıntıda yazar, tarih ve link bilgilerini mutlaka ekle
 
 Entry'ler:
-{{ENTRIES}}`,
+{{ENTRIES}}`
+    }
+];
 
-};
-
-// Helper to get API Key
-const getApiKey = async () => {
+// Helper to get Settings
+const getSettings = async () => {
     return new Promise((resolve) => {
-        chrome.storage.sync.get({ geminiApiKey: '' }, (items) => {
-            resolve(items.geminiApiKey);
+        chrome.storage.sync.get({
+            geminiApiKey: '',
+            prompts: DEFAULT_PROMPTS
+        }, (items) => {
+            resolve(items);
         });
     });
 };
@@ -137,7 +145,7 @@ const startAnalysis = async () => {
 
         // Render actions if we have entries (even if stopped early)
         if (allEntries.length > 0) {
-            renderActions(container, shouldStopScraping);
+            await renderActions(container, shouldStopScraping);
         } else {
             container.innerHTML = '<div class="eksi-ai-warning">Hiç entry toplanamadı.</div>';
         }
@@ -212,29 +220,41 @@ const scrapeEntries = async () => {
     }
 };
 
-const renderActions = (container, wasStopped = false) => {
+const renderActions = async (container, wasStopped = false) => {
+    const settings = await getSettings();
+
     const statusMessage = wasStopped
         ? `<div class="eksi-ai-info">İşlem durduruldu. ${allEntries.length} entry toplandı.</div>`
         : `<h3>${allEntries.length} entry toplandı.</h3>`;
 
+    let buttonsHtml = `
+        <button id="btn-download" class="eksi-ai-btn secondary">JSON İndir</button>
+    `;
+
+    // Add dynamic buttons from settings
+    settings.prompts.forEach((item, index) => {
+        buttonsHtml += `<button id="btn-prompt-${index}" class="eksi-ai-btn" data-index="${index}">${item.name}</button>`;
+    });
+
+    buttonsHtml += `<button id="btn-custom-manual" class="eksi-ai-btn">Özel Prompt</button>`;
+
     container.innerHTML = `
         ${statusMessage}
         <div class="eksi-ai-actions">
-            <button id="btn-download" class="eksi-ai-btn secondary">JSON İndir</button>
-            <button id="btn-summary" class="eksi-ai-btn">Özet</button>
-            <button id="btn-blog" class="eksi-ai-btn">Blog</button>
-
-            <button id="btn-custom" class="eksi-ai-btn">Özel Prompt</button>
+            ${buttonsHtml}
         </div>
         <div id="ai-result" class="eksi-ai-result-area"></div>
         <div id="ai-warning" class="eksi-ai-warning"></div>
     `;
 
     document.getElementById('btn-download').onclick = downloadJson;
-    document.getElementById('btn-summary').onclick = () => runGemini('summary');
-    document.getElementById('btn-blog').onclick = () => runGemini('blog');
 
-    document.getElementById('btn-custom').onclick = openCustomPromptModal;
+    // Add listeners for dynamic buttons
+    settings.prompts.forEach((item, index) => {
+        document.getElementById(`btn-prompt-${index}`).onclick = () => runGemini(item.prompt);
+    });
+
+    document.getElementById('btn-custom-manual').onclick = openCustomPromptModal;
 };
 
 const downloadJson = () => {
@@ -247,7 +267,7 @@ const downloadJson = () => {
     downloadAnchorNode.remove();
 };
 
-const runGemini = async (type, customPrompt = null) => {
+const runGemini = async (promptTemplate) => {
     const resultArea = document.getElementById('ai-result');
     const warningArea = document.getElementById('ai-warning');
 
@@ -255,7 +275,9 @@ const runGemini = async (type, customPrompt = null) => {
     resultArea.textContent = "Gemini düşünüyor...";
     warningArea.style.display = 'none';
 
-    const apiKey = await getApiKey();
+    const settings = await getSettings();
+    const apiKey = settings.geminiApiKey;
+
     if (!apiKey) {
         resultArea.style.display = 'none';
         warningArea.style.display = 'block';
@@ -267,7 +289,6 @@ const runGemini = async (type, customPrompt = null) => {
         return;
     }
 
-    let promptTemplate = customPrompt || PROMPTS[type];
     const limitedEntries = allEntries;
     const entriesJson = JSON.stringify(limitedEntries);
 
@@ -313,7 +334,7 @@ const openCustomPromptModal = () => {
     // Simple prompt for now
     const userPrompt = prompt("Özel promptunuzu girin ({{ENTRIES}} ve {{TITLE}} yer tutucularını kullanabilirsiniz):", "Konu: {{TITLE}}\n\nAşağıdaki JSON formatındaki entry'leri analiz et:\n{{ENTRIES}}");
     if (userPrompt) {
-        runGemini('custom', userPrompt);
+        runGemini(userPrompt);
     }
 };
 

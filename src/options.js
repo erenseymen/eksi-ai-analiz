@@ -1,23 +1,102 @@
+const DEFAULT_PROMPTS = [
+    {
+        name: "Özet",
+        prompt: `Aşağıda "{{TITLE}}" başlığı altındaki Ekşi Sözlük entry'leri JSON formatında verilmiştir. Bu entry'leri analiz ederek kapsamlı bir özet hazırla.
+
+## Görev:
+- Ana konuları ve tartışma başlıklarını belirle
+- Farklı görüşler ve fikir ayrılıklarını dengeli bir şekilde sun
+- Mizahi, ironik veya dikkat çekici entry'leri vurgula
+- Özgün ve derinlemesine görüşleri öne çıkar
+- Entry'lerin kronolojik veya tematik akışını göz önünde bulundur
+
+## Format ve Dil:
+- Markdown formatında yaz (başlıklar, listeler, vurgular kullan)
+- Bilgi verici, tarafsız ve profesyonel bir dil kullan
+- Akıcı ve okunabilir bir metin oluştur
+- Gereksiz spekülasyon veya çıkarımdan kaçın
+- Entry'lerden kısa ve anlamlı alıntılar ekle (tırnak işareti ile)
+
+## Link Formatı:
+- Entry'lere referans verirken Markdown link formatı kullan: [link metni](https://eksisozluk.com/entry/{entry_id})
+- JSON'daki entry_id değerini kullanarak link oluştur
+- Link metni entry'nin anahtar kelimesini veya bağlama uygun bir ifadeyi içersin
+
+## Çıktı:
+- Yanıtın sadece özet metni olsun, ek açıklama veya meta bilgi içermesin.
+
+Entry'ler:
+{{ENTRIES}}`
+    },
+    {
+        name: "Blog",
+        prompt: `Aşağıda "{{TITLE}}" başlığı altındaki Ekşi Sözlük entry'leri JSON formatında verilmiştir. Bu entry'lere dayalı, kapsamlı ve okunabilir bir blog yazısı yaz.
+
+## Görev
+Entry'lerdeki farklı görüşleri, deneyimleri, mizahı ve eleştirileri sentezleyerek, konuyu derinlemesine ele alan bir blog yazısı oluştur.
+
+## Yazı Üslubu ve Stil
+- Akıcı, samimi ve erişilebilir bir dil kullan
+- Analitik ve düşündürücü ol, ancak akademik bir üsluptan kaçın
+- Farklı perspektifleri dengeli bir şekilde sun
+- Gerektiğinde örnekler, anekdotlar ve ilginç detaylar ekle
+- Spekülasyondan kaçın, yalnızca entry'lerdeki bilgileri kullan
+
+## İçerik Yapısı
+1. Giriş: Konuyu kısa bir özetle tanıt ve entry'lerden çıkan ana temaları belirt
+2. Gelişme: Farklı bakış açılarını, görüşleri ve deneyimleri kategorize ederek sun
+3. Sonuç: Genel gözlemler ve öne çıkan noktaları özetle
+
+## Alıntı Formatı
+Her alıntı şu formatta olsun:
+> [Entry içeriği]
+> 
+> — **{yazar}** · [{tarih}](https://eksisozluk.com/entry/{entry_id})
+
+Notlar:
+- Yukarıdaki satırı aynen bu Markdown yapısıyla üret (tarih tıklanabilir link olsun).
+
+## Çıktı Formatı
+- Yanıt YALNIZCA blog yazısı olsun (Markdown formatında)
+- Başlık, alt başlıklar ve paragrafları uygun şekilde formatla
+- Entry'lerden bol bol alıntı yap, farklı görüşleri yansıt
+- Her alıntıda yazar, tarih ve link bilgilerini mutlaka ekle
+
+Entry'ler:
+{{ENTRIES}}`
+    }
+];
+
+let prompts = [];
+
+// Helper to update prompts array from DOM
+const updatePromptsFromDOM = () => {
+    const promptItems = document.querySelectorAll('.prompt-item');
+    const newPrompts = [];
+    promptItems.forEach(item => {
+        const name = item.querySelector('.prompt-name').value;
+        const prompt = item.querySelector('.prompt-text').value;
+        if (name && prompt) {
+            newPrompts.push({ name, prompt });
+        }
+    });
+    prompts = newPrompts;
+};
+
 // Saves options to chrome.storage
 const saveOptions = () => {
     const apiKey = document.getElementById('apiKey').value;
     const status = document.getElementById('status');
 
-    if (!apiKey) {
-        // If apiKey is empty, we still save it (as empty string) to effectively delete it.
-        chrome.storage.sync.remove('geminiApiKey', () => {
-            status.textContent = 'API Key silindi.';
-            status.className = 'status success';
-            setTimeout(() => {
-                status.textContent = '';
-                status.className = 'status';
-            }, 3000);
-        });
-        return;
-    }
+    updatePromptsFromDOM();
+
+    const settings = {
+        geminiApiKey: apiKey,
+        prompts: prompts
+    };
 
     chrome.storage.sync.set(
-        { geminiApiKey: apiKey },
+        settings,
         () => {
             // Update status to let user know options were saved.
             status.textContent = 'Ayarlar kaydedildi.';
@@ -26,6 +105,9 @@ const saveOptions = () => {
                 status.textContent = '';
                 status.className = 'status';
             }, 3000);
+
+            // Re-render to ensure state consistency (optional but good)
+            renderPrompts();
         }
     );
 };
@@ -34,15 +116,108 @@ const saveOptions = () => {
 // stored in chrome.storage.
 const restoreOptions = () => {
     chrome.storage.sync.get(
-        { geminiApiKey: '' },
+        {
+            geminiApiKey: '',
+            prompts: DEFAULT_PROMPTS
+        },
         (items) => {
             document.getElementById('apiKey').value = items.geminiApiKey;
+            prompts = items.prompts;
+            renderPrompts();
         }
     );
 };
 
+const renderPrompts = () => {
+    const list = document.getElementById('promptsList');
+    list.innerHTML = '';
+
+    prompts.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'prompt-item';
+
+        div.innerHTML = `
+            <label>Buton Adı</label>
+            <input type="text" class="prompt-name" value="${item.name}" placeholder="Buton Adı">
+            
+            <label>Prompt</label>
+            <textarea class="prompt-text" rows="4" placeholder="Prompt içeriği...">${item.prompt}</textarea>
+            
+            <div style="margin-top: 10px;">
+                <button class="save-item-btn" style="margin-right: 5px;">Kaydet</button>
+                <button class="delete-btn">Sil</button>
+            </div>
+        `;
+
+        div.querySelector('.save-item-btn').onclick = saveOptions;
+        div.querySelector('.delete-btn').onclick = () => removePrompt(index);
+        list.appendChild(div);
+    });
+};
+
+const addPrompt = () => {
+    updatePromptsFromDOM(); // Capture current state before adding
+    prompts.push({ name: "Yeni Buton", prompt: "" });
+    renderPrompts();
+};
+
+const removePrompt = (index) => {
+    if (confirm('Bu butonu silmek istediğinize emin misiniz?')) {
+        updatePromptsFromDOM(); // Capture current state before deleting
+        prompts.splice(index, 1);
+
+        // Save immediately
+        const apiKey = document.getElementById('apiKey').value;
+        const settings = {
+            geminiApiKey: apiKey,
+            prompts: prompts
+        };
+
+        chrome.storage.sync.set(settings, () => {
+            renderPrompts();
+
+            // Show status
+            const status = document.getElementById('status');
+            status.textContent = 'Buton silindi ve ayarlar kaydedildi.';
+            status.className = 'status success';
+            setTimeout(() => {
+                status.textContent = '';
+                status.className = 'status';
+            }, 3000);
+        });
+    }
+};
+
+const resetPrompts = () => {
+    if (confirm('Tüm butonları varsayılan değerlere sıfırlamak istediğinize emin misiniz? Bu işlem geri alınamaz.')) {
+        prompts = JSON.parse(JSON.stringify(DEFAULT_PROMPTS)); // Deep copy
+
+        // Save immediately
+        const apiKey = document.getElementById('apiKey').value;
+        const settings = {
+            geminiApiKey: apiKey,
+            prompts: prompts
+        };
+
+        chrome.storage.sync.set(settings, () => {
+            renderPrompts();
+
+            // Show status
+            const status = document.getElementById('status');
+            status.textContent = 'Butonlar varsayılan değerlere sıfırlandı ve ayarlar kaydedildi.';
+            status.className = 'status success';
+            setTimeout(() => {
+                status.textContent = '';
+                status.className = 'status';
+            }, 3000);
+        });
+    }
+};
+
 document.addEventListener('DOMContentLoaded', restoreOptions);
 document.getElementById('saveBtn').addEventListener('click', saveOptions);
+document.getElementById('addBtn').addEventListener('click', addPrompt);
+document.getElementById('resetBtn').addEventListener('click', resetPrompts);
 document.getElementById('apiKey').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
         saveOptions();
