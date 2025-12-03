@@ -7,7 +7,7 @@ let shouldStopScraping = false;
 const DEFAULT_PROMPTS = [
     {
         name: "Özet",
-        prompt: `Aşağıda "{{TITLE}}" başlığı altındaki Ekşi Sözlük entry'leri JSON formatında verilmiştir. Bu entry'leri analiz ederek kapsamlı bir özet hazırla.
+        prompt: `Bu entry'leri analiz ederek kapsamlı bir özet hazırla.
 
 ## Görev:
 - Ana konuları ve tartışma başlıklarını belirle
@@ -29,14 +29,11 @@ const DEFAULT_PROMPTS = [
 - Link metni entry'nin anahtar kelimesini veya bağlama uygun bir ifadeyi içersin
 
 ## Çıktı:
-- Yanıtın sadece özet metni olsun, ek açıklama veya meta bilgi içermesin.
-
-Entry'ler:
-{{ENTRIES}}`
+- Yanıtın sadece özet metni olsun, ek açıklama veya meta bilgi içermesin.`
     },
     {
         name: "Blog",
-        prompt: `Aşağıda "{{TITLE}}" başlığı altındaki Ekşi Sözlük entry'leri JSON formatında verilmiştir. Bu entry'lere dayalı, kapsamlı ve okunabilir bir blog yazısı yaz.
+        prompt: `Bu entry'lere dayalı, kapsamlı ve okunabilir bir blog yazısı yaz.
 
 ## Görev
 Entry'lerdeki farklı görüşleri, deneyimleri, mizahı ve eleştirileri sentezleyerek, konuyu derinlemesine ele alan bir blog yazısı oluştur.
@@ -66,10 +63,7 @@ Notlar:
 - Yanıt YALNIZCA blog yazısı olsun (Markdown formatında)
 - Başlık, alt başlıklar ve paragrafları uygun şekilde formatla
 - Entry'lerden bol bol alıntı yap, farklı görüşleri yansıt
-- Her alıntıda yazar, tarih ve link bilgilerini mutlaka ekle
-
-Entry'ler:
-{{ENTRIES}}`
+- Her alıntıda yazar, tarih ve link bilgilerini mutlaka ekle`
     }
 ];
 
@@ -267,7 +261,7 @@ const downloadJson = () => {
     downloadAnchorNode.remove();
 };
 
-const runGemini = async (promptTemplate) => {
+const runGemini = async (userPrompt) => {
     const resultArea = document.getElementById('ai-result');
     const warningArea = document.getElementById('ai-warning');
 
@@ -292,9 +286,13 @@ const runGemini = async (promptTemplate) => {
     const limitedEntries = allEntries;
     const entriesJson = JSON.stringify(limitedEntries);
 
-    const finalPrompt = promptTemplate
-        .replace('{{ENTRIES}}', entriesJson)
-        .replace('{{TITLE}}', topicTitle);
+    // Automatically wrap user prompt with title and entries
+    const finalPrompt = `Başlık: "${topicTitle}"
+
+Aşağıda Ekşi Sözlük entry'leri JSON formatında verilmiştir:
+${entriesJson}
+
+${userPrompt}`;
 
     try {
         const response = await callGeminiApi(apiKey, finalPrompt);
@@ -332,7 +330,7 @@ const callGeminiApi = async (apiKey, prompt) => {
 
 const openCustomPromptModal = () => {
     // Simple prompt for now
-    const userPrompt = prompt("Özel promptunuzu girin ({{ENTRIES}} ve {{TITLE}} yer tutucularını kullanabilirsiniz):", "Konu: {{TITLE}}\n\nAşağıdaki JSON formatındaki entry'leri analiz et:\n{{ENTRIES}}");
+    const userPrompt = prompt("Özel promptunuzu girin:\n\n(Not: Başlık ve entry'ler otomatik olarak gönderilir, sadece talebinizi yazın)", "Örnek: Bu konudaki mizahi entry'leri listele");
     if (userPrompt) {
         runGemini(userPrompt);
     }

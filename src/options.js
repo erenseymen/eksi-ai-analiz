@@ -1,7 +1,7 @@
 const DEFAULT_PROMPTS = [
     {
         name: "Özet",
-        prompt: `Aşağıda "{{TITLE}}" başlığı altındaki Ekşi Sözlük entry'leri JSON formatında verilmiştir. Bu entry'leri analiz ederek kapsamlı bir özet hazırla.
+        prompt: `Bu entry'leri analiz ederek kapsamlı bir özet hazırla.
 
 ## Görev:
 - Ana konuları ve tartışma başlıklarını belirle
@@ -23,14 +23,11 @@ const DEFAULT_PROMPTS = [
 - Link metni entry'nin anahtar kelimesini veya bağlama uygun bir ifadeyi içersin
 
 ## Çıktı:
-- Yanıtın sadece özet metni olsun, ek açıklama veya meta bilgi içermesin.
-
-Entry'ler:
-{{ENTRIES}}`
+- Yanıtın sadece özet metni olsun, ek açıklama veya meta bilgi içermesin.`
     },
     {
         name: "Blog",
-        prompt: `Aşağıda "{{TITLE}}" başlığı altındaki Ekşi Sözlük entry'leri JSON formatında verilmiştir. Bu entry'lere dayalı, kapsamlı ve okunabilir bir blog yazısı yaz.
+        prompt: `Bu entry'lere dayalı, kapsamlı ve okunabilir bir blog yazısı yaz.
 
 ## Görev
 Entry'lerdeki farklı görüşleri, deneyimleri, mizahı ve eleştirileri sentezleyerek, konuyu derinlemesine ele alan bir blog yazısı oluştur.
@@ -60,10 +57,7 @@ Notlar:
 - Yanıt YALNIZCA blog yazısı olsun (Markdown formatında)
 - Başlık, alt başlıklar ve paragrafları uygun şekilde formatla
 - Entry'lerden bol bol alıntı yap, farklı görüşleri yansıt
-- Her alıntıda yazar, tarih ve link bilgilerini mutlaka ekle
-
-Entry'ler:
-{{ENTRIES}}`
+- Her alıntıda yazar, tarih ve link bilgilerini mutlaka ekle`
     }
 ];
 
