@@ -70,8 +70,7 @@ eksi-ai-analiz/
 │   ├── icon16.png
 │   ├── icon48.png
 │   └── icon128.png
-├── README.md
-└── LEGAL_NOTICE.md        # Yasal uyarılar
+└── README.md
 ```
 
 ### Önemli Notlar
@@ -109,7 +108,3 @@ Bu proje kişisel kullanım içindir. Ekşi Teknoloji ile bağlantımız yoktur.
 ## Lisans
 
 MIT License
-
-## Yasal Bilgilendirme
-
-Detaylı yasal bilgi için [LEGAL_NOTICE.md](LEGAL_NOTICE.md) dosyasına bakabilirsiniz.
