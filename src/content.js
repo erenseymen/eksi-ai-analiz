@@ -329,11 +329,148 @@ const callGeminiApi = async (apiKey, prompt) => {
 };
 
 const openCustomPromptModal = () => {
-    // Simple prompt for now
-    const userPrompt = prompt("Özel promptunuzu girin:\n\n(Not: Başlık ve entry'ler otomatik olarak gönderilir, sadece talebinizi yazın)", "Örnek: Bu konudaki mizahi entry'leri listele");
-    if (userPrompt) {
-        runGemini(userPrompt);
-    }
+    // Create modal overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'eksi-ai-modal-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    `;
+
+    // Create modal content
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        background: #fff;
+        padding: 25px;
+        border-radius: 6px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        max-width: 500px;
+        width: 90%;
+    `;
+
+    modal.innerHTML = `
+        <h3 style="margin: 0 0 20px 0; color: #333; font-size: 18px; font-weight: 600;">Ne yapmamı istersin?</h3>
+        <textarea id="eksi-ai-custom-prompt" 
+                  style="width: 100%; 
+                         height: 120px; 
+                         padding: 12px; 
+                         border: 1px solid #ccc; 
+                         border-radius: 4px; 
+                         font-family: inherit;
+                         font-size: 14px;
+                         box-sizing: border-box;
+                         resize: vertical;
+                         background: #fff;
+                         color: #333;"
+                  placeholder="Örnek: Bu konudaki mizahi entry'leri listele"></textarea>
+        <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+            <button id="eksi-ai-modal-cancel" 
+                    class="eksi-ai-modal-btn eksi-ai-modal-cancel-btn"
+                    style="padding: 10px 20px; 
+                           border: 1px solid #ccc; 
+                           background: #f5f5f5; 
+                           color: #333;
+                           border-radius: 4px; 
+                           cursor: pointer;
+                           font-size: 14px;
+                           font-weight: 500;">
+                vazgeç
+            </button>
+            <button id="eksi-ai-modal-submit" 
+                    class="eksi-ai-modal-btn eksi-ai-modal-submit-btn"
+                    style="padding: 10px 20px; 
+                           border: none; 
+                           background: #81c14b; 
+                           color: #fff; 
+                           border-radius: 4px; 
+                           cursor: pointer;
+                           font-size: 14px;
+                           font-weight: 500;">
+                gönder
+            </button>
+        </div>
+    `;
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    // Focus on textarea
+    const textarea = document.getElementById('eksi-ai-custom-prompt');
+    const cancelBtn = document.getElementById('eksi-ai-modal-cancel');
+    const submitBtn = document.getElementById('eksi-ai-modal-submit');
+
+    setTimeout(() => textarea.focus(), 100);
+
+    // Add hover effects
+    cancelBtn.onmouseenter = () => {
+        cancelBtn.style.background = '#e8e8e8';
+    };
+    cancelBtn.onmouseleave = () => {
+        cancelBtn.style.background = '#f5f5f5';
+    };
+
+    submitBtn.onmouseenter = () => {
+        submitBtn.style.background = '#6da53e';
+    };
+    submitBtn.onmouseleave = () => {
+        submitBtn.style.background = '#81c14b';
+    };
+
+    // Close modal function
+    const closeModal = () => {
+        overlay.remove();
+    };
+
+    // Cancel button
+    cancelBtn.onclick = closeModal;
+
+    // Close on overlay click (but not on modal click)
+    overlay.onclick = (e) => {
+        if (e.target === overlay) {
+            closeModal();
+        }
+    };
+
+    // Close on Escape key
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            closeModal();
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    document.addEventListener('keydown', handleEscape);
+
+    // Submit button
+    submitBtn.onclick = () => {
+        const userPrompt = textarea.value.trim();
+        if (userPrompt) {
+            runGemini(userPrompt);
+            closeModal();
+        } else {
+            textarea.style.borderColor = '#d9534f';
+            textarea.focus();
+        }
+    };
+
+    // Submit on Ctrl+Enter or Cmd+Enter
+    textarea.onkeydown = (e) => {
+        // Reset border color on typing
+        if (textarea.style.borderColor === 'rgb(217, 83, 79)') {
+            textarea.style.borderColor = '#ccc';
+        }
+
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            submitBtn.click();
+        }
+    };
 };
 
 // Run init
