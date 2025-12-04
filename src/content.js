@@ -119,6 +119,11 @@ const detectPageType = () => {
         return 'entry-page';
     }
     
+    // İstatistik sayfaları
+    if (path.startsWith('/istatistik/')) {
+        return 'statistics-page';
+    }
+    
     return 'unknown';
 };
 
@@ -357,6 +362,7 @@ const init = () => {
         case 'debe-page':
         case 'author-page':
         case 'channel-page':
+        case 'statistics-page':
             // Don't show buttons on these pages
             break;
         default:
