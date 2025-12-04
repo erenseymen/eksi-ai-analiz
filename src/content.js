@@ -72,6 +72,7 @@ const getSettings = async () => {
     return new Promise((resolve) => {
         chrome.storage.sync.get({
             geminiApiKey: '',
+            selectedModel: 'gemini-2.5-flash',
             prompts: DEFAULT_PROMPTS
         }, (items) => {
             resolve(items);
@@ -289,6 +290,7 @@ const runGemini = async (userPrompt) => {
 
     const settings = await getSettings();
     const apiKey = settings.geminiApiKey;
+    const modelId = settings.selectedModel || 'gemini-2.5-flash';
 
     if (!apiKey) {
         resultArea.style.display = 'none';
@@ -313,37 +315,76 @@ ${entriesJson}
 ${userPrompt}`;
 
     try {
-        const response = await callGeminiApi(apiKey, finalPrompt);
+        const response = await callGeminiApi(apiKey, modelId, finalPrompt);
         resultArea.textContent = response;
     } catch (err) {
-        resultArea.textContent = "Hata: " + err.message;
+        let errorMessage = err.message;
+        
+        // Provide helpful error message for model not found
+        if (errorMessage.includes('not found') || errorMessage.includes('not supported')) {
+            errorMessage = `Model "${modelId}" bulunamadı veya desteklenmiyor.\n\n` +
+                          `Lütfen Ayarlar sayfasından mevcut bir model seçin:\n` +
+                          `- gemini-2.5-flash (Önerilen)\n` +
+                          `- gemini-2.5-pro\n` +
+                          `- gemini-2.5-flash-lite\n\n` +
+                          `Hata detayı: ${err.message}`;
+        }
+        
+        resultArea.textContent = "Hata: " + errorMessage;
     }
 };
 
-const callGeminiApi = async (apiKey, prompt) => {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+const callGeminiApi = async (apiKey, modelId, prompt) => {
+    const startTime = performance.now();
+    
+    // Try v1 first (stable), fallback to v1beta if needed
+    const attempts = [
+        { version: 'v1', model: modelId },
+        { version: 'v1beta', model: modelId }
+    ];
 
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            contents: [{
-                parts: [{
-                    text: prompt
-                }]
-            }]
-        })
-    });
+    let lastError = null;
+    
+    for (const attempt of attempts) {
+        const url = `https://generativelanguage.googleapis.com/${attempt.version}/models/${attempt.model}:generateContent?key=${apiKey}`;
+        
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{
+                            text: prompt
+                        }]
+                    }]
+                })
+            });
 
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.message || 'API request failed');
+            if (response.ok) {
+                const data = await response.json();
+                const endTime = performance.now();
+                const responseTime = endTime - startTime;
+                
+                console.log(`Gemini API Response Time: ${responseTime.toFixed(2)}ms (${attempt.version}/${attempt.model})`);
+                window.geminiResponseTime = responseTime;
+                
+                return data.candidates[0].content.parts[0].text;
+            } else {
+                const errorData = await response.json();
+                lastError = errorData.error?.message || 'API request failed';
+                // Continue to next attempt
+            }
+        } catch (err) {
+            lastError = err.message;
+            // Continue to next attempt
+        }
     }
-
-    const data = await response.json();
-    return data.candidates[0].content.parts[0].text;
+    
+    // If all attempts failed, throw the last error with helpful message
+    throw new Error(lastError || 'Model bulunamadı. Lütfen model adını ve API versiyonunu kontrol edin.');
 };
 
 const openCustomPromptModal = () => {

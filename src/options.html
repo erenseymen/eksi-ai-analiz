@@ -143,6 +143,14 @@
         <label for="apiKey">Gemini API Key</label>
         <input type="text" id="apiKey" placeholder="API Key'inizi buraya yapıştırın">
 
+        <label for="modelSelect">Model Seçimi</label>
+        <select id="modelSelect" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px;">
+            <!-- Options will be populated by JS -->
+        </select>
+        <div id="modelInfo" style="background: #e9ecef; padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 0.9em;">
+            <!-- Model info will be displayed here -->
+        </div>
+
         <button id="saveBtn">Kaydet</button>
 
         <div id="status" class="status"></div>
