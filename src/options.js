@@ -1,19 +1,19 @@
 const MODELS = [
     {
-        id: 'gemini-2.5-flash',
-        name: 'Gemini 2.5 Flash (Önerilen)',
-        description: 'Hız ve verimlilik için en iyi seçenek. Çoğu görev için ideal.',
-        cost: 'Ücretsiz (Rate limit dahilinde)',
-        contextWindow: 1048576,
-        responseTime: '~20 saniye'
-    },
-    {
         id: 'gemini-2.5-pro',
-        name: 'Gemini 2.5 Pro',
+        name: 'Gemini 2.5 Pro (Önerilen)',
         description: 'Güçlü muhakeme yeteneği ve geniş bağlam penceresi. Karmaşık görevler ve derinlemesine analiz için en güçlü model.',
         cost: 'Orta/Yüksek maliyet',
         contextWindow: 1048576,
         responseTime: '~30 saniye'
+    },
+    {
+        id: 'gemini-2.5-flash',
+        name: 'Gemini 2.5 Flash',
+        description: 'Hız ve verimlilik için en iyi seçenek. Çoğu görev için ideal.',
+        cost: 'Ücretsiz (Rate limit dahilinde)',
+        contextWindow: 1048576,
+        responseTime: '~20 saniye'
     },
     {
         id: 'gemini-2.5-flash-lite',
@@ -200,7 +200,7 @@ const restoreOptions = async () => {
     chrome.storage.sync.get(
         {
             geminiApiKey: '',
-            selectedModel: 'gemini-2.5-flash',
+            selectedModel: 'gemini-2.5-pro',
             prompts: DEFAULT_PROMPTS
         },
         async (items) => {
