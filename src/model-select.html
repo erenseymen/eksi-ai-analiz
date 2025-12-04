@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Seçimi</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 15px;
+            min-width: 300px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        h2 {
+            margin: 0 0 15px 0;
+            color: #81c14b;
+            font-size: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            color: #333;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+            font-size: 14px;
+            background-color: #ffffff;
+            color: #333;
+        }
+
+        #modelInfo {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 0.85em;
+            line-height: 1.5;
+            color: #333;
+        }
+
+        #modelInfo strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        #modelInfo small {
+            display: block;
+            margin-top: 5px;
+        }
+
+        button {
+            background-color: #81c14b;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            background-color: #6da53e;
+        }
+
+        #settingsLink {
+            background-color: #666;
+            text-decoration: none;
+            display: block;
+            text-align: center;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+        }
+
+        #settingsLink:hover {
+            background-color: #555;
+        }
+
+        .status {
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 4px;
+            display: none;
+            font-size: 13px;
+        }
+
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h2>Model Seçimi</h2>
+    
+    <label for="modelSelect">Model</label>
+    <select id="modelSelect">
+        <!-- Options will be populated by JS -->
+    </select>
+    
+    <div id="modelInfo">
+        <!-- Model info will be displayed here -->
+    </div>
+
+    <button id="saveBtn">Kaydet</button>
+    <a href="#" id="settingsLink" class="button">Tüm Ayarlar</a>
+    
+    <div id="status" class="status"></div>
+
+    <script src="model-select.js"></script>
+</body>
+</html>
+
