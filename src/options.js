@@ -70,6 +70,10 @@ Entry'lerdeki farklı görüşleri, deneyimleri, mizahı ve eleştirileri sentez
 1. Giriş: Konuyu kısa bir özetle tanıt ve entry'lerden çıkan ana temaları belirt
 2. Gelişme: Farklı bakış açılarını, görüşleri ve deneyimleri kategorize ederek sun
 3. Sonuç: Genel gözlemler ve öne çıkan noktaları özetle
+4. Harici linkler: Entry'lerde paylaşılan tüm harici linkleri listele
+
+## URL Filtreleme Kuralları
+- Entry içeriklerinde geçen harici URL'leri (http:// veya https:// ile başlayan) yazının sonundaki "Kaynaklar ve Bağlantılar" bölümünde topla. (eksisozluk.com linkleri dahil DEĞİLDİR, onları normal şekilde kullan). Açıklaması olanların açıklamasını ekle.
 
 ## Alıntı Formatı
 Her alıntı şu formatta olsun:
@@ -79,6 +83,24 @@ Her alıntı şu formatta olsun:
 
 Notlar:
 - Yukarıdaki satırı aynen bu Markdown yapısıyla üret (tarih tıklanabilir link olsun).
+
+## Harici linkler Bölümü Formatı
+Yazının en sonunda şu formatta bir bölüm oluştur:
+
+---
+
+## 🔗 Harici Linkler
+
+Entry'lerde paylaşılan harici linkler:
+
+- [Link açıklaması veya domain adı](URL) — *{yazar}* tarafından paylaşıldı
+- ...
+
+Notlar:
+- Her link için kısa bir açıklama veya domain adını kullan
+- Linki paylaşan yazarı belirt
+- Aynı link birden fazla entry'de geçiyorsa, sadece bir kez listele
+- Eğer hiç harici link yoksa bu bölümü EKLEME
 
 ## Çıktı Formatı
 - Yanıt YALNIZCA blog yazısı olsun (Markdown formatında)
