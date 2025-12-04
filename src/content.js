@@ -251,8 +251,14 @@ const scrapeEntriesFromUrl = async (url) => {
     // Remove 'p' parameter if it exists (we'll add it in the loop)
     existingParams.delete('p');
     
-    // Fetch the topic page
-    const response = await fetch(url);
+    // Build URL for first page fetch with preserved query parameters (without p)
+    const firstPageParams = new URLSearchParams(existingParams);
+    const firstPageUrl = firstPageParams.toString() 
+        ? `${baseUrl}?${firstPageParams.toString()}`
+        : baseUrl;
+    
+    // Fetch the topic page (first page)
+    const response = await fetch(firstPageUrl);
     const text = await response.text();
     const parser = new DOMParser();
     const doc = parser.parseFromString(text, 'text/html');
@@ -274,7 +280,26 @@ const scrapeEntriesFromUrl = async (url) => {
 
     const statusSpan = document.querySelector('.eksi-ai-loading');
 
-    for (let i = 1; i <= totalPages; i++) {
+    // Process first page entries
+    const firstPageEntryItems = doc.querySelectorAll('#entry-item-list > li');
+    firstPageEntryItems.forEach(item => {
+        const content = item.querySelector('.content')?.innerText.trim();
+        const author = item.querySelector('.entry-author')?.innerText.trim();
+        const date = item.querySelector('.entry-date')?.innerText.trim();
+        const id = item.getAttribute('data-id');
+
+        if (content) {
+            allEntries.push({
+                id,
+                author,
+                date,
+                content
+            });
+        }
+    });
+
+    // Process remaining pages (starting from page 2)
+    for (let i = 2; i <= totalPages; i++) {
         // Check if user requested to stop
         if (shouldStopScraping) {
             if (statusSpan) statusSpan.textContent = `İşlem durduruldu. ${allEntries.length} entry toplandı.`;
@@ -450,7 +475,7 @@ const scrapeEntries = async () => {
         totalPages = parseInt(lastPageLink) || 1;
     }
 
-    // Parse current URL to preserve query parameters (like ?day=2025-12-04)
+    // Parse current URL to preserve query parameters (like ?day=2025-12-04, ?a=tracked&snapshot=180043127)
     const currentUrlObj = new URL(window.location.href);
     const baseUrl = currentUrlObj.origin + currentUrlObj.pathname;
     const existingParams = new URLSearchParams(currentUrlObj.search);
@@ -460,7 +485,26 @@ const scrapeEntries = async () => {
 
     const statusSpan = document.querySelector('.eksi-ai-loading');
 
-    for (let i = 1; i <= totalPages; i++) {
+    // Process first page entries from current DOM
+    const firstPageEntryItems = document.querySelectorAll('#entry-item-list > li');
+    firstPageEntryItems.forEach(item => {
+        const content = item.querySelector('.content')?.innerText.trim();
+        const author = item.querySelector('.entry-author')?.innerText.trim();
+        const date = item.querySelector('.entry-date')?.innerText.trim();
+        const id = item.getAttribute('data-id');
+
+        if (content) {
+            allEntries.push({
+                id,
+                author,
+                date,
+                content
+            });
+        }
+    });
+
+    // Process remaining pages (starting from page 2)
+    for (let i = 2; i <= totalPages; i++) {
         // Check if user requested to stop
         if (shouldStopScraping) {
             if (statusSpan) statusSpan.textContent = `İşlem durduruldu. ${allEntries.length} entry toplandı.`;
