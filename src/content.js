@@ -675,7 +675,35 @@ const runGemini = async (userPrompt) => {
     const warningArea = document.getElementById('ai-warning');
 
     resultArea.style.display = 'block';
-    resultArea.textContent = "Gemini düşünüyor...";
+    
+    // Create AbortController for cancellation
+    const abortController = new AbortController();
+    
+    // Create loading message with stop button
+    const loadingContainer = document.createElement('div');
+    loadingContainer.style.display = 'flex';
+    loadingContainer.style.alignItems = 'center';
+    loadingContainer.style.gap = '10px';
+    
+    const loadingText = document.createElement('span');
+    loadingText.textContent = "Gemini düşünüyor...";
+    
+    const stopButton = document.createElement('button');
+    stopButton.textContent = "Durdur";
+    stopButton.className = 'eksi-ai-btn';
+    stopButton.style.padding = '5px 12px';
+    stopButton.style.fontSize = '12px';
+    stopButton.style.margin = '0';
+    stopButton.onclick = () => {
+        abortController.abort();
+        loadingText.textContent = "İstek iptal ediliyor...";
+        stopButton.disabled = true;
+    };
+    
+    loadingContainer.appendChild(loadingText);
+    loadingContainer.appendChild(stopButton);
+    resultArea.innerHTML = '';
+    resultArea.appendChild(loadingContainer);
     warningArea.style.display = 'none';
 
     const settings = await getSettings();
@@ -705,7 +733,7 @@ ${entriesJson}
 ${userPrompt}`;
 
     try {
-        const response = await callGeminiApi(apiKey, modelId, finalPrompt);
+        const response = await callGeminiApi(apiKey, modelId, finalPrompt, abortController.signal);
         resultArea.textContent = response;
     } catch (err) {
         let errorMessage = err.message;
@@ -736,12 +764,17 @@ ${userPrompt}`;
                 resultArea.textContent = "Hata: " + errorMessage;
             }
         } else {
-            resultArea.textContent = "Hata: " + errorMessage;
+            // Check if error is due to abort
+            if (err.name === 'AbortError' || errorMessage.includes('aborted')) {
+                resultArea.textContent = "İstek iptal edildi.";
+            } else {
+                resultArea.textContent = "Hata: " + errorMessage;
+            }
         }
     }
 };
 
-const callGeminiApi = async (apiKey, modelId, prompt) => {
+const callGeminiApi = async (apiKey, modelId, prompt, signal) => {
     const startTime = performance.now();
     
     // Try v1 first (stable), fallback to v1beta if needed
@@ -767,7 +800,8 @@ const callGeminiApi = async (apiKey, modelId, prompt) => {
                             text: prompt
                         }]
                     }]
-                })
+                }),
+                signal: signal
             });
 
             if (response.ok) {
