@@ -646,9 +646,26 @@ ${userPrompt}`;
                           `- gemini-2.5-pro\n` +
                           `- gemini-2.5-flash-lite\n\n` +
                           `Hata detayı: ${err.message}`;
+            resultArea.textContent = "Hata: " + errorMessage;
+        } else if (errorMessage.includes('quota') || errorMessage.includes('Quota exceeded')) {
+            // Parse retry time from error message (can be in different formats)
+            // Look for patterns like "Please retry in 56.404982995s" or "retry in Xs"
+            const retryMatch = errorMessage.match(/retry in ([\d.]+)\s*s/i) || 
+                              errorMessage.match(/retry.*?([\d.]+)\s*second/i) ||
+                              errorMessage.match(/([\d.]+)\s*s\s*$/m);
+            if (retryMatch) {
+                const retrySeconds = parseFloat(retryMatch[1]);
+                if (!isNaN(retrySeconds) && retrySeconds > 0) {
+                    showQuotaErrorWithCountdown(resultArea, errorMessage, retrySeconds);
+                } else {
+                    resultArea.textContent = "Hata: " + errorMessage;
+                }
+            } else {
+                resultArea.textContent = "Hata: " + errorMessage;
+            }
+        } else {
+            resultArea.textContent = "Hata: " + errorMessage;
         }
-        
-        resultArea.textContent = "Hata: " + errorMessage;
     }
 };
 
@@ -697,7 +714,13 @@ const callGeminiApi = async (apiKey, modelId, prompt) => {
                 return data.candidates[0].content.parts[0].text;
             } else {
                 const errorData = await response.json();
-                lastError = errorData.error?.message || 'API request failed';
+                // Get full error message including details
+                const errorMsg = errorData.error?.message || 'API request failed';
+                // Include error details if available
+                const fullError = errorData.error?.details 
+                    ? `${errorMsg}\n\n${JSON.stringify(errorData.error.details, null, 2)}`
+                    : errorMsg;
+                lastError = fullError;
                 // Continue to next attempt
             }
         } catch (err) {
@@ -733,6 +756,48 @@ const saveUsageMetadata = (usageMetadata) => {
         
         chrome.storage.local.set({ [usageKey]: updatedUsage });
     });
+};
+
+// Show quota error with countdown timer
+const showQuotaErrorWithCountdown = (resultArea, errorMessage, retrySeconds) => {
+    resultArea.style.display = 'block';
+    
+    // Create countdown container
+    const countdownContainer = document.createElement('div');
+    countdownContainer.className = 'eksi-ai-quota-error';
+    
+    const errorText = document.createElement('div');
+    errorText.className = 'eksi-ai-quota-error-text';
+    errorText.textContent = errorMessage.split('\n')[0]; // First line of error
+    
+    const countdownText = document.createElement('div');
+    countdownText.className = 'eksi-ai-quota-countdown';
+    
+    countdownContainer.appendChild(errorText);
+    countdownContainer.appendChild(countdownText);
+    
+    resultArea.innerHTML = '';
+    resultArea.appendChild(countdownContainer);
+    
+    // Start countdown
+    let remainingSeconds = Math.ceil(retrySeconds);
+    const updateCountdown = () => {
+        if (remainingSeconds > 0) {
+            const minutes = Math.floor(remainingSeconds / 60);
+            const seconds = remainingSeconds % 60;
+            const timeString = minutes > 0 
+                ? `${minutes}:${seconds.toString().padStart(2, '0')}`
+                : `${seconds} saniye`;
+            countdownText.textContent = `Lütfen ${timeString} sonra tekrar deneyin...`;
+            remainingSeconds--;
+            setTimeout(updateCountdown, 1000);
+        } else {
+            countdownText.textContent = 'Tekrar deneyebilirsiniz!';
+            countdownText.style.color = 'var(--eksi-ai-btn-bg)';
+        }
+    };
+    
+    updateCountdown();
 };
 
 const openCustomPromptModal = () => {

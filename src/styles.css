@@ -232,3 +232,30 @@
 .eksi-ai-modal-submit-btn:hover {
     background: var(--eksi-ai-btn-hover);
 }
+
+/* Quota Error with Countdown */
+.eksi-ai-quota-error {
+    padding: 15px;
+    background-color: var(--eksi-ai-warning-bg);
+    border: 1px solid var(--eksi-ai-warning-border);
+    border-radius: 4px;
+    color: var(--eksi-ai-warning-text);
+}
+
+.eksi-ai-quota-error-text {
+    margin-bottom: 10px;
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+.eksi-ai-quota-countdown {
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--eksi-ai-warning-text);
+    margin-top: 10px;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+}
