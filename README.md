@@ -1,5 +1,7 @@
 # Ekşi Sözlük AI Analiz
 
+![Banner](icons/banner255.png)
+
 Ekşi Sözlük başlıklarını yapay zeka ile analiz eden Chrome eklentisi.
 
 ## Özellikler
