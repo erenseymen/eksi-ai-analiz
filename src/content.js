@@ -683,6 +683,11 @@ const callGeminiApi = async (apiKey, modelId, prompt) => {
                 console.log(`Gemini API Response Time: ${responseTime.toFixed(2)}ms (${attempt.version}/${attempt.model})`);
                 window.geminiResponseTime = responseTime;
                 
+                // Save usage metadata for quota tracking
+                if (data.usageMetadata) {
+                    saveUsageMetadata(data.usageMetadata);
+                }
+                
                 return data.candidates[0].content.parts[0].text;
             } else {
                 const errorData = await response.json();
@@ -697,6 +702,31 @@ const callGeminiApi = async (apiKey, modelId, prompt) => {
     
     // If all attempts failed, throw the last error with helpful message
     throw new Error(lastError || 'Model bulunamadı. Lütfen model adını ve API versiyonunu kontrol edin.');
+};
+
+// Save usage metadata to track token usage
+const saveUsageMetadata = (usageMetadata) => {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    const usageKey = `geminiUsage_${today}`;
+    
+    chrome.storage.local.get([usageKey], (result) => {
+        const existingUsage = result[usageKey] || {
+            promptTokens: 0,
+            candidatesTokens: 0,
+            totalTokens: 0,
+            requestCount: 0
+        };
+        
+        const updatedUsage = {
+            promptTokens: existingUsage.promptTokens + (usageMetadata.promptTokenCount || 0),
+            candidatesTokens: existingUsage.candidatesTokens + (usageMetadata.candidatesTokenCount || 0),
+            totalTokens: existingUsage.totalTokens + (usageMetadata.totalTokenCount || 0),
+            requestCount: existingUsage.requestCount + 1,
+            lastUpdated: Date.now()
+        };
+        
+        chrome.storage.local.set({ [usageKey]: updatedUsage });
+    });
 };
 
 const openCustomPromptModal = () => {

@@ -155,6 +155,11 @@ const restoreOptions = () => {
 
             populateModelSelect(items.selectedModel);
             renderPrompts();
+            
+            // Load token info if API key exists
+            if (items.geminiApiKey) {
+                loadTokenInfo(items.geminiApiKey);
+            }
         }
     );
 };
@@ -291,8 +296,216 @@ const resetPrompts = () => {
     }
 };
 
-document.addEventListener('DOMContentLoaded', restoreOptions);
-document.getElementById('saveBtn').addEventListener('click', saveOptions);
+// Token info cache duration: 1 hour (3600000 ms)
+const TOKEN_INFO_CACHE_DURATION = 60 * 60 * 1000;
+
+// Known Google Gemini API limits (free tier)
+const GEMINI_LIMITS = {
+    dailyTokens: 300000, // 300k tokens per day
+    requestsPerMinute: 60
+};
+
+// Get today's usage statistics
+const getTodayUsage = () => {
+    return new Promise((resolve) => {
+        const today = new Date().toISOString().split('T')[0];
+        const usageKey = `geminiUsage_${today}`;
+        
+        chrome.storage.local.get([usageKey], (result) => {
+            const usage = result[usageKey] || {
+                promptTokens: 0,
+                candidatesTokens: 0,
+                totalTokens: 0,
+                requestCount: 0
+            };
+            resolve(usage);
+        });
+    });
+};
+
+// Get token info from Google Gemini API
+const getTokenInfo = async (apiKey) => {
+    // Check cache first
+    const cacheKey = 'tokenInfoCache';
+    const cached = await new Promise((resolve) => {
+        chrome.storage.local.get([cacheKey], (result) => {
+            resolve(result[cacheKey]);
+        });
+    });
+
+    // Always get fresh usage stats (they're updated in real-time)
+    const todayUsage = await getTodayUsage();
+    
+    if (cached) {
+        const now = Date.now();
+        const cacheAge = now - cached.timestamp;
+        
+        // If cache is still valid (less than 1 hour old), return cached data with fresh usage
+        if (cacheAge < TOKEN_INFO_CACHE_DURATION) {
+            return {
+                ...cached.data,
+                todayUsage: todayUsage
+            };
+        }
+    }
+
+    // Fetch fresh token info from API
+    try {
+        // Try to get quota info from Google AI Studio API
+        // First, try to get models list to verify API key is valid
+        const modelsUrl = `https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`;
+        const modelsResponse = await fetch(modelsUrl);
+        
+        if (!modelsResponse.ok) {
+            const errorData = await modelsResponse.json();
+            throw new Error(errorData.error?.message || 'API Key geçersiz');
+        }
+
+        // API key is valid (usage is already fetched above)
+        const tokenInfo = {
+            apiKeyValid: true,
+            timestamp: Date.now(),
+            todayUsage: todayUsage,
+            limits: GEMINI_LIMITS
+        };
+
+        // Cache the result
+        chrome.storage.local.set({
+            [cacheKey]: {
+                data: tokenInfo,
+                timestamp: Date.now()
+            }
+        });
+
+        return tokenInfo;
+    } catch (error) {
+        console.error('Error fetching token info:', error);
+        throw error;
+    }
+};
+
+// Load and display token info
+const loadTokenInfo = async (apiKey) => {
+    const tokenInfoDiv = document.getElementById('tokenInfo');
+    const tokenInfoContent = document.getElementById('tokenInfoContent');
+    const refreshBtn = document.getElementById('tokenRefreshBtn');
+    
+    if (!apiKey) {
+        tokenInfoDiv.style.display = 'none';
+        if (refreshBtn) refreshBtn.style.display = 'none';
+        return;
+    }
+
+    tokenInfoDiv.style.display = 'block';
+    if (refreshBtn) refreshBtn.style.display = 'inline-block';
+    tokenInfoContent.innerHTML = '<span class="token-loading">Yükleniyor...</span>';
+
+    try {
+        const tokenInfo = await getTokenInfo(apiKey);
+        
+        let infoHtml = '';
+        
+        if (tokenInfo.apiKeyValid) {
+            // Show cached timestamp if available
+            const cacheAge = Date.now() - tokenInfo.timestamp;
+            const cacheAgeMinutes = Math.floor(cacheAge / 60000);
+            const cacheAgeText = cacheAgeMinutes < 60 
+                ? `${cacheAgeMinutes} dakika önce güncellendi`
+                : `${Math.floor(cacheAgeMinutes / 60)} saat önce güncellendi`;
+            
+            // Calculate usage statistics
+            const usage = tokenInfo.todayUsage || { totalTokens: 0, requestCount: 0 };
+            const limits = tokenInfo.limits || GEMINI_LIMITS;
+            const remainingTokens = Math.max(0, limits.dailyTokens - usage.totalTokens);
+            const usagePercent = limits.dailyTokens > 0 
+                ? ((usage.totalTokens / limits.dailyTokens) * 100).toFixed(1)
+                : 0;
+            
+            // Format numbers with Turkish locale
+            const formatNumber = (num) => new Intl.NumberFormat('tr-TR').format(num);
+            
+            // Determine color based on usage
+            let usageColor = '#81c14b'; // green
+            if (usagePercent > 80) usageColor = '#d9534f'; // red
+            else if (usagePercent > 60) usageColor = '#f0ad4e'; // orange
+            
+            infoHtml = `
+                <small>✓ API Key geçerli</small><br>
+                <small style="color: #666;">${cacheAgeText}</small><br>
+                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ccc;">
+                    <strong style="font-size: 0.95em;">Bugünkü Kullanım:</strong><br>
+                    <small>
+                        <strong>Token:</strong> ${formatNumber(usage.totalTokens)} / ${formatNumber(limits.dailyTokens)} 
+                        <span style="color: ${usageColor};">(${usagePercent}%)</span><br>
+                        <strong>Kalan:</strong> <span style="color: ${usageColor};">${formatNumber(remainingTokens)} token</span><br>
+                        <strong>İstek Sayısı:</strong> ${formatNumber(usage.requestCount)}<br>
+                    </small>
+                    <div style="margin-top: 8px; background: #ddd; height: 8px; border-radius: 4px; overflow: hidden;">
+                        <div style="background: ${usageColor}; height: 100%; width: ${Math.min(usagePercent, 100)}%; transition: width 0.3s;"></div>
+                    </div>
+                </div>
+                <small style="color: #666; margin-top: 5px; display: block;">
+                    Detaylı bilgi için 
+                    <a href="https://aistudio.google.com/app/api-keys" target="_blank" style="color: #81c14b;">Google AI Studio</a>'yu kontrol edin.
+                </small>
+            `;
+        } else {
+            infoHtml = '<small style="color: #d9534f;">Token bilgisi alınamadı.</small>';
+        }
+        
+        tokenInfoContent.innerHTML = infoHtml;
+    } catch (error) {
+        // Check if it's a quota/rate limit error
+        if (error.message.includes('quota') || error.message.includes('rate limit') || error.message.includes('429')) {
+            tokenInfoContent.innerHTML = `
+                <small style="color: #d9534f;">
+                    <strong>Uyarı:</strong> Token limitine ulaşılmış olabilir.<br>
+                    <a href="https://aistudio.google.com/app/api-keys" target="_blank" style="color: #81c14b;">Google AI Studio</a>'dan kalan token bilginizi kontrol edin.
+                </small>
+            `;
+        } else if (error.message.includes('API key') || error.message.includes('invalid') || error.message.includes('403')) {
+            tokenInfoContent.innerHTML = '<small style="color: #d9534f;">API Key geçersiz veya yetkisiz.</small>';
+        } else {
+            tokenInfoContent.innerHTML = `<small style="color: #d9534f;">Hata: ${error.message}</small>`;
+        }
+    }
+};
+
+// Refresh token info manually
+const refreshTokenInfo = async () => {
+    const apiKey = document.getElementById('apiKey').value;
+    if (apiKey) {
+        const tokenInfoContent = document.getElementById('tokenInfoContent');
+        tokenInfoContent.innerHTML = '<span class="token-loading">Yenileniyor...</span>';
+        
+        // Clear cache to force refresh
+        chrome.storage.local.remove(['tokenInfoCache'], () => {
+            loadTokenInfo(apiKey);
+        });
+    }
+};
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    restoreOptions();
+    
+    // Setup refresh button
+    const refreshBtn = document.getElementById('tokenRefreshBtn');
+    if (refreshBtn) {
+        refreshBtn.onclick = refreshTokenInfo;
+        refreshBtn.onmouseover = function() { this.style.backgroundColor = '#555'; };
+        refreshBtn.onmouseout = function() { this.style.backgroundColor = '#666'; };
+    }
+});
+
+document.getElementById('saveBtn').addEventListener('click', () => {
+    saveOptions();
+    // Refresh token info after saving
+    const apiKey = document.getElementById('apiKey').value;
+    if (apiKey) {
+        loadTokenInfo(apiKey);
+    }
+});
 document.getElementById('addBtn').addEventListener('click', addPrompt);
 document.getElementById('resetBtn').addEventListener('click', resetPrompts);
 document.getElementById('apiKey').addEventListener('keydown', (e) => {
