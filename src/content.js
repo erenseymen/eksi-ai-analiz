@@ -188,6 +188,136 @@ const startAnalysisForTopic = async (h1Element, topicId) => {
     }
 };
 
+// Helper function to extract referenced entry IDs from content
+// Format: (bkz: #entry_id) - direct reference to another entry
+const extractReferencedEntryIds = (content) => {
+    if (!content) return [];
+    
+    const regex = /\(bkz:\s*#(\d+)\)/gi;
+    const matches = [];
+    let match;
+    
+    while ((match = regex.exec(content)) !== null) {
+        matches.push(match[1]); // Extract just the entry ID
+    }
+    
+    return matches;
+};
+
+// Fetch a single entry by its ID from eksisozluk.com/entry/{id}
+const fetchEntryById = async (entryId) => {
+    try {
+        const url = `https://eksisozluk.com/entry/${entryId}`;
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            console.warn(`Failed to fetch entry ${entryId}: ${response.status}`);
+            return null;
+        }
+        
+        const text = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, 'text/html');
+        
+        // Find the entry item
+        const entryItem = doc.querySelector(`li[data-id="${entryId}"]`) || 
+                          doc.querySelector('#entry-item-list > li');
+        
+        if (!entryItem) {
+            console.warn(`Entry element not found for ${entryId}`);
+            return null;
+        }
+        
+        const content = entryItem.querySelector('.content')?.innerText.trim();
+        const author = entryItem.querySelector('.entry-author')?.innerText.trim();
+        const date = entryItem.querySelector('.entry-date')?.innerText.trim();
+        
+        if (!content) {
+            return null;
+        }
+        
+        return {
+            id: entryId,
+            author,
+            date,
+            content
+        };
+    } catch (err) {
+        console.error(`Error fetching entry ${entryId}:`, err);
+        return null;
+    }
+};
+
+// Fetch all referenced entries and populate them in allEntries
+const fetchAllReferencedEntries = async (statusSpan = null) => {
+    // Collect all unique referenced entry IDs
+    const existingIds = new Set(allEntries.map(e => e.id));
+    const referencedIds = new Set();
+    
+    allEntries.forEach(entry => {
+        if (entry.referenced_entry_ids) {
+            entry.referenced_entry_ids.forEach(id => {
+                if (!existingIds.has(id)) {
+                    referencedIds.add(id);
+                }
+            });
+        }
+    });
+    
+    if (referencedIds.size === 0) {
+        return;
+    }
+    
+    const idsToFetch = Array.from(referencedIds);
+    const fetchedEntries = new Map();
+    
+    // Fetch each referenced entry
+    for (let i = 0; i < idsToFetch.length; i++) {
+        if (shouldStopScraping) {
+            break;
+        }
+        
+        const entryId = idsToFetch[i];
+        if (statusSpan) {
+            statusSpan.textContent = `Referans entry'ler alınıyor... (${i + 1}/${idsToFetch.length})`;
+        }
+        
+        const entry = await fetchEntryById(entryId);
+        if (entry) {
+            fetchedEntries.set(entryId, entry);
+        }
+        
+        // Rate limiting
+        if (i < idsToFetch.length - 1) {
+            await new Promise(r => setTimeout(r, 300));
+        }
+    }
+    
+    // Also include entries from allEntries that are referenced
+    allEntries.forEach(entry => {
+        if (!fetchedEntries.has(entry.id)) {
+            fetchedEntries.set(entry.id, {
+                id: entry.id,
+                author: entry.author,
+                date: entry.date,
+                content: entry.content
+            });
+        }
+    });
+    
+    // Update allEntries with full referenced entry objects
+    allEntries.forEach(entry => {
+        if (entry.referenced_entry_ids && entry.referenced_entry_ids.length > 0) {
+            entry.referenced_entries = entry.referenced_entry_ids
+                .map(id => fetchedEntries.get(id) || { id, error: 'Entry bulunamadı' })
+                .filter(e => e !== null);
+            
+            // Remove the temporary IDs field
+            delete entry.referenced_entry_ids;
+        }
+    });
+};
+
 // Helper function to extract entries from a document, optionally filtering from a focusto entry
 const extractEntriesFromDoc = (doc, focustoEntryId = null) => {
     const entries = [];
@@ -211,12 +341,20 @@ const extractEntriesFromDoc = (doc, focustoEntryId = null) => {
         const date = item.querySelector('.entry-date')?.innerText.trim();
 
         if (content) {
-            entries.push({
+            const entry = {
                 id,
                 author,
                 date,
                 content
-            });
+            };
+            
+            // Extract referenced entry IDs from content (will be populated with full entries later)
+            const referencedEntryIds = extractReferencedEntryIds(content);
+            if (referencedEntryIds.length > 0) {
+                entry.referenced_entry_ids = referencedEntryIds;
+            }
+            
+            entries.push(entry);
         }
     });
     
@@ -334,6 +472,11 @@ const scrapeEntriesFromUrl = async (url) => {
 
         // Be nice to the server
         await new Promise(r => setTimeout(r, 500));
+    }
+    
+    // Fetch referenced entries content
+    if (!shouldStopScraping) {
+        await fetchAllReferencedEntries(statusSpan);
     }
 };
 
@@ -588,6 +731,11 @@ const scrapeEntries = async () => {
 
         // Be nice to the server
         await new Promise(r => setTimeout(r, 500));
+    }
+    
+    // Fetch referenced entries content
+    if (!shouldStopScraping) {
+        await fetchAllReferencedEntries(statusSpan);
     }
 };
 
