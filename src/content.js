@@ -693,11 +693,20 @@ const renderActions = async (container, wasStopped = false) => {
     document.getElementById('btn-custom-manual').onclick = openCustomPromptModal;
 };
 
+const sanitizeFilename = (name) => {
+    return name
+        .replace(/[\\/:*?"<>|]/g, '_')  // Windows'ta geçersiz karakterleri değiştir
+        .replace(/_+/g, '_')            // Ardışık alt çizgileri teke indir
+        .replace(/^\s+|\s+$/g, '')      // Baş ve sondaki boşlukları temizle
+        .replace(/^_+|_+$/g, '');       // Baş ve sondaki alt çizgileri temizle
+};
+
 const downloadJson = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allEntries, null, 2));
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", `${topicTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`);
+    const filename = sanitizeFilename(topicTitle) || 'entries';
+    downloadAnchorNode.setAttribute("download", `${filename}.json`);
     document.body.appendChild(downloadAnchorNode); // required for firefox
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
