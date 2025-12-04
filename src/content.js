@@ -228,7 +228,8 @@ const fetchEntryById = async (entryId) => {
             return null;
         }
         
-        const content = entryItem.querySelector('.content')?.innerText.trim();
+        const contentElement = entryItem.querySelector('.content');
+        const content = extractContentWithFullUrls(contentElement);
         const author = entryItem.querySelector('.entry-author')?.innerText.trim();
         const date = entryItem.querySelector('.entry-date')?.innerText.trim();
         
@@ -318,6 +319,43 @@ const fetchAllReferencedEntries = async (statusSpan = null) => {
     });
 };
 
+// Helper function to extract content from an element, replacing truncated link text with actual href
+const extractContentWithFullUrls = (contentElement) => {
+    if (!contentElement) return '';
+    
+    // Clone the element to avoid modifying the DOM
+    const clone = contentElement.cloneNode(true);
+    
+    // Find all links and replace their text with actual href if the text appears to be a truncated URL
+    const links = clone.querySelectorAll('a');
+    links.forEach(link => {
+        const href = link.getAttribute('href');
+        const text = link.innerText.trim();
+        const title = link.getAttribute('title');
+        
+        // Check if this looks like a URL link (text starts with http or contains ...)
+        // and if the href is a full URL (starts with http)
+        if (href && href.startsWith('http')) {
+            // If text contains ellipsis (…) or looks like a truncated URL, replace with full href
+            if (text.includes('…') || text.includes('...') || 
+                (text.startsWith('http') && text !== href)) {
+                // Add space before and after the URL for better readability
+                link.innerText = ' ' + href + ' ';
+            }
+        }
+        
+        // Handle hidden references in title attribute (like "* " links with "(bkz: swh)" titles)
+        // These are typically inside <sup class="ab"> elements
+        if (title && text === '*') {
+            // Replace the asterisk with the asterisk + title content
+            // title is typically "(bkz: term)" format
+            link.innerText = '* ' + title;
+        }
+    });
+    
+    return clone.innerText.trim();
+};
+
 // Helper function to extract entries from a document, optionally filtering from a focusto entry
 const extractEntriesFromDoc = (doc, focustoEntryId = null) => {
     const entries = [];
@@ -336,7 +374,8 @@ const extractEntriesFromDoc = (doc, focustoEntryId = null) => {
             }
         }
         
-        const content = item.querySelector('.content')?.innerText.trim();
+        const contentElement = item.querySelector('.content');
+        const content = extractContentWithFullUrls(contentElement);
         const author = item.querySelector('.entry-author')?.innerText.trim();
         const date = item.querySelector('.entry-date')?.innerText.trim();
 
