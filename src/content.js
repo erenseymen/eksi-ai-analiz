@@ -782,6 +782,9 @@ ${userPrompt}`;
         const response = await callGeminiApi(apiKey, modelId, finalPrompt, abortController.signal);
         resultArea.innerHTML = parseMarkdown(response);
         resultArea.classList.add('eksi-ai-markdown');
+        
+        // Add action buttons for the result
+        addResultActionButtons(resultArea, response);
     } catch (err) {
         let errorMessage = err.message;
         
@@ -1215,6 +1218,88 @@ const parseMarkdown = (text) => {
     html = html.replace(/(<\/pre>)<\/p>/g, '$1');
     
     return html;
+};
+
+// Add action buttons (copy, download) to result area
+const addResultActionButtons = (resultArea, markdownContent) => {
+    // Create action buttons container
+    const actionsContainer = document.createElement('div');
+    actionsContainer.className = 'eksi-ai-result-actions';
+    
+    // Copy button
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'eksi-ai-result-action-btn';
+    copyBtn.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        <span>Kopyala</span>
+    `;
+    copyBtn.onclick = () => copyToClipboard(markdownContent, copyBtn);
+    
+    // Download MD button with custom icon
+    const downloadBtn = document.createElement('button');
+    downloadBtn.className = 'eksi-ai-result-action-btn';
+    downloadBtn.innerHTML = `
+        <svg width="20" height="16" viewBox="0 0 28 22" fill="none" class="eksi-ai-md-icon">
+            <rect x="0.5" y="0.5" width="27" height="21" rx="2.5" stroke="currentColor" fill="none"/>
+            <path d="M4 16V6h2.5l2.5 4 2.5-4H14v10h-2.5v-5.5L9 14.5l-2.5-4V16H4z" fill="currentColor"/>
+            <path d="M16 16V6h4.5a3.5 3.5 0 0 1 0 7H18.5V16H16zm2.5-5.5h1.5a1 1 0 1 0 0-2h-1.5v2z" fill="currentColor"/>
+            <path d="M21 13l3 3m0-3l-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span>Markdown İndir</span>
+    `;
+    downloadBtn.onclick = () => downloadMarkdown(markdownContent);
+    
+    actionsContainer.appendChild(copyBtn);
+    actionsContainer.appendChild(downloadBtn);
+    
+    // Insert at the top of result area
+    resultArea.insertBefore(actionsContainer, resultArea.firstChild);
+};
+
+// Copy markdown content to clipboard
+const copyToClipboard = async (text, button) => {
+    try {
+        await navigator.clipboard.writeText(text);
+        const originalHTML = button.innerHTML;
+        button.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>Kopyalandı!</span>
+        `;
+        button.classList.add('success');
+        setTimeout(() => {
+            button.innerHTML = originalHTML;
+            button.classList.remove('success');
+        }, 2000);
+    } catch (err) {
+        console.error('Kopyalama hatası:', err);
+        button.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+            <span>Hata!</span>
+        `;
+    }
+};
+
+// Download markdown content as .md file
+const downloadMarkdown = (content) => {
+    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute('href', url);
+    const filename = sanitizeFilename(topicTitle) || 'analiz';
+    downloadAnchorNode.setAttribute('download', `${filename}.md`);
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+    URL.revokeObjectURL(url);
 };
 
 // Run init

@@ -463,3 +463,78 @@
 .eksi-ai-dark .eksi-ai-markdown tr:nth-child(even) {
     background: rgba(255, 255, 255, 0.02);
 }
+
+/* ========================================
+   Result Action Buttons (Copy & Download)
+   ======================================== */
+
+.eksi-ai-result-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 15px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--eksi-ai-border);
+}
+
+.eksi-ai-result-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--eksi-ai-text);
+    background: var(--eksi-ai-bg);
+    border: 1px solid var(--eksi-ai-border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.eksi-ai-result-action-btn:hover {
+    background: var(--eksi-ai-btn-bg);
+    color: var(--eksi-ai-btn-text);
+    border-color: var(--eksi-ai-btn-bg);
+}
+
+.eksi-ai-result-action-btn:hover svg {
+    stroke: var(--eksi-ai-btn-text);
+}
+
+.eksi-ai-result-action-btn:hover .eksi-ai-md-icon {
+    stroke: var(--eksi-ai-btn-text);
+}
+
+.eksi-ai-result-action-btn:hover .eksi-ai-md-icon path {
+    fill: var(--eksi-ai-btn-text);
+}
+
+.eksi-ai-result-action-btn.success {
+    background: #28a745;
+    color: white;
+    border-color: #28a745;
+}
+
+.eksi-ai-result-action-btn.success svg {
+    stroke: white;
+}
+
+.eksi-ai-result-action-btn svg {
+    flex-shrink: 0;
+    stroke: var(--eksi-ai-text);
+    transition: stroke 0.2s ease;
+}
+
+.eksi-ai-md-icon {
+    stroke: var(--eksi-ai-text);
+}
+
+.eksi-ai-md-icon path {
+    fill: var(--eksi-ai-text);
+    transition: fill 0.2s ease;
+}
+
+.eksi-ai-md-icon rect {
+    stroke: currentColor;
+    fill: none;
+}
