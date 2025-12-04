@@ -80,8 +80,268 @@ const getSettings = async () => {
     });
 };
 
+// Detect page type based on URL and DOM structure
+const detectPageType = () => {
+    const path = window.location.pathname;
+    
+    // Başlık sayfası: /baslik-adi--id formatı
+    if (/^\/[^\/]+--\d+/.test(path)) {
+        return 'topic-page';
+    }
+    
+    // Ana sayfa
+    if (path === '/' || path === '') {
+        return 'home-page';
+    }
+    
+    // Gündem sayfası
+    if (path === '/basliklar/gundem') {
+        return 'gundem-page';
+    }
+    
+    // Debe sayfası
+    if (path === '/debe') {
+        return 'debe-page';
+    }
+    
+    // Kanal sayfaları
+    if (path.startsWith('/basliklar/kanal/')) {
+        return 'channel-page';
+    }
+    
+    // Yazar profil sayfası
+    if (path.startsWith('/biri/')) {
+        return 'author-page';
+    }
+    
+    // Entry sayfası
+    if (path.startsWith('/entry/')) {
+        return 'entry-page';
+    }
+    
+    return 'unknown';
+};
+
+// Create analysis button and container for a specific topic
+const createAnalysisButton = (h1Element, topicId = null, useCurrentPage = false) => {
+    if (!h1Element) {
+        console.error('h1Element is required');
+        return;
+    }
+
+    // Check if button already exists for this topic
+    const existingBtnId = topicId ? `eksi-ai-main-btn-${topicId}` : 'eksi-ai-main-btn';
+    if (document.getElementById(existingBtnId)) {
+        return; // Button already exists
+    }
+
+    const btn = document.createElement('button');
+    btn.id = existingBtnId;
+    btn.className = 'eksi-ai-btn';
+    btn.textContent = "Entry'leri Analiz Et";
+    
+    // Use current page analysis for topic pages, otherwise use topic-specific analysis
+    if (useCurrentPage) {
+        btn.onclick = startAnalysis;
+    } else {
+        btn.onclick = () => startAnalysisForTopic(h1Element, topicId);
+    }
+
+    // Find the parent container (usually a heading wrapper or topic section)
+    let parentContainer = h1Element.parentElement;
+    
+    // Try to find a more appropriate container
+    while (parentContainer && parentContainer !== document.body) {
+        // Look for common container patterns
+        if (parentContainer.id === 'topic' || 
+            parentContainer.classList.contains('topic') ||
+            parentContainer.tagName === 'MAIN' ||
+            parentContainer.querySelector('ul[ref*="entry"]') ||
+            parentContainer.querySelector('#entry-item-list')) {
+            break;
+        }
+        parentContainer = parentContainer.parentElement;
+    }
+
+    // Insert button after h1
+    if (h1Element.nextSibling) {
+        h1Element.parentNode.insertBefore(btn, h1Element.nextSibling);
+    } else {
+        h1Element.parentNode.appendChild(btn);
+    }
+
+    // Create container for results/actions
+    const container = document.createElement('div');
+    container.id = topicId ? `eksi-ai-container-${topicId}` : 'eksi-ai-container';
+    container.className = 'eksi-ai-container';
+    container.style.display = 'none';
+
+    // Apply theme
+    if (detectTheme()) {
+        container.classList.add('eksi-ai-dark');
+    }
+
+    // Insert container after the button
+    btn.parentNode.insertBefore(container, btn.nextSibling);
+};
+
+// Start analysis for a specific topic (used in entry pages)
+const startAnalysisForTopic = async (h1Element, topicId) => {
+    // Extract topic URL from h1 link
+    const topicLink = h1Element.querySelector('a');
+    if (!topicLink || !topicLink.href) {
+        console.error('Topic link not found');
+        return;
+    }
+
+    // Use the full URL including query parameters (if any)
+    const topicUrl = topicLink.href;
+    const btnId = topicId ? `eksi-ai-main-btn-${topicId}` : 'eksi-ai-main-btn';
+    const containerId = topicId ? `eksi-ai-container-${topicId}` : 'eksi-ai-container';
+    
+    const btn = document.getElementById(btnId);
+    const container = document.getElementById(containerId);
+
+    if (!btn || !container) {
+        console.error('Button or container not found');
+        return;
+    }
+
+    // Reset stop flag
+    shouldStopScraping = false;
+
+    // Change button to "Stop" button
+    btn.textContent = "Durdur";
+    btn.onclick = stopScraping;
+    btn.disabled = false;
+
+    container.style.display = 'block';
+    container.innerHTML = '<span class="eksi-ai-loading">Entry\'ler toplanıyor... Lütfen bekleyin.</span>';
+
+    try {
+        // Navigate to topic page and scrape entries
+        await scrapeEntriesFromUrl(topicUrl);
+
+        // Render actions if we have entries (even if stopped early)
+        if (allEntries.length > 0) {
+            await renderActions(container, shouldStopScraping);
+        } else {
+            container.innerHTML = '<div class="eksi-ai-warning">Hiç entry toplanamadı.</div>';
+        }
+    } catch (err) {
+        console.error(err);
+        container.innerHTML = `<div class="eksi-ai-warning">Hata oluştu: ${err.message}</div>`;
+    } finally {
+        // Restore original button
+        btn.disabled = false;
+        btn.textContent = "Entry'leri Analiz Et";
+        btn.onclick = () => startAnalysisForTopic(h1Element, topicId);
+    }
+};
+
+// Scrape entries from a specific URL
+const scrapeEntriesFromUrl = async (url) => {
+    allEntries = [];
+    
+    // Parse URL to preserve query parameters
+    const urlObj = new URL(url);
+    const baseUrl = urlObj.origin + urlObj.pathname;
+    const existingParams = new URLSearchParams(urlObj.search);
+    
+    // Remove 'p' parameter if it exists (we'll add it in the loop)
+    existingParams.delete('p');
+    
+    // Fetch the topic page
+    const response = await fetch(url);
+    const text = await response.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(text, 'text/html');
+    
+    // Extract topic title
+    topicTitle = doc.querySelector('h1')?.innerText || doc.querySelector('#topic h1')?.innerText || "Basliksiz";
+    
+    // Extract topic ID from URL
+    const urlMatch = url.match(/--(\d+)/);
+    topicId = urlMatch ? urlMatch[1] : '';
+
+    // Determine total pages
+    const pager = doc.querySelector('.pager');
+    let totalPages = 1;
+    if (pager) {
+        const lastPageLink = pager.getAttribute('data-pagecount');
+        totalPages = parseInt(lastPageLink) || 1;
+    }
+
+    const statusSpan = document.querySelector('.eksi-ai-loading');
+
+    for (let i = 1; i <= totalPages; i++) {
+        // Check if user requested to stop
+        if (shouldStopScraping) {
+            if (statusSpan) statusSpan.textContent = `İşlem durduruldu. ${allEntries.length} entry toplandı.`;
+            break;
+        }
+
+        if (statusSpan) statusSpan.textContent = `Sayfa ${i}/${totalPages} taranıyor...`;
+
+        // Build URL with preserved query parameters + page number
+        const params = new URLSearchParams(existingParams);
+        params.set('p', i.toString());
+        const pageUrl = `${baseUrl}?${params.toString()}`;
+        
+        const pageResponse = await fetch(pageUrl);
+        const pageText = await pageResponse.text();
+        const pageDoc = parser.parseFromString(pageText, 'text/html');
+
+        const entryItems = pageDoc.querySelectorAll('#entry-item-list > li');
+        entryItems.forEach(item => {
+            const content = item.querySelector('.content')?.innerText.trim();
+            const author = item.querySelector('.entry-author')?.innerText.trim();
+            const date = item.querySelector('.entry-date')?.innerText.trim();
+            const id = item.getAttribute('data-id');
+
+            if (content) {
+                allEntries.push({
+                    id,
+                    author,
+                    date,
+                    content
+                });
+            }
+        });
+
+        // Be nice to the server
+        await new Promise(r => setTimeout(r, 500));
+    }
+};
+
 // Initialization
 const init = () => {
+    const pageType = detectPageType();
+    
+    switch (pageType) {
+        case 'topic-page':
+            // Single topic page - existing logic
+            initTopicPage();
+            break;
+        case 'entry-page':
+            // Single entry page - could link to topic page
+            initEntryPage();
+            break;
+        case 'home-page':
+        case 'gundem-page':
+        case 'debe-page':
+        case 'author-page':
+        case 'channel-page':
+            // Don't show buttons on these pages
+            break;
+        default:
+            // Fallback to topic page logic
+            initTopicPage();
+    }
+};
+
+// Initialize single topic page
+const initTopicPage = () => {
     let topicHeader = document.getElementById('topic');
     let topicTitleH1 = topicHeader ? topicHeader.querySelector('h1') : document.querySelector('h1');
 
@@ -90,37 +350,30 @@ const init = () => {
         topicHeader = topicTitleH1.parentElement;
     }
 
-    if (topicHeader && !document.getElementById('eksi-ai-main-btn')) {
-        const btn = document.createElement('button');
-        btn.id = 'eksi-ai-main-btn';
-        btn.className = 'eksi-ai-btn';
-        btn.textContent = "Entry'leri Analiz Et";
-        btn.onclick = startAnalysis;
+    if (topicTitleH1 && !document.getElementById('eksi-ai-main-btn')) {
+        // For topic pages, use current page analysis (useCurrentPage = true)
+        createAnalysisButton(topicTitleH1, null, true);
+    }
+};
 
-        if (topicTitleH1) {
-            // Insert after the h1 title
-            topicTitleH1.parentNode.insertBefore(btn, topicTitleH1.nextSibling);
-        } else {
-            // Fallback: Insert at the top of topicHeader
-            topicHeader.insertBefore(btn, topicHeader.firstChild);
+
+// Initialize single entry page
+const initEntryPage = () => {
+    // On entry pages, we can find the topic link and add a button
+    // Look for topic link in breadcrumbs or entry metadata
+    const topicLink = document.querySelector('a[href*="--"]');
+    if (topicLink) {
+        // Find the nearest heading
+        let heading = topicLink.closest('h1, h2, h3');
+        if (!heading) {
+            // Look for h1 in the page
+            heading = document.querySelector('h1');
         }
-
-        // Container for results/actions
-        const container = document.createElement('div');
-        container.id = 'eksi-ai-container';
-        container.className = 'eksi-ai-container';
-        container.style.display = 'none';
-
-        // Apply theme
-        if (detectTheme()) {
-            container.classList.add('eksi-ai-dark');
-        }
-
-        // Insert container after the button
-        if (topicTitleH1) {
-            topicTitleH1.parentNode.insertBefore(container, btn.nextSibling);
-        } else {
-            topicHeader.appendChild(container);
+        if (heading) {
+            // Extract topic ID
+            const urlMatch = topicLink.href.match(/--(\d+)/);
+            const topicId = urlMatch ? urlMatch[1] : 'entry-topic';
+            createAnalysisButton(heading, topicId);
         }
     }
 };
@@ -141,6 +394,11 @@ const detectTheme = () => {
 const startAnalysis = async () => {
     const btn = document.getElementById('eksi-ai-main-btn');
     const container = document.getElementById('eksi-ai-container');
+
+    if (!btn || !container) {
+        console.error('Button or container not found');
+        return;
+    }
 
     // Reset stop flag
     shouldStopScraping = false;
@@ -192,7 +450,13 @@ const scrapeEntries = async () => {
         totalPages = parseInt(lastPageLink) || 1;
     }
 
-    const currentUrl = window.location.href.split('?')[0]; // Base URL
+    // Parse current URL to preserve query parameters (like ?day=2025-12-04)
+    const currentUrlObj = new URL(window.location.href);
+    const baseUrl = currentUrlObj.origin + currentUrlObj.pathname;
+    const existingParams = new URLSearchParams(currentUrlObj.search);
+    
+    // Remove 'p' parameter if it exists (we'll add it in the loop)
+    existingParams.delete('p');
 
     const statusSpan = document.querySelector('.eksi-ai-loading');
 
@@ -205,7 +469,11 @@ const scrapeEntries = async () => {
 
         if (statusSpan) statusSpan.textContent = `Sayfa ${i}/${totalPages} taranıyor...`;
 
-        const url = `${currentUrl}?p=${i}`;
+        // Build URL with preserved query parameters + page number
+        const params = new URLSearchParams(existingParams);
+        params.set('p', i.toString());
+        const url = `${baseUrl}?${params.toString()}`;
+        
         const response = await fetch(url);
         const text = await response.text();
         const parser = new DOMParser();
