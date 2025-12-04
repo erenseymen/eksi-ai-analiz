@@ -776,7 +776,8 @@ ${userPrompt}`;
 
     try {
         const response = await callGeminiApi(apiKey, modelId, finalPrompt, abortController.signal);
-        resultArea.textContent = response;
+        resultArea.innerHTML = parseMarkdown(response);
+        resultArea.classList.add('eksi-ai-markdown');
     } catch (err) {
         let errorMessage = err.message;
         
@@ -1038,6 +1039,178 @@ const openCustomPromptModal = () => {
             submitBtn.click();
         }
     };
+};
+
+// Simple Markdown Parser
+const parseMarkdown = (text) => {
+    if (!text) return '';
+    
+    // Escape HTML to prevent XSS
+    const escapeHtml = (str) => {
+        return str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    };
+    
+    // First, escape HTML
+    let html = escapeHtml(text);
+    
+    // Store code blocks temporarily to prevent processing inside them
+    const codeBlocks = [];
+    const inlineCodes = [];
+    
+    // Handle fenced code blocks (```)
+    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
+        const index = codeBlocks.length;
+        codeBlocks.push(`<pre class="eksi-ai-code-block"><code class="language-${lang || 'text'}">${code.trim()}</code></pre>`);
+        return `%%CODEBLOCK_${index}%%`;
+    });
+    
+    // Handle inline code (`)
+    html = html.replace(/`([^`]+)`/g, (match, code) => {
+        const index = inlineCodes.length;
+        inlineCodes.push(`<code class="eksi-ai-inline-code">${code}</code>`);
+        return `%%INLINECODE_${index}%%`;
+    });
+    
+    // Handle headers (must be at start of line)
+    html = html.replace(/^######\s+(.+)$/gm, '<h6>$1</h6>');
+    html = html.replace(/^#####\s+(.+)$/gm, '<h5>$1</h5>');
+    html = html.replace(/^####\s+(.+)$/gm, '<h4>$1</h4>');
+    html = html.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^##\s+(.+)$/gm, '<h2>$1</h2>');
+    html = html.replace(/^#\s+(.+)$/gm, '<h1>$1</h1>');
+    
+    // Handle blockquotes (can be multiline)
+    html = html.replace(/^&gt;\s*(.*)$/gm, '<blockquote>$1</blockquote>');
+    // Merge consecutive blockquotes
+    html = html.replace(/<\/blockquote>\n<blockquote>/g, '\n');
+    
+    // Handle horizontal rules
+    html = html.replace(/^(?:---|\*\*\*|___)$/gm, '<hr>');
+    
+    // Handle bold and italic
+    html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+    html = html.replace(/_(.+?)_/g, '<em>$1</em>');
+    
+    // Handle strikethrough
+    html = html.replace(/~~(.+?)~~/g, '<del>$1</del>');
+    
+    // Handle links [text](url)
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    
+    // Handle unordered lists
+    const processUnorderedList = (text) => {
+        const lines = text.split('\n');
+        let result = [];
+        let inList = false;
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const listMatch = line.match(/^[\-\*]\s+(.+)$/);
+            
+            if (listMatch) {
+                if (!inList) {
+                    result.push('<ul>');
+                    inList = true;
+                }
+                result.push(`<li>${listMatch[1]}</li>`);
+            } else {
+                if (inList) {
+                    result.push('</ul>');
+                    inList = false;
+                }
+                result.push(line);
+            }
+        }
+        
+        if (inList) {
+            result.push('</ul>');
+        }
+        
+        return result.join('\n');
+    };
+    
+    // Handle ordered lists
+    const processOrderedList = (text) => {
+        const lines = text.split('\n');
+        let result = [];
+        let inList = false;
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const listMatch = line.match(/^\d+\.\s+(.+)$/);
+            
+            if (listMatch) {
+                if (!inList) {
+                    result.push('<ol>');
+                    inList = true;
+                }
+                result.push(`<li>${listMatch[1]}</li>`);
+            } else {
+                if (inList) {
+                    result.push('</ol>');
+                    inList = false;
+                }
+                result.push(line);
+            }
+        }
+        
+        if (inList) {
+            result.push('</ol>');
+        }
+        
+        return result.join('\n');
+    };
+    
+    html = processUnorderedList(html);
+    html = processOrderedList(html);
+    
+    // Handle paragraphs (double newlines)
+    html = html.replace(/\n\n+/g, '</p><p>');
+    
+    // Handle single line breaks in non-list context
+    html = html.replace(/(?<!<\/li>|<\/ul>|<\/ol>|<\/blockquote>|<\/h[1-6]>|<hr>|<\/p>|<p>)\n(?!<li>|<ul>|<ol>|<blockquote>|<h[1-6]>|<hr>|<\/p>|<p>)/g, '<br>\n');
+    
+    // Wrap in paragraph if not already wrapped
+    if (!html.startsWith('<')) {
+        html = '<p>' + html + '</p>';
+    } else if (!html.startsWith('<p>') && !html.startsWith('<h') && !html.startsWith('<ul>') && !html.startsWith('<ol>') && !html.startsWith('<blockquote>') && !html.startsWith('<hr>') && !html.startsWith('%%CODEBLOCK_')) {
+        html = '<p>' + html + '</p>';
+    }
+    
+    // Restore code blocks
+    codeBlocks.forEach((block, index) => {
+        html = html.replace(`%%CODEBLOCK_${index}%%`, block);
+    });
+    
+    // Restore inline codes
+    inlineCodes.forEach((code, index) => {
+        html = html.replace(`%%INLINECODE_${index}%%`, code);
+    });
+    
+    // Clean up empty paragraphs
+    html = html.replace(/<p>\s*<\/p>/g, '');
+    html = html.replace(/<p>(<h[1-6]>)/g, '$1');
+    html = html.replace(/(<\/h[1-6]>)<\/p>/g, '$1');
+    html = html.replace(/<p>(<ul>)/g, '$1');
+    html = html.replace(/(<\/ul>)<\/p>/g, '$1');
+    html = html.replace(/<p>(<ol>)/g, '$1');
+    html = html.replace(/(<\/ol>)<\/p>/g, '$1');
+    html = html.replace(/<p>(<blockquote>)/g, '$1');
+    html = html.replace(/(<\/blockquote>)<\/p>/g, '$1');
+    html = html.replace(/<p>(<hr>)/g, '$1');
+    html = html.replace(/(<hr>)<\/p>/g, '$1');
+    html = html.replace(/<p>(<pre)/g, '$1');
+    html = html.replace(/(<\/pre>)<\/p>/g, '$1');
+    
+    return html;
 };
 
 // Run init
