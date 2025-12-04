@@ -29,6 +29,30 @@ const AVG_CHAR_PER_ENTRY = 328;
 const CHARS_PER_TOKEN = 4; // Approximate
 const TOKENS_PER_ENTRY = Math.ceil(AVG_CHAR_PER_ENTRY / CHARS_PER_TOKEN) + 20; // +20 for metadata overhead
 
+// Known Google Gemini API limits (free tier)
+const GEMINI_LIMITS = {
+    dailyTokens: 300000, // 300k tokens per day
+    requestsPerMinute: 60
+};
+
+// Get today's usage statistics
+const getTodayUsage = () => {
+    return new Promise((resolve) => {
+        const today = new Date().toISOString().split('T')[0];
+        const usageKey = `geminiUsage_${today}`;
+        
+        chrome.storage.local.get([usageKey], (result) => {
+            const usage = result[usageKey] || {
+                promptTokens: 0,
+                candidatesTokens: 0,
+                totalTokens: 0,
+                requestCount: 0
+            };
+            resolve(usage);
+        });
+    });
+};
+
 const populateModelSelect = (savedModelId) => {
     const select = document.getElementById('modelSelect');
     const infoDiv = document.getElementById('modelInfo');
@@ -57,7 +81,6 @@ const populateModelSelect = (savedModelId) => {
 
             infoDiv.innerHTML = `
                 <strong>${model.name}</strong>
-                ${model.description}
                 <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ccc;">
                     <small><strong>Maliyet:</strong> ${model.cost}</small>
                     <small><strong>Yanıt Süresi:</strong> ${model.responseTime}</small>
@@ -98,6 +121,36 @@ const saveOptions = () => {
     });
 };
 
+const loadTokenUsageBar = async () => {
+    const tokenBarDiv = document.getElementById('tokenUsageBar');
+    if (!tokenBarDiv) return;
+
+    try {
+        const usage = await getTodayUsage();
+        const limits = GEMINI_LIMITS;
+        const usagePercent = limits.dailyTokens > 0 
+            ? Math.min((usage.totalTokens / limits.dailyTokens) * 100, 100)
+            : 0;
+        
+        // Determine color based on usage
+        let usageColor = '#81c14b'; // green
+        if (usagePercent > 80) usageColor = '#d9534f'; // red
+        else if (usagePercent > 60) usageColor = '#f0ad4e'; // orange
+        
+        const formatNumber = (num) => new Intl.NumberFormat('tr-TR').format(num);
+        
+        tokenBarDiv.innerHTML = `
+            <div class="token-bar-label">Bugünkü Token Kullanımı: ${formatNumber(usage.totalTokens)} / ${formatNumber(limits.dailyTokens)}</div>
+            <div class="token-bar-container">
+                <div class="token-bar-fill" style="background: ${usageColor}; width: ${usagePercent}%;"></div>
+            </div>
+        `;
+    } catch (error) {
+        console.error('Error loading token usage:', error);
+        tokenBarDiv.innerHTML = '';
+    }
+};
+
 const restoreOptions = () => {
     chrome.storage.sync.get(
         {
@@ -105,6 +158,7 @@ const restoreOptions = () => {
         },
         (items) => {
             populateModelSelect(items.selectedModel);
+            loadTokenUsageBar();
         }
     );
 };
@@ -116,5 +170,21 @@ document.getElementById('settingsLink').addEventListener('click', (e) => {
 });
 
 document.addEventListener('DOMContentLoaded', restoreOptions);
-document.getElementById('saveBtn').addEventListener('click', saveOptions);
+document.getElementById('saveBtn').addEventListener('click', () => {
+    saveOptions();
+    // Refresh token usage bar after saving
+    loadTokenUsageBar();
+});
+
+// Listen for storage changes to update token usage bar in real-time
+chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === 'local') {
+        // Check if any token usage key changed
+        const today = new Date().toISOString().split('T')[0];
+        const usageKey = `geminiUsage_${today}`;
+        if (changes[usageKey]) {
+            loadTokenUsageBar();
+        }
+    }
+});
 

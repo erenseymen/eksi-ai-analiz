@@ -103,6 +103,30 @@
             color: #155724;
             display: block;
         }
+
+        #tokenUsageBar {
+            margin-top: 10px;
+        }
+
+        .token-bar-container {
+            background: #ddd;
+            height: 12px;
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .token-bar-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+            border-radius: 6px;
+        }
+
+        .token-bar-label {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 5px;
+        }
     </style>
 </head>
 <body>
@@ -115,6 +139,10 @@
     
     <div id="modelInfo">
         <!-- Model info will be displayed here -->
+    </div>
+
+    <div id="tokenUsageBar" style="margin-bottom: 15px;">
+        <!-- Token usage bar will be displayed here -->
     </div>
 
     <button id="saveBtn">Kaydet</button>
