@@ -55,7 +55,6 @@ const getTodayUsage = () => {
 
 const populateModelSelect = (savedModelId) => {
     const select = document.getElementById('modelSelect');
-    const infoDiv = document.getElementById('modelInfo');
 
     select.innerHTML = '';
 
@@ -68,34 +67,6 @@ const populateModelSelect = (savedModelId) => {
         }
         select.appendChild(option);
     });
-
-    // Function to update info display
-    const updateInfo = () => {
-        const selectedId = select.value;
-        const model = MODELS.find(m => m.id === selectedId);
-        if (model) {
-            const capacity = Math.floor(model.contextWindow / TOKENS_PER_ENTRY);
-            // Round to nearest thousand for simpler display
-            const roundedCapacity = Math.round(capacity / 1000) * 1000;
-            const formattedCapacity = new Intl.NumberFormat('tr-TR').format(roundedCapacity);
-
-            infoDiv.innerHTML = `
-                <strong>${model.name}</strong>
-                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ccc;">
-                    <small><strong>Maliyet:</strong> ${model.cost}</small>
-                    <small><strong>Yanıt Süresi:</strong> ${model.responseTime}</small>
-                    <small><strong>Bağlam Penceresi:</strong> ${new Intl.NumberFormat('tr-TR').format(model.contextWindow)} token</small>
-                    <small><strong>Tahmini Kapasite:</strong> ~${formattedCapacity} entry</small>
-                </div>
-            `;
-        }
-    };
-
-    // Initial update
-    updateInfo();
-
-    // Listener for changes
-    select.addEventListener('change', updateInfo);
 };
 
 const saveOptions = () => {
@@ -151,14 +122,14 @@ const loadTokenUsageBar = async () => {
     }
 };
 
-const restoreOptions = () => {
+const restoreOptions = async () => {
     chrome.storage.sync.get(
         {
             selectedModel: 'gemini-2.5-flash'
         },
-        (items) => {
+        async (items) => {
             populateModelSelect(items.selectedModel);
-            loadTokenUsageBar();
+            await loadTokenUsageBar();
         }
     );
 };
