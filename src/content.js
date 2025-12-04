@@ -75,6 +75,10 @@ const getSettings = async () => {
             selectedModel: 'gemini-2.5-flash',
             prompts: DEFAULT_PROMPTS
         }, (items) => {
+            // Eğer prompts boş veya tanımsızsa, varsayılan değerleri kullan
+            if (!items.prompts || items.prompts.length === 0) {
+                items.prompts = DEFAULT_PROMPTS;
+            }
             resolve(items);
         });
     });

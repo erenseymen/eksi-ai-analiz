@@ -205,7 +205,9 @@ const restoreOptions = async () => {
         },
         async (items) => {
             document.getElementById('apiKey').value = items.geminiApiKey;
-            prompts = items.prompts;
+            
+            // Eğer prompts boş veya tanımsızsa, varsayılan değerleri kullan
+            prompts = (items.prompts && items.prompts.length > 0) ? items.prompts : DEFAULT_PROMPTS;
 
             populateModelSelect(items.selectedModel);
             renderPrompts();
