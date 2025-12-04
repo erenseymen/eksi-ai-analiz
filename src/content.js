@@ -192,15 +192,24 @@ const createAnalysisButton = (h1Element, topicId = null, useCurrentPage = false)
 
 // Start analysis for a specific topic (used in entry pages)
 const startAnalysisForTopic = async (h1Element, topicId) => {
-    // Extract topic URL from h1 link
-    const topicLink = h1Element.querySelector('a');
-    if (!topicLink || !topicLink.href) {
-        console.error('Topic link not found');
-        return;
+    // Check if there's a focusto href on the heading (set by initEntryPage for /entry/ID URLs)
+    // This takes priority over the regular topic link
+    let topicUrl = h1Element.getAttribute('data-focusto-href');
+    
+    if (!topicUrl) {
+        // Check for stored topic URL (set by initEntryPage)
+        topicUrl = h1Element.getAttribute('data-topic-href');
     }
-
-    // Use the full URL including query parameters (if any)
-    const topicUrl = topicLink.href;
+    
+    if (!topicUrl) {
+        // Extract topic URL from h1 link
+        const topicLink = h1Element.querySelector('a');
+        if (!topicLink || !topicLink.href) {
+            console.error('Topic link not found');
+            return;
+        }
+        topicUrl = topicLink.href;
+    }
     const btnId = topicId ? `eksi-ai-main-btn-${topicId}` : 'eksi-ai-main-btn';
     const containerId = topicId ? `eksi-ai-container-${topicId}` : 'eksi-ai-container';
     
@@ -244,6 +253,41 @@ const startAnalysisForTopic = async (h1Element, topicId) => {
     }
 };
 
+// Helper function to extract entries from a document, optionally filtering from a focusto entry
+const extractEntriesFromDoc = (doc, focustoEntryId = null) => {
+    const entries = [];
+    let foundFocusEntry = !focustoEntryId; // If no focusto, include all entries
+    
+    const entryItems = doc.querySelectorAll('#entry-item-list > li');
+    entryItems.forEach(item => {
+        const id = item.getAttribute('data-id');
+        
+        // If we have a focusto entry ID, skip entries until we find it
+        if (focustoEntryId && !foundFocusEntry) {
+            if (id === focustoEntryId) {
+                foundFocusEntry = true;
+            } else {
+                return; // Skip this entry
+            }
+        }
+        
+        const content = item.querySelector('.content')?.innerText.trim();
+        const author = item.querySelector('.entry-author')?.innerText.trim();
+        const date = item.querySelector('.entry-date')?.innerText.trim();
+
+        if (content) {
+            entries.push({
+                id,
+                author,
+                date,
+                content
+            });
+        }
+    });
+    
+    return { entries, foundFocusEntry };
+};
+
 // Scrape entries from a specific URL
 const scrapeEntriesFromUrl = async (url) => {
     allEntries = [];
@@ -253,20 +297,24 @@ const scrapeEntriesFromUrl = async (url) => {
     const baseUrl = urlObj.origin + urlObj.pathname;
     const existingParams = new URLSearchParams(urlObj.search);
     
+    // Check for focusto parameter
+    const focustoEntryId = existingParams.get('focusto');
+    
     // Get current page number from URL (if exists)
     const currentPageParam = existingParams.get('p');
-    const startPage = currentPageParam ? parseInt(currentPageParam) : 1;
+    let startPage = currentPageParam ? parseInt(currentPageParam) : 1;
     
     // Remove 'p' parameter if it exists (we'll add it in the loop)
     existingParams.delete('p');
     
     // Build URL for first page fetch with preserved query parameters (without p)
+    // Keep focusto parameter as the server uses it to determine which page to show
     const firstPageParams = new URLSearchParams(existingParams);
     const firstPageUrl = firstPageParams.toString() 
         ? `${baseUrl}?${firstPageParams.toString()}`
         : baseUrl;
     
-    // Fetch the topic page (first page)
+    // Fetch the topic page (first page or focusto page)
     const response = await fetch(firstPageUrl);
     const text = await response.text();
     const parser = new DOMParser();
@@ -286,11 +334,23 @@ const scrapeEntriesFromUrl = async (url) => {
         const lastPageLink = pager.getAttribute('data-pagecount');
         totalPages = parseInt(lastPageLink) || 1;
     }
+    
+    // If we have focusto, the server redirects to the page containing that entry
+    // We need to detect which page we're on
+    if (focustoEntryId) {
+        const currentPageFromPager = pager?.getAttribute('data-currentpage');
+        if (currentPageFromPager) {
+            startPage = parseInt(currentPageFromPager) || 1;
+        }
+    }
 
     const statusSpan = document.querySelector('.eksi-ai-loading');
+    
+    // Remove focusto from params for subsequent page fetches (we only need it for the first page)
+    existingParams.delete('focusto');
 
-    // If we're starting from a specific page, fetch that page first
-    if (startPage > 1) {
+    // If we're starting from a specific page (not page 1), fetch that page
+    if (startPage > 1 && !focustoEntryId) {
         // Build URL for the starting page
         const startPageParams = new URLSearchParams(existingParams);
         startPageParams.set('p', startPage.toString());
@@ -302,40 +362,17 @@ const scrapeEntriesFromUrl = async (url) => {
         const startPageText = await startPageResponse.text();
         const startPageDoc = parser.parseFromString(startPageText, 'text/html');
 
-        const startPageEntryItems = startPageDoc.querySelectorAll('#entry-item-list > li');
-        startPageEntryItems.forEach(item => {
-            const content = item.querySelector('.content')?.innerText.trim();
-            const author = item.querySelector('.entry-author')?.innerText.trim();
-            const date = item.querySelector('.entry-date')?.innerText.trim();
-            const id = item.getAttribute('data-id');
-
-            if (content) {
-                allEntries.push({
-                    id,
-                    author,
-                    date,
-                    content
-                });
-            }
-        });
+        const { entries } = extractEntriesFromDoc(startPageDoc);
+        allEntries.push(...entries);
     } else {
-        // Process first page entries from fetched document
-        const firstPageEntryItems = doc.querySelectorAll('#entry-item-list > li');
-        firstPageEntryItems.forEach(item => {
-            const content = item.querySelector('.content')?.innerText.trim();
-            const author = item.querySelector('.entry-author')?.innerText.trim();
-            const date = item.querySelector('.entry-date')?.innerText.trim();
-            const id = item.getAttribute('data-id');
-
-            if (content) {
-                allEntries.push({
-                    id,
-                    author,
-                    date,
-                    content
-                });
-            }
-        });
+        // Process first page entries from fetched document (with focusto filtering if applicable)
+        const { entries, foundFocusEntry } = extractEntriesFromDoc(doc, focustoEntryId);
+        allEntries.push(...entries);
+        
+        // If focusto entry was not found on this page, something went wrong
+        if (focustoEntryId && !foundFocusEntry) {
+            console.warn(`focusto entry ${focustoEntryId} not found on page ${startPage}`);
+        }
     }
 
     // Process remaining pages (starting from startPage + 1)
@@ -348,7 +385,7 @@ const scrapeEntriesFromUrl = async (url) => {
 
         if (statusSpan) statusSpan.textContent = `Sayfa ${i}/${totalPages} taranıyor...`;
 
-        // Build URL with preserved query parameters + page number
+        // Build URL with preserved query parameters + page number (no focusto needed for subsequent pages)
         const params = new URLSearchParams(existingParams);
         params.set('p', i.toString());
         const pageUrl = `${baseUrl}?${params.toString()}`;
@@ -357,22 +394,8 @@ const scrapeEntriesFromUrl = async (url) => {
         const pageText = await pageResponse.text();
         const pageDoc = parser.parseFromString(pageText, 'text/html');
 
-        const entryItems = pageDoc.querySelectorAll('#entry-item-list > li');
-        entryItems.forEach(item => {
-            const content = item.querySelector('.content')?.innerText.trim();
-            const author = item.querySelector('.entry-author')?.innerText.trim();
-            const date = item.querySelector('.entry-date')?.innerText.trim();
-            const id = item.getAttribute('data-id');
-
-            if (content) {
-                allEntries.push({
-                    id,
-                    author,
-                    date,
-                    content
-                });
-            }
-        });
+        const { entries } = extractEntriesFromDoc(pageDoc);
+        allEntries.push(...entries);
 
         // Be nice to the server
         await new Promise(r => setTimeout(r, 500));
@@ -425,23 +448,56 @@ const initTopicPage = () => {
 
 // Initialize single entry page
 const initEntryPage = () => {
-    // On entry pages, we can find the topic link and add a button
-    // Look for topic link in breadcrumbs or entry metadata
-    const topicLink = document.querySelector('a[href*="--"]');
-    if (topicLink) {
-        // Find the nearest heading
-        let heading = topicLink.closest('h1, h2, h3');
-        if (!heading) {
-            // Look for h1 in the page
-            heading = document.querySelector('h1');
-        }
-        if (heading) {
-            // Extract topic ID
-            const urlMatch = topicLink.href.match(/--(\d+)/);
-            const topicId = urlMatch ? urlMatch[1] : 'entry-topic';
-            createAnalysisButton(heading, topicId);
+    // On entry pages, we need to find the topic link and the heading
+    // The DOM structure on entry pages: h1 contains the topic title link
+    
+    // First, find the h1 element (topic title)
+    const heading = document.querySelector('#topic h1') || document.querySelector('h1');
+    if (!heading) {
+        console.error('Entry page: heading not found');
+        return;
+    }
+    
+    // Look for the topic link - first check inside h1, then broader search
+    let topicLink = heading.querySelector('a[href*="--"]');
+    if (!topicLink) {
+        // Try to find topic link in the #topic container
+        const topicContainer = document.getElementById('topic');
+        if (topicContainer) {
+            topicLink = topicContainer.querySelector('a[href*="--"]');
         }
     }
+    if (!topicLink) {
+        // Fallback: find any link with topic URL pattern
+        topicLink = document.querySelector('a[href*="--"]');
+    }
+    
+    if (!topicLink) {
+        console.error('Entry page: topic link not found');
+        return;
+    }
+    
+    // Extract topic ID from URL
+    const urlMatch = topicLink.href.match(/--(\d+)/);
+    const topicId = urlMatch ? urlMatch[1] : 'entry-topic';
+    
+    // Extract entry ID from current URL (/entry/ENTRY_ID)
+    const entryIdMatch = window.location.pathname.match(/\/entry\/(\d+)/);
+    if (entryIdMatch) {
+        const entryId = entryIdMatch[1];
+        // Modify the topic link to include focusto parameter
+        const topicUrl = new URL(topicLink.href);
+        topicUrl.searchParams.set('focusto', entryId);
+        
+        // Store the modified href on the heading element for our use
+        // This ensures startAnalysisForTopic can find it reliably
+        heading.setAttribute('data-focusto-href', topicUrl.toString());
+    }
+    
+    // Also store the original topic URL on the heading so startAnalysisForTopic can use it
+    heading.setAttribute('data-topic-href', topicLink.href);
+    
+    createAnalysisButton(heading, topicId);
 };
 
 const detectTheme = () => {
@@ -521,37 +577,42 @@ const scrapeEntries = async () => {
     const baseUrl = currentUrlObj.origin + currentUrlObj.pathname;
     const existingParams = new URLSearchParams(currentUrlObj.search);
     
+    // Check for focusto parameter
+    const focustoEntryId = existingParams.get('focusto');
+    
     // Get current page number from URL (if exists)
     const currentPageParam = existingParams.get('p');
-    const startPage = currentPageParam ? parseInt(currentPageParam) : 1;
+    let startPage = currentPageParam ? parseInt(currentPageParam) : 1;
+    
+    // If we have focusto, the server shows the page containing that entry
+    // We need to detect which page we're on from the pager
+    if (focustoEntryId) {
+        const currentPageFromPager = pager?.getAttribute('data-currentpage');
+        if (currentPageFromPager) {
+            startPage = parseInt(currentPageFromPager) || 1;
+        }
+    }
     
     // Remove 'p' parameter if it exists (we'll add it in the loop)
     existingParams.delete('p');
+    // Remove focusto from params for subsequent page fetches
+    existingParams.delete('focusto');
 
     const statusSpan = document.querySelector('.eksi-ai-loading');
 
-    // Process current page entries from DOM (only if we're on page 1, or if startPage matches current page)
-    // If we're on a later page, we'll fetch it in the loop
-    if (startPage === 1) {
-        // Process first page entries from current DOM
-        const firstPageEntryItems = document.querySelectorAll('#entry-item-list > li');
-        firstPageEntryItems.forEach(item => {
-            const content = item.querySelector('.content')?.innerText.trim();
-            const author = item.querySelector('.entry-author')?.innerText.trim();
-            const date = item.querySelector('.entry-date')?.innerText.trim();
-            const id = item.getAttribute('data-id');
-
-            if (content) {
-                allEntries.push({
-                    id,
-                    author,
-                    date,
-                    content
-                });
-            }
-        });
+    // Process current page entries from DOM (only if we're on page 1 without focusto, or the focusto page)
+    // If we're on a later page without focusto, we'll fetch it in the loop
+    if (startPage === 1 || focustoEntryId) {
+        // Process entries from current DOM (with focusto filtering if applicable)
+        const { entries, foundFocusEntry } = extractEntriesFromDoc(document, focustoEntryId);
+        allEntries.push(...entries);
+        
+        // If focusto entry was not found on this page, something went wrong
+        if (focustoEntryId && !foundFocusEntry) {
+            console.warn(`focusto entry ${focustoEntryId} not found on current page`);
+        }
     } else {
-        // We're starting from a later page, fetch it first
+        // We're starting from a later page (without focusto), fetch it first
         const startPageParams = new URLSearchParams(existingParams);
         startPageParams.set('p', startPage.toString());
         const startPageUrl = `${baseUrl}?${startPageParams.toString()}`;
@@ -563,22 +624,8 @@ const scrapeEntries = async () => {
         const parser = new DOMParser();
         const startPageDoc = parser.parseFromString(startPageText, 'text/html');
 
-        const startPageEntryItems = startPageDoc.querySelectorAll('#entry-item-list > li');
-        startPageEntryItems.forEach(item => {
-            const content = item.querySelector('.content')?.innerText.trim();
-            const author = item.querySelector('.entry-author')?.innerText.trim();
-            const date = item.querySelector('.entry-date')?.innerText.trim();
-            const id = item.getAttribute('data-id');
-
-            if (content) {
-                allEntries.push({
-                    id,
-                    author,
-                    date,
-                    content
-                });
-            }
-        });
+        const { entries } = extractEntriesFromDoc(startPageDoc);
+        allEntries.push(...entries);
     }
 
     // Process remaining pages (starting from startPage + 1)
@@ -591,7 +638,7 @@ const scrapeEntries = async () => {
 
         if (statusSpan) statusSpan.textContent = `Sayfa ${i}/${totalPages} taranıyor...`;
 
-        // Build URL with preserved query parameters + page number
+        // Build URL with preserved query parameters + page number (no focusto needed for subsequent pages)
         const params = new URLSearchParams(existingParams);
         params.set('p', i.toString());
         const url = `${baseUrl}?${params.toString()}`;
@@ -601,22 +648,8 @@ const scrapeEntries = async () => {
         const parser = new DOMParser();
         const doc = parser.parseFromString(text, 'text/html');
 
-        const entryItems = doc.querySelectorAll('#entry-item-list > li');
-        entryItems.forEach(item => {
-            const content = item.querySelector('.content')?.innerText.trim();
-            const author = item.querySelector('.entry-author')?.innerText.trim();
-            const date = item.querySelector('.entry-date')?.innerText.trim();
-            const id = item.getAttribute('data-id');
-
-            if (content) {
-                allEntries.push({
-                    id,
-                    author,
-                    date,
-                    content
-                });
-            }
-        });
+        const { entries } = extractEntriesFromDoc(doc);
+        allEntries.push(...entries);
 
         // Be nice to the server
         await new Promise(r => setTimeout(r, 500));
