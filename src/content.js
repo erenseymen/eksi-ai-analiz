@@ -253,6 +253,10 @@ const scrapeEntriesFromUrl = async (url) => {
     const baseUrl = urlObj.origin + urlObj.pathname;
     const existingParams = new URLSearchParams(urlObj.search);
     
+    // Get current page number from URL (if exists)
+    const currentPageParam = existingParams.get('p');
+    const startPage = currentPageParam ? parseInt(currentPageParam) : 1;
+    
     // Remove 'p' parameter if it exists (we'll add it in the loop)
     existingParams.delete('p');
     
@@ -285,26 +289,57 @@ const scrapeEntriesFromUrl = async (url) => {
 
     const statusSpan = document.querySelector('.eksi-ai-loading');
 
-    // Process first page entries
-    const firstPageEntryItems = doc.querySelectorAll('#entry-item-list > li');
-    firstPageEntryItems.forEach(item => {
-        const content = item.querySelector('.content')?.innerText.trim();
-        const author = item.querySelector('.entry-author')?.innerText.trim();
-        const date = item.querySelector('.entry-date')?.innerText.trim();
-        const id = item.getAttribute('data-id');
+    // If we're starting from a specific page, fetch that page first
+    if (startPage > 1) {
+        // Build URL for the starting page
+        const startPageParams = new URLSearchParams(existingParams);
+        startPageParams.set('p', startPage.toString());
+        const startPageUrl = `${baseUrl}?${startPageParams.toString()}`;
+        
+        if (statusSpan) statusSpan.textContent = `Sayfa ${startPage}/${totalPages} taranıyor...`;
+        
+        const startPageResponse = await fetch(startPageUrl);
+        const startPageText = await startPageResponse.text();
+        const startPageDoc = parser.parseFromString(startPageText, 'text/html');
 
-        if (content) {
-            allEntries.push({
-                id,
-                author,
-                date,
-                content
-            });
-        }
-    });
+        const startPageEntryItems = startPageDoc.querySelectorAll('#entry-item-list > li');
+        startPageEntryItems.forEach(item => {
+            const content = item.querySelector('.content')?.innerText.trim();
+            const author = item.querySelector('.entry-author')?.innerText.trim();
+            const date = item.querySelector('.entry-date')?.innerText.trim();
+            const id = item.getAttribute('data-id');
 
-    // Process remaining pages (starting from page 2)
-    for (let i = 2; i <= totalPages; i++) {
+            if (content) {
+                allEntries.push({
+                    id,
+                    author,
+                    date,
+                    content
+                });
+            }
+        });
+    } else {
+        // Process first page entries from fetched document
+        const firstPageEntryItems = doc.querySelectorAll('#entry-item-list > li');
+        firstPageEntryItems.forEach(item => {
+            const content = item.querySelector('.content')?.innerText.trim();
+            const author = item.querySelector('.entry-author')?.innerText.trim();
+            const date = item.querySelector('.entry-date')?.innerText.trim();
+            const id = item.getAttribute('data-id');
+
+            if (content) {
+                allEntries.push({
+                    id,
+                    author,
+                    date,
+                    content
+                });
+            }
+        });
+    }
+
+    // Process remaining pages (starting from startPage + 1)
+    for (let i = startPage + 1; i <= totalPages; i++) {
         // Check if user requested to stop
         if (shouldStopScraping) {
             if (statusSpan) statusSpan.textContent = `İşlem durduruldu. ${allEntries.length} entry toplandı.`;
@@ -486,31 +521,68 @@ const scrapeEntries = async () => {
     const baseUrl = currentUrlObj.origin + currentUrlObj.pathname;
     const existingParams = new URLSearchParams(currentUrlObj.search);
     
+    // Get current page number from URL (if exists)
+    const currentPageParam = existingParams.get('p');
+    const startPage = currentPageParam ? parseInt(currentPageParam) : 1;
+    
     // Remove 'p' parameter if it exists (we'll add it in the loop)
     existingParams.delete('p');
 
     const statusSpan = document.querySelector('.eksi-ai-loading');
 
-    // Process first page entries from current DOM
-    const firstPageEntryItems = document.querySelectorAll('#entry-item-list > li');
-    firstPageEntryItems.forEach(item => {
-        const content = item.querySelector('.content')?.innerText.trim();
-        const author = item.querySelector('.entry-author')?.innerText.trim();
-        const date = item.querySelector('.entry-date')?.innerText.trim();
-        const id = item.getAttribute('data-id');
+    // Process current page entries from DOM (only if we're on page 1, or if startPage matches current page)
+    // If we're on a later page, we'll fetch it in the loop
+    if (startPage === 1) {
+        // Process first page entries from current DOM
+        const firstPageEntryItems = document.querySelectorAll('#entry-item-list > li');
+        firstPageEntryItems.forEach(item => {
+            const content = item.querySelector('.content')?.innerText.trim();
+            const author = item.querySelector('.entry-author')?.innerText.trim();
+            const date = item.querySelector('.entry-date')?.innerText.trim();
+            const id = item.getAttribute('data-id');
 
-        if (content) {
-            allEntries.push({
-                id,
-                author,
-                date,
-                content
-            });
-        }
-    });
+            if (content) {
+                allEntries.push({
+                    id,
+                    author,
+                    date,
+                    content
+                });
+            }
+        });
+    } else {
+        // We're starting from a later page, fetch it first
+        const startPageParams = new URLSearchParams(existingParams);
+        startPageParams.set('p', startPage.toString());
+        const startPageUrl = `${baseUrl}?${startPageParams.toString()}`;
+        
+        if (statusSpan) statusSpan.textContent = `Sayfa ${startPage}/${totalPages} taranıyor...`;
+        
+        const startPageResponse = await fetch(startPageUrl);
+        const startPageText = await startPageResponse.text();
+        const parser = new DOMParser();
+        const startPageDoc = parser.parseFromString(startPageText, 'text/html');
 
-    // Process remaining pages (starting from page 2)
-    for (let i = 2; i <= totalPages; i++) {
+        const startPageEntryItems = startPageDoc.querySelectorAll('#entry-item-list > li');
+        startPageEntryItems.forEach(item => {
+            const content = item.querySelector('.content')?.innerText.trim();
+            const author = item.querySelector('.entry-author')?.innerText.trim();
+            const date = item.querySelector('.entry-date')?.innerText.trim();
+            const id = item.getAttribute('data-id');
+
+            if (content) {
+                allEntries.push({
+                    id,
+                    author,
+                    date,
+                    content
+                });
+            }
+        });
+    }
+
+    // Process remaining pages (starting from startPage + 1)
+    for (let i = startPage + 1; i <= totalPages; i++) {
         // Check if user requested to stop
         if (shouldStopScraping) {
             if (statusSpan) statusSpan.textContent = `İşlem durduruldu. ${allEntries.length} entry toplandı.`;
