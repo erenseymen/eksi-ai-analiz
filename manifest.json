@@ -6,9 +6,7 @@
     "author": "Eren Seymen",
     "homepage_url": "https://github.com/erenseymen/eksi-ai-analiz",
     "permissions": [
-        "storage",
-        "activeTab",
-        "scripting"
+        "storage"
     ],
     "host_permissions": [
         "https://eksisozluk.com/*",
