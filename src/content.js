@@ -1095,7 +1095,7 @@ const runGemini = async (userPrompt, showPromptHeader = false, clickedButton = n
         if (showPromptHeader && userPrompt) {
             resultHTML += `<div class="eksi-ai-custom-prompt-header">
                 <span class="eksi-ai-custom-prompt-label">Özel Prompt:</span>
-                <span class="eksi-ai-custom-prompt-text">${escapeHtml(userPrompt)}</span>
+                <span class="eksi-ai-custom-prompt-text">${escapeHtml(userPrompt).replace(/\n/g, '<br>')}</span>
             </div>`;
         }
         
@@ -1192,7 +1192,7 @@ ${userPrompt}`;
         if (showPromptHeader && userPrompt) {
             resultHTML += `<div class="eksi-ai-custom-prompt-header">
                 <span class="eksi-ai-custom-prompt-label">Özel Prompt:</span>
-                <span class="eksi-ai-custom-prompt-text">${escapeHtml(userPrompt)}</span>
+                <span class="eksi-ai-custom-prompt-text">${escapeHtml(userPrompt).replace(/\n/g, '<br>')}</span>
             </div>`;
         }
         
