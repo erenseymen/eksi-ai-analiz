@@ -395,11 +395,47 @@ const resetPrompts = () => {
 // =============================================================================
 
 /**
- * Sayfa yüklendiğinde ayarları geri yükle.
+ * Sayfa yüklendiğinde ayarları geri yükle ve system prompt'u göster.
  */
 document.addEventListener('DOMContentLoaded', () => {
     restoreOptions();
+    displaySystemPrompt();
 });
+
+/**
+ * Sistem promptunu sayfada görüntüler.
+ * SYSTEM_PROMPT sabiti constants.js'den alınır.
+ */
+const displaySystemPrompt = () => {
+    const displayElement = document.getElementById('systemPromptDisplay');
+    if (displayElement && typeof SYSTEM_PROMPT !== 'undefined') {
+        displayElement.textContent = SYSTEM_PROMPT;
+    }
+};
+
+/**
+ * Sistem promptunu panoya kopyalar.
+ */
+const copySystemPrompt = async () => {
+    const copyBtn = document.getElementById('copySystemPromptBtn');
+    try {
+        await navigator.clipboard.writeText(SYSTEM_PROMPT);
+        const originalText = copyBtn.textContent;
+        copyBtn.textContent = '✓';
+        copyBtn.style.backgroundColor = '#28a745';
+        setTimeout(() => {
+            copyBtn.textContent = originalText;
+            copyBtn.style.backgroundColor = '#81c14b';
+        }, 2000);
+    } catch (err) {
+        copyBtn.textContent = '✗';
+        copyBtn.style.backgroundColor = '#d9534f';
+        setTimeout(() => {
+            copyBtn.textContent = '📋';
+            copyBtn.style.backgroundColor = '#81c14b';
+        }, 2000);
+    }
+};
 
 /**
  * Kaydet butonuna tıklandığında ayarları kaydet.
@@ -440,3 +476,8 @@ document.getElementById('apiKey').addEventListener('blur', async (e) => {
         e.target.classList.remove('valid', 'invalid');
     }
 });
+
+/**
+ * Sistem promptu kopyalama butonuna tıklandığında panoya kopyala.
+ */
+document.getElementById('copySystemPromptBtn').addEventListener('click', copySystemPrompt);

@@ -213,6 +213,47 @@
         <button id="resetBtn" style="background-color: #d9534f; width: 100%; margin-top: 10px;">Butonları
             Sıfırla</button>
 
+        <hr style="margin: 30px 0 20px 0; border: 0; border-top: 1px solid #eee;">
+
+        <h2>Sistem Promptu</h2>
+        <p style="font-size: 14px; color: #666; margin-bottom: 15px;">
+            Bu prompt tüm analizlerde AI'a gönderilen temel yönergedir. Değiştirilemez.
+            <br>Özelleştirmek isterseniz 
+            <a href="https://github.com/erenseymen/eksi-ai-analiz/blob/master/src/constants.js" target="_blank"><code>constants.js</code></a> dosyasını düzenleyebilirsiniz.
+        </p>
+        
+        <div style="position: relative;">
+            <pre id="systemPromptDisplay" style="
+                background: #f8f9fa;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                padding: 15px;
+                padding-right: 50px;
+                font-family: 'Consolas', 'Monaco', monospace;
+                font-size: 13px;
+                line-height: 1.5;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+                color: #495057;
+                max-height: 400px;
+                overflow-y: auto;
+                user-select: text;
+                cursor: text;
+            "></pre>
+            <button id="copySystemPromptBtn" title="Kopyala" style="
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                background: #81c14b;
+                border: none;
+                border-radius: 4px;
+                padding: 6px 10px;
+                cursor: pointer;
+                font-size: 14px;
+                color: white;
+            ">📋</button>
+        </div>
+
     </div>
     <script src="constants.js"></script>
     <script src="options.js"></script>
