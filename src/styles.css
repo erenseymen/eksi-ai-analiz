@@ -377,7 +377,7 @@
     border-left: 4px solid var(--eksi-ai-btn-bg);
     background: rgba(129, 193, 75, 0.08);
     border-radius: 0 4px 4px 0;
-    font-style: italic;
+    font-style: normal;
     color: var(--eksi-ai-text);
 }
 

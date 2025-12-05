@@ -1412,6 +1412,10 @@ const parseMarkdown = (text) => {
     // Handle links [text](url)
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
     
+    // Auto-link plain URLs (not already inside an anchor tag)
+    // Match URLs that are not preceded by href=" or >
+    html = html.replace(/(?<!href="|>)(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+    
     // Handle unordered lists
     const processUnorderedList = (text) => {
         const lines = text.split('\n');
