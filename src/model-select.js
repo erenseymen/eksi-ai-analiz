@@ -81,6 +81,9 @@ document.getElementById('settingsLink').addEventListener('click', (e) => {
     chrome.runtime.openOptionsPage();
 });
 
-document.addEventListener('DOMContentLoaded', restoreOptions);
-document.getElementById('saveBtn').addEventListener('click', saveOptions);
+document.addEventListener('DOMContentLoaded', () => {
+    restoreOptions();
+    // Auto-save when model selection changes
+    document.getElementById('modelSelect').addEventListener('change', saveOptions);
+});
 

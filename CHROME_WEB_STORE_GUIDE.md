@@ -54,12 +54,6 @@ Ekşi Sözlük başlıklarını yapay zeka ile analiz eden, özetleyen ve blog y
 🤖 Gemini AI ile özet ve blog yazısı oluşturma
 📥 Entry'leri JSON olarak indirme
 ✏️ Özel prompt desteği
-⚙️ Farklı AI modelleri arasında seçim yapma
-
-Kullanım:
-1. Ekşi Sözlük başlığına gidin
-2. "Entry'leri Analiz Et" butonuna tıklayın
-3. Özet, Blog veya özel prompt seçin
 
 Not: Bu eklenti kendi Google Gemini API anahtarınızı kullanır. API anahtarı almak için Google AI Studio'yu ziyaret edin.
 ```
@@ -118,6 +112,70 @@ Chrome Web Store, eklentinizin veri kullanımını soracak. Aşağıdaki bilgile
 
 **Verileri nerede işliyorsunuz?**
 - ✅ Kullanıcının cihazında (yerel olarak)
+
+### İnceleme Sürecinde Sorulacak Sorular
+
+Chrome Web Store inceleme sürecinde aşağıdaki sorular sorulacaktır. Bu sorulara verilecek cevaplar:
+
+#### 1. Single Purpose Description
+**Question:** An extension must have a single purpose that is narrow and easy-to-understand.
+
+**Answer:**
+```
+This extension is designed to collect entries from Ekşi Sözlük topics and analyze, summarize, and create blog posts using Google Gemini AI.
+```
+
+#### 2. Storage Permission Justification
+**Question:** Why does your extension need the "storage" permission?
+
+**Answer:**
+```
+The extension requires the "storage" permission to save user settings:
+- Google Gemini API key (provided by the user, stored unencrypted in chrome.storage.sync)
+- Selected AI model preference (gemini-2.5-pro, gemini-2.5-flash, etc.)
+- User-created custom prompt templates
+
+This data is essential for the extension's core functionality and is used to personalize the user experience. The API key is obtained by the user from their own Google account and is only used for Gemini API calls.
+```
+
+#### 3. Host Permission Justification
+**Question:** Why does your extension need host permissions?
+
+**Answer:**
+```
+The extension uses two host permissions:
+
+1. "https://eksisozluk.com/*"
+   - Required to collect entries from Ekşi Sözlük topic pages
+   - When the user clicks the "Analyze Entries" button, the extension scrapes entries from the page
+   - Uses the fetch API to retrieve entry content, author information, and dates
+   - Without this permission, the extension cannot perform its core function
+
+2. "https://generativelanguage.googleapis.com/*"
+   - Required to send requests to the Google Gemini AI API
+   - Used to analyze, summarize, and create blog posts from entries using the user-provided API key
+   - Without this permission, the AI analysis feature will not work
+
+Both permissions are essential for the extension's core functionality and are not used for any other purpose.
+```
+
+#### 4. Remote Code Usage
+**Question:** Are you using remote code? If yes, provide justification.
+
+**Answer:**
+```
+No, the extension does not use remote code. All JavaScript code is contained within the extension package and loaded from the Chrome Web Store. The extension:
+
+- Does not download or execute JavaScript code from remote servers
+- Does not use eval() or similar dynamic code execution functions
+- Does not inject scripts from remote sources
+
+The extension only:
+- Sends HTTP requests to the Google Gemini API (data transmission/reception)
+- Retrieves data from Ekşi Sözlük pages (using the fetch API)
+
+These API calls are not remote code execution, but only data exchange. All business logic and code is contained locally within the extension package.
+```
 
 ## Adım 5: Paketleme
 

@@ -1,6 +1,6 @@
 # Gizlilik Politikası
 
-**Son Güncelleme:** 2025-01-XX
+**Son Güncelleme:** 2025-12-05
 
 ## Genel Bakış
 
@@ -48,14 +48,6 @@ Ekşi Sözlük AI Analiz eklentisi, kullanıcıların Ekşi Sözlük başlıklar
 - **Veri Silme:** Eklentiyi kaldırdığınızda tüm veriler otomatik olarak silinir
 - **Veri Düzenleme:** Ayarlar sayfasından API anahtarınızı ve diğer tercihlerinizi düzenleyebilir veya silebilirsiniz
 
-## Çocukların Gizliliği
-
-Eklenti, 13 yaşın altındaki çocuklardan bilerek veri toplamaz. Eğer 13 yaşın altındaki bir çocuğun verilerini topladığımızı öğrenirsek, bu verileri derhal sileriz.
-
-## Değişiklikler
-
-Bu gizlilik politikası zaman zaman güncellenebilir. Önemli değişiklikler eklenti içinde bildirilecektir.
-
 ## İletişim
 
 Bu gizlilik politikası hakkında sorularınız için lütfen GitHub repository'sinde issue açın.
@@ -63,6 +55,6 @@ Bu gizlilik politikası hakkında sorularınız için lütfen GitHub repository'
 ## Ek Bilgiler
 
 - **Eklenti Adı:** Ekşi Sözlük AI Analiz
-- **Geliştirici:** [GitHub Repository](https://github.com/[YOUR_USERNAME]/eksi-ai-analiz)
+- **Geliştirici:** [GitHub Repository](https://github.com/erenseymen/eksi-ai-analiz)
 - **Veri İşleme Yeri:** Yerel (kullanıcının tarayıcısı)
 
