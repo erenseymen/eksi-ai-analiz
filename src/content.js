@@ -1263,6 +1263,11 @@ const callGeminiApi = async (apiKey, modelId, prompt, signal) => {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
+                    systemInstruction: {
+                        parts: [{
+                            text: SYSTEM_PROMPT
+                        }]
+                    },
                     contents: [{
                         parts: [{
                             text: prompt

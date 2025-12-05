@@ -1,3 +1,20 @@
+const SYSTEM_PROMPT = `Sen Ekşi Sözlük entry'lerini analiz eden bir yapay zeka asistanısın.
+
+## Veri Formatı
+Sana verilen entry'ler JSON formatındadır. Her entry şu alanları içerir:
+- id: Entry'nin benzersiz kimliği
+- author: Entry'yi yazan kullanıcı (yazar)
+- date: Entry'nin yazılma zamanı
+- content: Entry içeriği
+- referenced_entries: (varsa) Entry içinde referans verilen diğer entry'lerin içerikleri
+
+## Entry Referansları
+Entry'lere link verirken şu formatı kullan:
+- URL formatı: https://eksisozluk.com/entry/{entry_id}
+- entry_id değerini JSON verisindeki "id" alanından al
+- Markdown link formatı: [açıklayıcı metin](https://eksisozluk.com/entry/entry_id)
+- Örnek: [bu entry](https://eksisozluk.com/entry/000000001)`;
+
 const DEFAULT_PROMPTS = [
     {
         name: "Özet",
@@ -16,11 +33,7 @@ const DEFAULT_PROMPTS = [
 - Akıcı ve okunabilir bir metin oluştur
 - Gereksiz spekülasyon veya çıkarımdan kaçın
 - Entry'lerden kısa ve anlamlı alıntılar ekle (tırnak işareti ile)
-
-## Link Formatı:
-- Entry'lere referans verirken Markdown link formatı kullan: [link metni](https://eksisozluk.com/entry/entry_id)
-- JSON'daki entry_id değerini kullanarak link oluştur
-- Link metni entry'nin anahtar kelimesini veya bağlama uygun bir ifadeyi içersin
+- Entry'lere linkli referanslar kullan
 
 ## Çıktı:
 - Yanıtın sadece özet metni olsun, ek açıklama veya meta bilgi içermesin.`
@@ -47,11 +60,7 @@ Entry'lerdeki farklı görüşleri, deneyimleri, mizahı ve eleştirileri sentez
 ## Alıntı Formatı
 Her alıntı şu formatta olsun:
 > Entry içeriği
-> - yazarın_adı - [tarih](https://eksisozluk.com/entry/entry_id)
-
-Notlar:
-- yazarın_adı, tarih ve entry_id değerlerini JSON verisinden al
-- Tarih tıklanabilir link olsun
+> - yazar - [tarih](https://eksisozluk.com/entry/entry_id)
 
 ## Çıktı Formatı
 - Yanıt YALNIZCA blog yazısı olsun (Markdown formatında)
