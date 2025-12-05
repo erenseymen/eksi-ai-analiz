@@ -3,7 +3,8 @@
     "name": "Ekşi Sözlük AI Analiz",
     "version": "1.0",
     "description": "Ekşi Sözlük başlıklarını analiz eden, özetleyen ve blog yazısı hazırlayan yapay zeka asistanı.",
-    "author": "Ekşi Sözlük AI Analiz",
+    "author": "Eren Seymen",
+    "homepage_url": "https://github.com/erenseymen/eksi-ai-analiz",
     "permissions": [
         "storage",
         "activeTab",
