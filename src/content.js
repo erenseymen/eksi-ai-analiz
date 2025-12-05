@@ -6,6 +6,14 @@ let shouldStopScraping = false;
 
 // DEFAULT_PROMPTS is now defined in constants.js
 
+// Helper function to escape HTML (prevents XSS)
+const escapeHtml = (str) => {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+};
+
 // Helper to get Settings
 const getSettings = async () => {
     return new Promise((resolve) => {
@@ -187,7 +195,7 @@ const startAnalysisForTopic = async (h1Element, topicId) => {
         }
     } catch (err) {
         console.error(err);
-        container.innerHTML = `<div class="eksi-ai-warning">Hata oluştu: ${err.message}</div>`;
+        container.innerHTML = `<div class="eksi-ai-warning">Hata oluştu: ${escapeHtml(err.message)}</div>`;
     } finally {
         // Restore original button
         btn.disabled = false;
@@ -752,7 +760,7 @@ const startSingleEntryAnalysis = async () => {
         }
     } catch (err) {
         console.error(err);
-        container.innerHTML = `<div class="eksi-ai-warning">Hata oluştu: ${err.message}</div>`;
+        container.innerHTML = `<div class="eksi-ai-warning">Hata oluştu: ${escapeHtml(err.message)}</div>`;
     } finally {
         // Restore original button
         btn.disabled = false;
@@ -861,7 +869,7 @@ const startAnalysis = async () => {
         }
     } catch (err) {
         console.error(err);
-        container.innerHTML = `<div class="eksi-ai-warning">Hata oluştu: ${err.message}</div>`;
+        container.innerHTML = `<div class="eksi-ai-warning">Hata oluştu: ${escapeHtml(err.message)}</div>`;
     } finally {
         // Restore original button
         btn.disabled = false;

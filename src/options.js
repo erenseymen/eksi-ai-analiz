@@ -27,6 +27,14 @@ const MODELS = [
 
 // DEFAULT_PROMPTS is now defined in constants.js
 
+// Helper function to escape HTML (prevents XSS)
+const escapeHtml = (str) => {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+};
+
 let prompts = [];
 
 // Helper to update prompts array from DOM
@@ -209,10 +217,10 @@ const renderPrompts = () => {
 
         div.innerHTML = `
             <label>Buton Adı</label>
-            <input type="text" class="prompt-name" value="${item.name}" placeholder="Buton Adı">
+            <input type="text" class="prompt-name" value="${escapeHtml(item.name)}" placeholder="Buton Adı">
             
             <label>Prompt</label>
-            <textarea class="prompt-text" rows="4" placeholder="Prompt içeriği...">${item.prompt}</textarea>
+            <textarea class="prompt-text" rows="4" placeholder="Prompt içeriği...">${escapeHtml(item.prompt)}</textarea>
             
             <div style="margin-top: 10px;">
                 <button class="save-item-btn" style="margin-right: 5px;">Kaydet</button>
