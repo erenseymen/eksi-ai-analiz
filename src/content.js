@@ -1420,29 +1420,51 @@ const parseMarkdown = (text) => {
     const processUnorderedList = (text) => {
         const lines = text.split('\n');
         let result = [];
-        let inList = false;
+        let listStack = []; // Stores indentation levels
         
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
-            const listMatch = line.match(/^[\-\*]\s+(.+)$/);
+            const listMatch = line.match(/^(\s*)[\-\*]\s+(.+)$/);
             
             if (listMatch) {
-                if (!inList) {
+                const indent = listMatch[1].length;
+                const content = listMatch[2];
+                
+                if (listStack.length === 0) {
                     result.push('<ul>');
-                    inList = true;
+                    listStack.push(indent);
+                } else {
+                    const currentIndent = listStack[listStack.length - 1];
+                    
+                    if (indent > currentIndent) {
+                        result.push('<ul>');
+                        listStack.push(indent);
+                    } else if (indent < currentIndent) {
+                        while (listStack.length > 0 && indent < listStack[listStack.length - 1]) {
+                            result.push('</ul>');
+                            listStack.pop();
+                        }
+                        
+                        // If indent level is still not matching (e.g. weird indentation), start new or append
+                        if (listStack.length === 0) {
+                            result.push('<ul>');
+                            listStack.push(indent);
+                        }
+                    }
                 }
-                result.push(`<li>${listMatch[1]}</li>`);
+                result.push(`<li>${content}</li>`);
             } else {
-                if (inList) {
+                while (listStack.length > 0) {
                     result.push('</ul>');
-                    inList = false;
+                    listStack.pop();
                 }
                 result.push(line);
             }
         }
         
-        if (inList) {
+        while (listStack.length > 0) {
             result.push('</ul>');
+            listStack.pop();
         }
         
         return result.join('\n');
@@ -1452,29 +1474,50 @@ const parseMarkdown = (text) => {
     const processOrderedList = (text) => {
         const lines = text.split('\n');
         let result = [];
-        let inList = false;
+        let listStack = []; // Stores indentation levels
         
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
-            const listMatch = line.match(/^\d+\.\s+(.+)$/);
+            const listMatch = line.match(/^(\s*)\d+\.\s+(.+)$/);
             
             if (listMatch) {
-                if (!inList) {
+                const indent = listMatch[1].length;
+                const content = listMatch[2];
+                
+                if (listStack.length === 0) {
                     result.push('<ol>');
-                    inList = true;
+                    listStack.push(indent);
+                } else {
+                    const currentIndent = listStack[listStack.length - 1];
+                    
+                    if (indent > currentIndent) {
+                        result.push('<ol>');
+                        listStack.push(indent);
+                    } else if (indent < currentIndent) {
+                        while (listStack.length > 0 && indent < listStack[listStack.length - 1]) {
+                            result.push('</ol>');
+                            listStack.pop();
+                        }
+                        
+                        if (listStack.length === 0) {
+                            result.push('<ol>');
+                            listStack.push(indent);
+                        }
+                    }
                 }
-                result.push(`<li>${listMatch[1]}</li>`);
+                result.push(`<li>${content}</li>`);
             } else {
-                if (inList) {
+                while (listStack.length > 0) {
                     result.push('</ol>');
-                    inList = false;
+                    listStack.pop();
                 }
                 result.push(line);
             }
         }
         
-        if (inList) {
+        while (listStack.length > 0) {
             result.push('</ol>');
+            listStack.pop();
         }
         
         return result.join('\n');
