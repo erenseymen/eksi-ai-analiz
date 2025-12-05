@@ -41,6 +41,28 @@ Ekşi Sözlük başlıklarını yapay zeka ile analiz eden tarayıcı eklentisi.
 2. "Entry'leri Analiz Et" butonuna tıklayın
 3. Özet, Blog veya Özel Prompt seçin
 
+## Entry Toplama Davranışı
+
+Eklenti, farklı URL tiplerine göre entry'leri toplar:
+
+### Başlık Sayfası (`/baslik-adi--id`)
+
+| URL Formatı | Açıklama | Toplanan Entry'ler |
+|-------------|----------|-------------------|
+| `/baslik--123` | Standart başlık | Tüm sayfalar, ilk entry'den son entry'ye |
+| `/baslik--123?p=5` | Belirli sayfa | 5. sayfadan itibaren son sayfaya kadar |
+| `/baslik--123?focusto=456` | Odaklanmış entry | Entry #456'dan itibaren son entry'ye kadar |
+| `/baslik--123?day=2025-01-15` | Günlük filtre | O güne ait tüm entry'ler |
+| `/baslik--123?a=nice` | Şükela | "Güzel" olarak işaretlenmiş entry'ler |
+| `/baslik--123?a=dailynice` | Günün en beğenilenleri | O günün en beğenilen entry'leri |
+| `/baslik--123?a=popular` | Gündem | Gündemdeki entry'ler |
+
+> **Not:** Filtreler birleştirilebilir. Örn: `?a=nice&day=2025-01-15`
+
+### Entry Sayfası (`/entry/id`)
+
+Tek entry sayfasında sadece o entry'nin analiz edilmesine olanak tanır.
+
 ## Geliştirici Notları
 
 ### Paket Oluşturma
