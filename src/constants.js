@@ -58,6 +58,10 @@ Notlar:
 - Başlık, alt başlıklar ve paragrafları uygun şekilde formatla
 - Entry'lerden bol bol alıntı yap, farklı görüşleri yansıt
 - Her alıntıda yazar, tarih ve link bilgilerini mutlaka ekle`
+    },
+    {
+        name: "Şiir",
+        prompt: `Şiir yaz`
     }
 ];
 
