@@ -1,0 +1,20 @@
+---
+description: Türkçe dilbilgisi kuralları
+globs: ["*.md", "*.txt", "*.html"]
+alwaysApply: false
+---
+
+# Türkçe Dilbilgisi Kuralları
+
+## Yabancı Kelimelerde Kaynaştırma Harfi
+
+Ünsüzle biten yabancı kökenli kelimelere (entry, computer, file, bug vb.) ünlü ile başlayan ek geldiğinde kaynaştırma harfi **"y"** kullanılır.
+
+### Doğru Kullanım
+- entry'ye ✓
+- file'a ✓
+- bug'a ✓
+
+### Yanlış Kullanım
+- entry'e ✗
+- file'ya ✗
