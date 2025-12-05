@@ -11,9 +11,18 @@ NC='\033[0m' # No Color
 echo -e "${GREEN}Ekşi Sözlük AI Analiz - Paketleme Scripti${NC}"
 echo "=========================================="
 
-# ZIP dosya adı
-ZIP_NAME="eksi-ai-analiz.zip"
+# Versiyonu manifest.json'dan oku
+VERSION=$(grep -o '"version": "[^"]*"' manifest.json | cut -d'"' -f4)
+if [ -z "$VERSION" ]; then
+    echo -e "${RED}Hata: manifest.json'dan versiyon okunamadı!${NC}"
+    exit 1
+fi
+
+# ZIP dosya adı (versiyon ile)
+ZIP_NAME="eksi-ai-analiz-v${VERSION}.zip"
 TEMP_DIR=".package_temp"
+
+echo -e "${GREEN}Versiyon: ${VERSION}${NC}"
 
 # Eski paketleri temizle
 if [ -f "$ZIP_NAME" ]; then
