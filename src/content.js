@@ -1,16 +1,54 @@
-// Global state
+/**
+ * @fileoverview Ekşi Sözlük AI Analiz - Ana İçerik Script'i
+ * 
+ * Bu dosya Ekşi Sözlük sayfalarına enjekte edilen ana script'tir.
+ * Temel işlevler:
+ * - Entry'leri sayfadan toplama (scraping)
+ * - Gemini API ile analiz yapma
+ * - Sonuçları Markdown formatında gösterme
+ * - Kullanıcı etkileşimlerini yönetme
+ * 
+ * Desteklenen sayfa türleri:
+ * - Başlık sayfaları (/baslik-adi--id)
+ * - Tek entry sayfaları (/entry/id)
+ * 
+ * Bağımlılıklar:
+ * - constants.js (SYSTEM_PROMPT, DEFAULT_PROMPTS, escapeHtml)
+ * - styles.css (UI stilleri)
+ */
+
+// =============================================================================
+// GLOBAL DURUM DEĞİŞKENLERİ
+// =============================================================================
+
+/** @type {Array<Object>} Toplanan tüm entry'lerin listesi */
 let allEntries = [];
+
+/** @type {string} Mevcut başlığın adı */
 let topicTitle = "";
+
+/** @type {string} Mevcut başlığın ID'si */
 let topicId = "";
+
+/** @type {boolean} Entry toplama işleminin durdurulup durdurulmayacağını belirten bayrak */
 let shouldStopScraping = false;
-let responseCache = new Map(); // Cache for Gemini responses (key: prompt, value: response)
-let lastCustomPrompt = null; // Track the last custom prompt used
 
-// DEFAULT_PROMPTS is now defined in constants.js
+/** @type {Map<string, Object>} Gemini yanıtları için önbellek (anahtar: prompt, değer: yanıt) */
+let responseCache = new Map();
 
-// escapeHtml is now defined in constants.js
+/** @type {string|null} Son kullanılan özel prompt (önbellek için) */
+let lastCustomPrompt = null;
 
-// Helper to get Settings
+// =============================================================================
+// AYARLAR
+// =============================================================================
+
+/**
+ * Chrome storage'dan kullanıcı ayarlarını alır.
+ * 
+ * @returns {Promise<{geminiApiKey: string, selectedModel: string, prompts: Array}>}
+ *          Kullanıcı ayarları objesi
+ */
 const getSettings = async () => {
     return new Promise((resolve) => {
         chrome.storage.sync.get({
@@ -18,7 +56,7 @@ const getSettings = async () => {
             selectedModel: 'gemini-2.5-flash',
             prompts: DEFAULT_PROMPTS
         }, (items) => {
-            // Eğer prompts boş veya tanımsızsa, varsayılan değerleri kullan
+            // Boş veya tanımsız prompt listesi için varsayılan değerleri kullan
             if (!items.prompts || items.prompts.length === 0) {
                 items.prompts = DEFAULT_PROMPTS;
             }
@@ -27,7 +65,25 @@ const getSettings = async () => {
     });
 };
 
-// Detect page type based on URL and DOM structure
+// =============================================================================
+// SAYFA TİPİ TESPİTİ
+// =============================================================================
+
+/**
+ * URL ve DOM yapısına göre sayfa tipini tespit eder.
+ * 
+ * Desteklenen sayfa tipleri:
+ * - topic-page: Başlık sayfası (/baslik-adi--id)
+ * - entry-page: Tek entry sayfası (/entry/id)
+ * - home-page: Ana sayfa (/)
+ * - gundem-page: Gündem sayfası (/basliklar/gundem)
+ * - debe-page: DEBE sayfası (/debe)
+ * - channel-page: Kanal sayfaları (/basliklar/kanal/*)
+ * - author-page: Yazar profil sayfası (/biri/*)
+ * - statistics-page: İstatistik sayfaları (/istatistik/*)
+ * 
+ * @returns {string} Sayfa tipi tanımlayıcısı
+ */
 const detectPageType = () => {
     const path = window.location.pathname;
     
@@ -74,7 +130,21 @@ const detectPageType = () => {
     return 'unknown';
 };
 
-// Create analysis button and container for a specific topic
+// =============================================================================
+// UI BİLEŞENLERİ OLUŞTURMA
+// =============================================================================
+
+/**
+ * Analiz butonu ve sonuç konteynerini oluşturur.
+ * 
+ * Verilen h1 elementinin yanına "Entry'leri Analiz Et" butonu ekler.
+ * Buton tıklandığında entry toplama ve analiz işlemi başlar.
+ * 
+ * @param {HTMLElement} h1Element - Butonun ekleneceği başlık elementi
+ * @param {string|null} [topicId=null] - Başlık ID'si (benzersiz buton ID'si için)
+ * @param {boolean} [useCurrentPage=false] - true ise mevcut sayfadan entry toplar,
+ *                                           false ise başlık linkinden toplar
+ */
 const createAnalysisButton = (h1Element, topicId = null, useCurrentPage = false) => {
     if (!h1Element) {
         console.error('h1Element is required');
@@ -133,11 +203,23 @@ const createAnalysisButton = (h1Element, topicId = null, useCurrentPage = false)
         container.classList.add('eksi-ai-dark');
     }
 
-    // Insert container after the button
+    // Konteyneri butonun hemen altına ekle
     btn.parentNode.insertBefore(container, btn.nextSibling);
 };
 
-// Start analysis for a specific topic (used in entry pages)
+// =============================================================================
+// ANALİZ İŞLEMLERİ
+// =============================================================================
+
+/**
+ * Belirli bir başlık için analiz başlatır.
+ * 
+ * Entry sayfalarında kullanılır. H1 elementinden başlık URL'sini çıkarır,
+ * tüm entry'leri toplar ve analiz seçeneklerini gösterir.
+ * 
+ * @param {HTMLElement} h1Element - Başlık elementi (URL bilgisi içerir)
+ * @param {string} topicId - Başlık ID'si (UI elementleri için)
+ */
 const startAnalysisForTopic = async (h1Element, topicId) => {
     // Check if there's a focusto href on the heading (set by initEntryPage for /entry/ID URLs)
     // This takes priority over the regular topic link
@@ -202,8 +284,23 @@ const startAnalysisForTopic = async (h1Element, topicId) => {
     }
 };
 
-// Helper function to extract referenced entry IDs from content
-// Format: (bkz: #entry_id) - direct reference to another entry
+// =============================================================================
+// ENTRY REFERANS İŞLEME
+// =============================================================================
+
+/**
+ * Entry içeriğinden referans verilen entry ID'lerini çıkarır.
+ * 
+ * Ekşi Sözlük'te entry'ler arası referans formatı: (bkz: #entry_id)
+ * Bu fonksiyon bu formatı arar ve ID'leri listeler.
+ * 
+ * @param {string} content - Entry içeriği
+ * @returns {string[]} Bulunan entry ID'leri listesi
+ * 
+ * @example
+ * extractReferencedEntryIds('Bu konuda (bkz: #12345) entry\'sine bakın')
+ * // Döndürür: ['12345']
+ */
 const extractReferencedEntryIds = (content) => {
     if (!content) return [];
     
@@ -218,7 +315,16 @@ const extractReferencedEntryIds = (content) => {
     return matches;
 };
 
-// Fetch a single entry by its ID from eksisozluk.com/entry/{id}
+/**
+ * Belirtilen ID'ye sahip entry'yi API'den alır.
+ * 
+ * eksisozluk.com/entry/{id} sayfasını fetch eder ve entry verilerini
+ * DOM'dan parse eder. Referans entry'leri yüklemek için kullanılır.
+ * 
+ * @param {string} entryId - Alınacak entry'nin ID'si
+ * @returns {Promise<Object|null>} Entry objesi veya hata durumunda null
+ *          Entry objesi: {id, author, date, content}
+ */
 const fetchEntryById = async (entryId) => {
     try {
         const url = `https://eksisozluk.com/entry/${entryId}`;
@@ -263,7 +369,14 @@ const fetchEntryById = async (entryId) => {
     }
 };
 
-// Fetch all referenced entries and populate them in allEntries
+/**
+ * Tüm referans entry'leri toplu olarak alır ve ana listeye ekler.
+ * 
+ * allEntries içindeki her entry'nin referenced_entry_ids alanını kontrol eder,
+ * eksik entry'leri API'den alır ve referenced_entries alanına tam veriyi ekler.
+ * 
+ * @param {HTMLElement|null} [statusSpan=null] - İlerleme durumunu gösterecek element
+ */
 const fetchAllReferencedEntries = async (statusSpan = null) => {
     // Collect all unique referenced entry IDs
     const existingIds = new Set(allEntries.map(e => e.id));
@@ -333,7 +446,19 @@ const fetchAllReferencedEntries = async (statusSpan = null) => {
     });
 };
 
-// Helper function to extract content from an element, replacing truncated link text with actual href
+// =============================================================================
+// İÇERİK ÇIKARMA YARDIMCILARI
+// =============================================================================
+
+/**
+ * DOM elementinden entry içeriğini çıkarır, kısaltılmış URL'leri tam URL ile değiştirir.
+ * 
+ * Ekşi Sözlük uzun URL'leri "..." ile kısaltır. Bu fonksiyon href değerini
+ * kullanarak tam URL'yi geri yükler. Ayrıca gizli referansları (bkz) açığa çıkarır.
+ * 
+ * @param {HTMLElement} contentElement - Entry içeriğini barındıran DOM elementi
+ * @returns {string} Temizlenmiş ve URL'leri düzeltilmiş metin içeriği
+ */
 const extractContentWithFullUrls = (contentElement) => {
     if (!contentElement) return '';
     
@@ -370,7 +495,16 @@ const extractContentWithFullUrls = (contentElement) => {
     return clone.innerText.trim();
 };
 
-// Helper function to extract entries from a document, optionally filtering from a focusto entry
+/**
+ * DOM belgesinden entry'leri çıkarır.
+ * 
+ * Entry listesini DOM'dan parse eder. İsteğe bağlı olarak focusto parametresiyle
+ * belirli bir entry'den itibaren filtreleme yapabilir.
+ * 
+ * @param {Document} doc - Parse edilecek HTML belgesi
+ * @param {string|null} [focustoEntryId=null] - Bu ID'den itibaren entry'leri al
+ * @returns {{entries: Array, foundFocusEntry: boolean}} Entry listesi ve focusto bulundu mu
+ */
 const extractEntriesFromDoc = (doc, focustoEntryId = null) => {
     const entries = [];
     let foundFocusEntry = !focustoEntryId; // If no focusto, include all entries
@@ -414,7 +548,24 @@ const extractEntriesFromDoc = (doc, focustoEntryId = null) => {
     return { entries, foundFocusEntry };
 };
 
-// Scrape entries from a specific URL
+// =============================================================================
+// ENTRY TOPLAMA (SCRAPING)
+// =============================================================================
+
+/**
+ * Belirtilen URL'den entry'leri toplar.
+ * 
+ * Başlık sayfasına gider, sayfa sayısını tespit eder ve tüm sayfaları
+ * sırayla tarayarak entry'leri toplar. Rate limiting uygular.
+ * 
+ * Özellikler:
+ * - Çok sayfalı başlıkları destekler
+ * - focusto parametresini işler (belirli entry'den başlama)
+ * - Query parametrelerini korur (?day=, ?a= vb.)
+ * - Referans entry'leri otomatik yükler
+ * 
+ * @param {string} url - Başlık URL'si
+ */
 const scrapeEntriesFromUrl = async (url) => {
     allEntries = [];
     
@@ -524,16 +675,26 @@ const scrapeEntriesFromUrl = async (url) => {
         allEntries.push(...entries);
 
         // Be nice to the server
+        // Sunucuya yük bindirmemek için bekleme (rate limiting)
         await new Promise(r => setTimeout(r, 500));
     }
     
-    // Fetch referenced entries content
+    // Referans entry'lerin içeriklerini al
     if (!shouldStopScraping) {
         await fetchAllReferencedEntries(statusSpan);
     }
 };
 
-// Initialization
+// =============================================================================
+// SAYFA İNİTİALİZASYONU
+// =============================================================================
+
+/**
+ * Eklentiyi başlatır ve sayfa tipine göre uygun işlemleri yapar.
+ * 
+ * Sayfa türünü tespit eder ve uygun init fonksiyonunu çağırır.
+ * Ana sayfa, gündem gibi liste sayfalarında buton göstermez.
+ */
 const init = () => {
     const pageType = detectPageType();
     
@@ -560,7 +721,12 @@ const init = () => {
     }
 };
 
-// Initialize single topic page
+/**
+ * Tek başlık sayfası için UI'ı hazırlar.
+ * 
+ * Başlık elementini bulur ve analiz butonunu ekler.
+ * Mevcut sayfa üzerinden entry toplama modunu kullanır.
+ */
 const initTopicPage = () => {
     let topicHeader = document.getElementById('topic');
     let topicTitleH1 = topicHeader ? topicHeader.querySelector('h1') : document.querySelector('h1');
@@ -576,8 +742,12 @@ const initTopicPage = () => {
     }
 };
 
-
-// Scrape single entry from current entry page
+/**
+ * Tek entry sayfasından entry verisini çıkarır.
+ * 
+ * /entry/ID formatındaki sayfalarda DOM'dan entry bilgilerini parse eder.
+ * Birden fazla strateji dener çünkü DOM yapısı değişkenlik gösterebilir.
+ */
 const scrapeSingleEntryFromCurrentPage = () => {
     allEntries = [];
     
@@ -719,7 +889,12 @@ const scrapeSingleEntryFromCurrentPage = () => {
     }
 };
 
-// Start analysis for single entry on entry page
+/**
+ * Tek entry için analiz başlatır.
+ * 
+ * Entry sayfalarında "Bu Entry'yi Analiz Et" butonu için handler.
+ * Mevcut entry'yi DOM'dan alır, referanslarını yükler ve analiz seçeneklerini gösterir.
+ */
 const startSingleEntryAnalysis = async () => {
     const btn = document.getElementById('eksi-ai-entry-btn');
     const container = document.getElementById('eksi-ai-entry-container');
@@ -769,7 +944,14 @@ const startSingleEntryAnalysis = async () => {
     }
 };
 
-// Create button for single entry analysis on entry pages
+/**
+ * Tek entry analizi için buton oluşturur.
+ * 
+ * Entry sayfalarında kullanılır. "Bu Entry'yi Analiz Et" butonunu
+ * başlık elementinin altına ekler.
+ * 
+ * @param {HTMLElement} heading - Butonun ekleneceği başlık elementi
+ */
 const createSingleEntryButton = (heading) => {
     if (!heading) {
         console.error('Heading is required');
@@ -805,11 +987,16 @@ const createSingleEntryButton = (heading) => {
         container.classList.add('eksi-ai-dark');
     }
 
-    // Insert container after the button
+    // Konteyneri butonun altına ekle
     btn.parentNode.insertBefore(container, btn.nextSibling);
 };
 
-// Initialize single entry page
+/**
+ * Tek entry sayfası için UI'ı hazırlar.
+ * 
+ * Entry sayfalarında sadece tek entry analizi butonu gösterir.
+ * Tam başlık analizi için ayrı bir buton eklenmez.
+ */
 const initEntryPage = () => {
     // On entry pages, we need to find the topic link and the heading
     // The DOM structure on entry pages: h1 contains the topic title link
@@ -825,6 +1012,18 @@ const initEntryPage = () => {
     createSingleEntryButton(heading);
 };
 
+// =============================================================================
+// TEMA TESPİTİ
+// =============================================================================
+
+/**
+ * Sayfanın karanlık mod kullanıp kullanmadığını tespit eder.
+ * 
+ * Body background renginin parlaklığını hesaplar.
+ * Parlaklık 128'den düşükse karanlık mod olarak kabul eder.
+ * 
+ * @returns {boolean} true ise karanlık mod aktif
+ */
 const detectTheme = () => {
     // Check for dark mode based on body background color or specific classes
     // Ekşi Sözlük dark mode usually has a dark background color
@@ -838,6 +1037,12 @@ const detectTheme = () => {
     return false;
 };
 
+/**
+ * Ana analiz işlemini başlatır.
+ * 
+ * Başlık sayfalarında "Entry'leri Analiz Et" butonu için handler.
+ * Mevcut sayfadaki tüm entry'leri toplar ve analiz seçeneklerini gösterir.
+ */
 const startAnalysis = async () => {
     const btn = document.getElementById('eksi-ai-main-btn');
     const container = document.getElementById('eksi-ai-container');
@@ -880,6 +1085,12 @@ const startAnalysis = async () => {
     }
 };
 
+/**
+ * Entry toplama işlemini durdurur.
+ * 
+ * "Durdur" butonuna basıldığında çağrılır. shouldStopScraping bayrağını
+ * true yaparak döngülerin durmasını sağlar.
+ */
 const stopScraping = () => {
     shouldStopScraping = true;
     // Try to find either button (main or entry page button)
@@ -890,6 +1101,17 @@ const stopScraping = () => {
     }
 };
 
+/**
+ * Mevcut sayfadan entry'leri toplar.
+ * 
+ * startAnalysis tarafından çağrılır. Mevcut başlık sayfasındaki tüm
+ * entry'leri toplar, çok sayfalı başlıkları destekler.
+ * 
+ * Özellikler:
+ * - Mevcut sayfa numarasından başlar
+ * - Query parametrelerini korur
+ * - Kullanıcı durdurabilir
+ */
 const scrapeEntries = async () => {
     allEntries = [];
     topicTitle = document.querySelector('h1')?.innerText || document.querySelector('#topic h1')?.innerText || "Basliksiz";
@@ -982,15 +1204,29 @@ const scrapeEntries = async () => {
         allEntries.push(...entries);
 
         // Be nice to the server
+        // Rate limiting - sunucuya nazik davran
         await new Promise(r => setTimeout(r, 500));
     }
     
-    // Fetch referenced entries content
+    // Referans entry'lerin içeriklerini al
     if (!shouldStopScraping) {
         await fetchAllReferencedEntries(statusSpan);
     }
 };
 
+// =============================================================================
+// UI RENDER FONKSİYONLARI
+// =============================================================================
+
+/**
+ * Analiz aksiyon butonlarını render eder.
+ * 
+ * Entry toplama tamamlandığında çağrılır. Kullanıcının ayarladığı
+ * prompt butonlarını ve JSON indirme butonunu gösterir.
+ * 
+ * @param {HTMLElement} container - Butonların ekleneceği konteyner
+ * @param {boolean} [wasStopped=false] - İşlem kullanıcı tarafından durduruldu mu
+ */
 const renderActions = async (container, wasStopped = false) => {
     const settings = await getSettings();
 
@@ -1046,6 +1282,19 @@ const renderActions = async (container, wasStopped = false) => {
     };
 };
 
+// =============================================================================
+// DOSYA İŞLEMLERİ
+// =============================================================================
+
+/**
+ * Dosya adını geçerli karakterlerle temizler.
+ * 
+ * Windows ve diğer işletim sistemlerinde geçersiz olan karakterleri
+ * alt çizgi ile değiştirir.
+ * 
+ * @param {string} name - Temizlenecek dosya adı
+ * @returns {string} Güvenli dosya adı
+ */
 const sanitizeFilename = (name) => {
     return name
         .replace(/[\\/:*?"<>|]/g, '_')  // Windows'ta geçersiz karakterleri değiştir
@@ -1054,6 +1303,12 @@ const sanitizeFilename = (name) => {
         .replace(/^_+|_+$/g, '');       // Baş ve sondaki alt çizgileri temizle
 };
 
+/**
+ * Toplanan entry'leri JSON dosyası olarak indirir.
+ * 
+ * allEntries dizisini formatlı JSON'a çevirir ve başlık adıyla
+ * dosya olarak indirilmesini sağlar.
+ */
 const downloadJson = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allEntries, null, 2));
     const downloadAnchorNode = document.createElement('a');
@@ -1065,6 +1320,25 @@ const downloadJson = () => {
     downloadAnchorNode.remove();
 };
 
+// =============================================================================
+// GEMİNİ API ENTEGRASYONu
+// =============================================================================
+
+/**
+ * Gemini API'ye prompt gönderir ve sonucu gösterir.
+ * 
+ * Entry'leri ve kullanıcı promptunu birleştirerek Gemini API'ye gönderir.
+ * Sonuçları önbelleğe alır, Markdown olarak render eder.
+ * 
+ * Özellikler:
+ * - Yanıt önbellekleme (aynı prompt tekrar sorulduğunda API çağrısı yapmaz)
+ * - İptal edilebilir istekler
+ * - Hata yönetimi (quota, model hatası vb.)
+ * 
+ * @param {string} userPrompt - Kullanıcının promptu
+ * @param {boolean} [showPromptHeader=false] - Özel prompt başlığı gösterilsin mi
+ * @param {HTMLElement|null} [clickedButton=null] - Tıklanan buton (seçili görünüm için)
+ */
 const runGemini = async (userPrompt, showPromptHeader = false, clickedButton = null) => {
     const resultArea = document.getElementById('ai-result');
     const warningArea = document.getElementById('ai-warning');
@@ -1242,6 +1516,19 @@ ${userPrompt}`;
     }
 };
 
+/**
+ * Gemini API'ye HTTP isteği yapar.
+ * 
+ * Önce v1 (stable) API'yi dener, başarısız olursa v1beta'ya düşer.
+ * Bu sayede yeni modeller için geriye uyumluluk sağlanır.
+ * 
+ * @param {string} apiKey - Gemini API anahtarı
+ * @param {string} modelId - Kullanılacak model ID'si
+ * @param {string} prompt - Gönderilecek tam prompt
+ * @param {AbortSignal} signal - İstek iptal sinyali
+ * @returns {Promise<string>} Model yanıtı
+ * @throws {Error} API hatası durumunda
+ */
 const callGeminiApi = async (apiKey, modelId, prompt, signal) => {
     const startTime = performance.now();
     
@@ -1307,7 +1594,16 @@ const callGeminiApi = async (apiKey, modelId, prompt, signal) => {
     throw new Error(lastError || 'Model bulunamadı. Lütfen model adını ve API versiyonunu kontrol edin.');
 };
 
-// Show quota error with countdown timer
+/**
+ * Kota aşım hatasını geri sayım sayacıyla gösterir.
+ * 
+ * Gemini API rate limit aşıldığında kullanıcıya beklemesi gereken
+ * süreyi gösteren bir sayaç görüntüler.
+ * 
+ * @param {HTMLElement} resultArea - Hata mesajının gösterileceği element
+ * @param {string} errorMessage - API'den gelen hata mesajı
+ * @param {number} retrySeconds - Beklenecek süre (saniye)
+ */
 const showQuotaErrorWithCountdown = (resultArea, errorMessage, retrySeconds) => {
     resultArea.style.display = 'block';
     
@@ -1349,6 +1645,18 @@ const showQuotaErrorWithCountdown = (resultArea, errorMessage, retrySeconds) => 
     updateCountdown();
 };
 
+// =============================================================================
+// ÖZEL PROMPT MODALI
+// =============================================================================
+
+/**
+ * Özel prompt giriş modalını açar.
+ * 
+ * Kullanıcının kendi promptunu yazabileceği bir modal pencere gösterir.
+ * Ctrl+Enter ile gönderme, Escape ile kapatma destekler.
+ * 
+ * @param {HTMLElement|null} [customButton=null] - Modal kapandığında seçili görünecek buton
+ */
 const openCustomPromptModal = (customButton = null) => {
     // Create modal overlay
     const overlay = document.createElement('div');
@@ -1451,7 +1759,16 @@ const openCustomPromptModal = (customButton = null) => {
     };
 };
 
-// Helper to check if a string is valid JSON
+// =============================================================================
+// MARKDOWN İŞLEME
+// =============================================================================
+
+/**
+ * Bir string'in geçerli JSON olup olmadığını kontrol eder.
+ * 
+ * @param {string} str - Kontrol edilecek string
+ * @returns {boolean} Geçerli JSON ise true
+ */
 const isValidJson = (str) => {
     try {
         const parsed = JSON.parse(str);
@@ -1462,7 +1779,15 @@ const isValidJson = (str) => {
     }
 };
 
-// Helper to format JSON with syntax highlighting
+/**
+ * JSON string'i syntax highlighting ile formatlar.
+ * 
+ * JSON anahtarlarını, string değerlerini, sayıları ve boolean'ları
+ * farklı renklerde gösterir.
+ * 
+ * @param {string} jsonStr - Formatlanacak JSON string'i
+ * @returns {string} HTML formatında syntax highlighted JSON
+ */
 const formatJsonWithHighlight = (jsonStr) => {
     try {
         const parsed = JSON.parse(jsonStr);
@@ -1489,7 +1814,23 @@ const formatJsonWithHighlight = (jsonStr) => {
     }
 };
 
-// Simple Markdown Parser
+/**
+ * Markdown metni HTML'e dönüştürür.
+ * 
+ * Desteklenen formatlar:
+ * - Başlıklar (# - ######)
+ * - Kalın (**), italik (*), üstü çizili (~~)
+ * - Kod blokları (``` ve `)
+ * - Listeler (sıralı ve sırasız)
+ * - Tablolar
+ * - Alıntılar (>)
+ * - Linkler [text](url)
+ * - Otomatik URL tespiti
+ * - JSON syntax highlighting
+ * 
+ * @param {string} text - Dönüştürülecek Markdown metni
+ * @returns {string} HTML çıktısı
+ */
 const parseMarkdown = (text) => {
     if (!text) return '';
     
@@ -1820,7 +2161,20 @@ const parseMarkdown = (text) => {
     return html;
 };
 
-// Add action buttons (copy, download) to result area
+// =============================================================================
+// SONUÇ AKSİYON BUTONLARI
+// =============================================================================
+
+/**
+ * Sonuç alanına kopyala ve indir butonları ekler.
+ * 
+ * Analiz sonucu gösterildikten sonra kullanıcının sonucu
+ * kopyalaması veya Markdown dosyası olarak indirmesi için
+ * butonlar ekler.
+ * 
+ * @param {HTMLElement} resultArea - Butonların ekleneceği sonuç alanı
+ * @param {string} markdownContent - Kopyalanacak/indirilecek ham Markdown içeriği
+ */
 const addResultActionButtons = (resultArea, markdownContent) => {
     // Create action buttons container
     const actionsContainer = document.createElement('div');
@@ -1859,7 +2213,15 @@ const addResultActionButtons = (resultArea, markdownContent) => {
     resultArea.insertBefore(actionsContainer, resultArea.firstChild);
 };
 
-// Copy markdown content to clipboard
+/**
+ * Metni panoya kopyalar ve butona görsel geri bildirim verir.
+ * 
+ * Başarılı kopyalamada buton geçici olarak "Kopyalandı!" gösterir,
+ * hata durumunda "Hata!" gösterir.
+ * 
+ * @param {string} text - Kopyalanacak metin
+ * @param {HTMLElement} button - Geri bildirim verilecek buton
+ */
 const copyToClipboard = async (text, button) => {
     try {
         await navigator.clipboard.writeText(text);
@@ -1888,7 +2250,13 @@ const copyToClipboard = async (text, button) => {
     }
 };
 
-// Download markdown content as .md file
+/**
+ * İçeriği Markdown dosyası (.md) olarak indirir.
+ * 
+ * Başlık adını dosya adı olarak kullanır (özel karakterler temizlenerek).
+ * 
+ * @param {string} content - İndirilecek Markdown içeriği
+ */
 const downloadMarkdown = (content) => {
     const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -1902,5 +2270,9 @@ const downloadMarkdown = (content) => {
     URL.revokeObjectURL(url);
 };
 
-// Run init
+// =============================================================================
+// BAŞLATMA
+// =============================================================================
+
+// Sayfa yüklendiğinde eklentiyi başlat
 init();

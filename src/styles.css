@@ -1,5 +1,32 @@
-/* Ekşi Sözlük AI Analiz Styles */
+/**
+ * Ekşi Sözlük AI Analiz - Stil Dosyası
+ * 
+ * Bu dosya eklentinin tüm görsel stillerini içerir.
+ * 
+ * İçerik:
+ * 1. CSS Değişkenleri (Tema desteği)
+ * 2. Ana Konteyner Stilleri
+ * 3. Buton Stilleri
+ * 4. Sonuç Alanı Stilleri
+ * 5. Modal Stilleri
+ * 6. Markdown Rendering Stilleri
+ * 7. Tablo Stilleri
+ * 8. Aksiyon Butonları
+ * 
+ * Tema Desteği:
+ * - :root altında açık tema varsayılanları tanımlanır
+ * - .eksi-ai-dark sınıfı karanlık tema override'larını içerir
+ * - Tema tespiti content.js içindeki detectTheme() fonksiyonuyla yapılır
+ */
 
+/* =============================================================================
+   1. CSS DEĞİŞKENLERİ - TEMA SİSTEMİ
+   ============================================================================= */
+
+/**
+ * Açık Tema Varsayılanları
+ * Bu değişkenler .eksi-ai-dark sınıfıyla override edilebilir.
+ */
 :root {
     --eksi-ai-bg: #f9f9f9;
     --eksi-ai-text: #333;
@@ -25,7 +52,11 @@
     --eksi-ai-cancel-text: #333;
 }
 
-/* Dark Mode Overrides */
+/**
+ * Karanlık Tema Override'ları
+ * detectTheme() fonksiyonu sayfa arka planını analiz eder ve
+ * karanlık mod tespit edilirse bu sınıfı konteynere ekler.
+ */
 .eksi-ai-dark {
     --eksi-ai-bg: #2d2d2d;
     --eksi-ai-text: #ccc;
@@ -52,6 +83,14 @@
     --eksi-ai-cancel-text: #ddd;
 }
 
+/* =============================================================================
+   2. ANA KONTEYNER STİLLERİ
+   ============================================================================= */
+
+/**
+ * Ana sonuç konteyneri
+ * Analiz butonları ve sonuçları bu konteyner içinde gösterilir.
+ */
 .eksi-ai-container {
     margin: 15px 0;
     padding: 15px;
@@ -62,6 +101,15 @@
     color: var(--eksi-ai-text);
 }
 
+/* =============================================================================
+   3. BUTON STİLLERİ
+   ============================================================================= */
+
+/**
+ * Temel buton stili
+ * Tüm aksiyon butonları için kullanılır.
+ * !important kullanımı Ekşi Sözlük'ün kendi stillerini override etmek için gerekli.
+ */
 .eksi-ai-btn {
     background-color: var(--eksi-ai-btn-bg) !important;
     color: var(--eksi-ai-btn-text) !important;
@@ -75,15 +123,18 @@
     transition: background-color 0.2s;
 }
 
+/** Ana analiz butonu (başlık altında gösterilen) */
 #eksi-ai-main-btn {
     margin-top: 5px;
     margin-bottom: 10px;
 }
 
+/** Buton hover durumu */
 #eksi-ai-container .eksi-ai-btn:hover {
     background-color: var(--eksi-ai-btn-hover) !important;
 }
 
+/** İkincil buton stili (JSON İndir gibi) */
 #eksi-ai-container .eksi-ai-btn.secondary {
     background-color: var(--eksi-ai-secondary-bg) !important;
 }
@@ -92,20 +143,29 @@
     background-color: var(--eksi-ai-secondary-hover) !important;
 }
 
+/** Devre dışı buton durumu */
 #eksi-ai-container .eksi-ai-btn:disabled {
     background-color: #ccc !important;
     cursor: not-allowed;
     opacity: 0.7;
 }
 
-/* Selected button state */
+/**
+ * Seçili buton durumu
+ * Hangi prompt butonunun aktif olduğunu gösterir.
+ * Daha koyu yeşil ve iç gölge ile "basılmış" görünümü verir.
+ */
 .eksi-ai-btn.eksi-ai-btn-selected {
     background-color: #558b2f !important; /* Darker green */
     box-shadow: inset 0 2px 5px rgba(0,0,0,0.2) !important;
     transform: translateY(1px);
 }
 
-/* Cached button state */
+/**
+ * Önbelleklenmiş sonucu olan buton durumu
+ * Butonun sağında küçük bir onay işareti gösterir.
+ * Bu, kullanıcıya API çağrısı yapmadan sonuç gösterilebileceğini belirtir.
+ */
 .eksi-ai-btn.eksi-ai-btn-cached {
     position: relative;
     padding-right: 28px;
@@ -123,6 +183,14 @@
     transform: translateY(-50%) rotate(45deg);
 }
 
+/* =============================================================================
+   4. SONUÇ ALANI STİLLERİ
+   ============================================================================= */
+
+/**
+ * Gemini API yanıtlarının gösterildiği alan
+ * Markdown içerik burada render edilir.
+ */
 .eksi-ai-result-area {
     margin-top: 15px;
     padding: 15px;
@@ -136,6 +204,7 @@
     color: var(--eksi-ai-text);
 }
 
+/** Yükleme durumu göstergesi */
 .eksi-ai-loading {
     display: inline-block;
     margin-left: 10px;
@@ -144,6 +213,7 @@
     opacity: 0.8;
 }
 
+/** Aksiyon butonları konteyneri (prompt butonları için) */
 .eksi-ai-actions {
     margin-top: 10px;
     display: flex;
@@ -151,6 +221,7 @@
     gap: 10px;
 }
 
+/** Uyarı mesajı kutusu (hata durumları için) */
 .eksi-ai-warning {
     color: var(--eksi-ai-warning-text);
     background-color: var(--eksi-ai-warning-bg);
@@ -162,6 +233,7 @@
     border: 1px solid transparent;
 }
 
+/** Bilgi mesajı kutusu (durduruldu gibi durumlar için) */
 .eksi-ai-info {
     color: var(--eksi-ai-info-text);
     background-color: var(--eksi-ai-info-bg);
@@ -172,7 +244,16 @@
     font-weight: bold;
 }
 
-/* Modal for Custom Prompt */
+/* =============================================================================
+   5. MODAL STİLLERİ
+   ============================================================================= */
+
+/**
+ * Özel Prompt Modal'ı
+ * Kullanıcının kendi promptunu yazabileceği popup pencere.
+ */
+
+/** Modal arkaplan overlay'i (yarı saydam siyah) */
 .eksi-ai-modal-overlay {
     position: fixed;
     top: 0;
@@ -186,6 +267,7 @@
     justify-content: center;
 }
 
+/** Modal içerik kutusu */
 .eksi-ai-modal-content {
     background: var(--eksi-ai-modal-bg);
     padding: 25px;
@@ -197,6 +279,7 @@
     border: 1px solid var(--eksi-ai-border);
 }
 
+/** Modal başlığı */
 .eksi-ai-modal-title {
     margin: 0 0 20px 0;
     color: var(--eksi-ai-text);
@@ -204,6 +287,7 @@
     font-weight: 600;
 }
 
+/** Prompt giriş textarea'sı */
 .eksi-ai-textarea {
     width: 100%;
     height: 120px;
@@ -219,17 +303,20 @@
     margin-bottom: 20px;
 }
 
+/** Textarea odaklanma durumu */
 .eksi-ai-textarea:focus {
     outline: none;
     border-color: var(--eksi-ai-btn-bg);
 }
 
+/** Modal buton konteyneri */
 .eksi-ai-modal-actions {
     display: flex;
     gap: 10px;
     justify-content: flex-end;
 }
 
+/** Modal buton temel stili */
 .eksi-ai-modal-btn {
     padding: 10px 20px;
     border-radius: 4px;
@@ -239,6 +326,7 @@
     border: none;
 }
 
+/** İptal butonu */
 .eksi-ai-modal-cancel-btn {
     background: var(--eksi-ai-cancel-bg);
     color: var(--eksi-ai-cancel-text);
@@ -249,6 +337,7 @@
     background: var(--eksi-ai-cancel-hover);
 }
 
+/** Gönder butonu */
 .eksi-ai-modal-submit-btn {
     background: var(--eksi-ai-btn-bg);
     color: var(--eksi-ai-btn-text);
@@ -258,7 +347,10 @@
     background: var(--eksi-ai-btn-hover);
 }
 
-/* Quota Error with Countdown */
+/**
+ * Kota Aşım Hatası Bileşenleri
+ * Rate limit aşıldığında geri sayım sayacıyla gösterilir.
+ */
 .eksi-ai-quota-error {
     padding: 15px;
     background-color: var(--eksi-ai-warning-bg);
@@ -285,16 +377,23 @@
     font-family: 'Courier New', monospace;
 }
 
-/* ========================================
-   Markdown Styling
-   ======================================== */
+/* =============================================================================
+   6. MARKDOWN RENDERING STİLLERİ
+   ============================================================================= */
 
+/**
+ * Gemini API yanıtları Markdown formatında gelir.
+ * Bu stiller parseMarkdown() fonksiyonunun ürettiği HTML'i biçimlendirir.
+ */
+
+/** Ana markdown konteyneri */
 .eksi-ai-markdown {
     white-space: normal;
     line-height: 1.7;
     font-size: 14px;
 }
 
+/** Başlık stilleri (h1-h6) */
 .eksi-ai-markdown h1,
 .eksi-ai-markdown h2,
 .eksi-ai-markdown h3,
@@ -339,6 +438,7 @@
     font-size: 1em;
 }
 
+/** Paragraf stilleri */
 .eksi-ai-markdown p {
     margin: 0 0 1em 0;
 }
@@ -347,20 +447,24 @@
     margin-bottom: 0;
 }
 
+/** Kalın metin */
 .eksi-ai-markdown strong {
     font-weight: 700;
     color: var(--eksi-ai-text);
 }
 
+/** İtalik metin */
 .eksi-ai-markdown em {
     font-style: italic;
 }
 
+/** Üstü çizili metin */
 .eksi-ai-markdown del {
     text-decoration: line-through;
     opacity: 0.7;
 }
 
+/** Link stilleri */
 .eksi-ai-markdown a {
     color: var(--eksi-ai-btn-bg);
     text-decoration: none;
@@ -373,6 +477,7 @@
     border-bottom-style: solid;
 }
 
+/** Liste stilleri */
 .eksi-ai-markdown ul,
 .eksi-ai-markdown ol {
     margin: 0.8em 0;
@@ -396,6 +501,7 @@
     list-style-type: decimal;
 }
 
+/** Alıntı bloğu stilleri */
 .eksi-ai-markdown blockquote {
     margin: 1em 0;
     padding: 0.8em 1em;
@@ -406,6 +512,7 @@
     color: var(--eksi-ai-text);
 }
 
+/** Karanlık temada alıntı bloğu */
 .eksi-ai-dark .eksi-ai-markdown blockquote {
     background: rgba(129, 193, 75, 0.12);
 }
@@ -418,6 +525,7 @@
     margin-top: 0.5em;
 }
 
+/** Yatay çizgi */
 .eksi-ai-markdown hr {
     border: none;
     height: 1px;
@@ -425,7 +533,12 @@
     margin: 1.5em 0;
 }
 
-/* Inline Code */
+/**
+ * Kod Stilleri
+ * Satır içi kod (`) ve kod blokları (```) için ayrı stiller.
+ */
+
+/** Satır içi kod */
 .eksi-ai-inline-code {
     font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Consolas', monospace;
     font-size: 0.9em;
@@ -441,7 +554,7 @@
     background: rgba(0, 0, 0, 0.3);
 }
 
-/* Links inside inline code */
+/** Satır içi kod içindeki linkler */
 .eksi-ai-inline-code a {
     color: var(--eksi-ai-btn-bg);
     text-decoration: none;
@@ -453,7 +566,7 @@
     border-bottom-style: solid;
 }
 
-/* Code Blocks */
+/** Kod blokları (```) - VS Code benzeri karanlık tema */
 .eksi-ai-code-block {
     font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Consolas', monospace;
     font-size: 0.85em;
@@ -474,7 +587,10 @@
     font-size: inherit;
 }
 
-/* JSON Code Blocks - with word wrap for long strings */
+/**
+ * JSON Kod Blokları
+ * JSON içeriği için özel stiller - uzun stringler için word-wrap etkin.
+ */
 .eksi-ai-json-block {
     white-space: pre-wrap;
     word-wrap: break-word;
@@ -488,24 +604,36 @@
     word-break: break-word;
 }
 
-/* JSON Syntax Highlighting */
+/**
+ * JSON Syntax Highlighting
+ * VS Code'un varsayılan karanlık temasından esinlenilmiştir.
+ */
+
+/** JSON anahtar isimleri - mavi */
 .eksi-ai-json-key {
     color: #9cdcfe;
 }
 
+/** JSON string değerleri - turuncu */
 .eksi-ai-json-string {
     color: #ce9178;
 }
 
+/** JSON sayı değerleri - yeşil */
 .eksi-ai-json-number {
     color: #b5cea8;
 }
 
+/** JSON boolean ve null değerleri - mavi */
 .eksi-ai-json-boolean {
     color: #569cd6;
 }
 
-/* Tables */
+/* =============================================================================
+   7. TABLO STİLLERİ
+   ============================================================================= */
+
+/** Markdown tabloları */
 .eksi-ai-markdown table,
 .eksi-ai-markdown-table {
     border-collapse: collapse;
@@ -538,10 +666,16 @@
     background: rgba(255, 255, 255, 0.02);
 }
 
-/* ========================================
-   Result Action Buttons (Copy & Download)
-   ======================================== */
+/* =============================================================================
+   8. SONUÇ AKSİYON BUTONLARI
+   ============================================================================= */
 
+/**
+ * Kopyala ve Markdown İndir butonları
+ * Sonuç alanının üst kısmında gösterilir.
+ */
+
+/** Buton konteyneri */
 .eksi-ai-result-actions {
     display: flex;
     gap: 8px;
@@ -550,6 +684,7 @@
     border-bottom: 1px solid var(--eksi-ai-border);
 }
 
+/** Aksiyon butonu temel stili */
 .eksi-ai-result-action-btn {
     display: inline-flex;
     align-items: center;
@@ -565,6 +700,7 @@
     transition: all 0.2s ease;
 }
 
+/** Buton hover durumu */
 .eksi-ai-result-action-btn:hover {
     background: var(--eksi-ai-btn-bg);
     color: var(--eksi-ai-btn-text);
@@ -583,6 +719,7 @@
     fill: var(--eksi-ai-btn-text);
 }
 
+/** Başarılı kopyalama durumu */
 .eksi-ai-result-action-btn.success {
     background: #28a745;
     color: white;
@@ -593,12 +730,14 @@
     stroke: white;
 }
 
+/** SVG ikonları */
 .eksi-ai-result-action-btn svg {
     flex-shrink: 0;
     stroke: var(--eksi-ai-text);
     transition: stroke 0.2s ease;
 }
 
+/** Markdown dosya ikonu */
 .eksi-ai-md-icon {
     stroke: var(--eksi-ai-text);
 }
@@ -613,10 +752,14 @@
     fill: none;
 }
 
-/* ========================================
-   Custom Prompt Header
-   ======================================== */
+/* =============================================================================
+   9. ÖZEL PROMPT BAŞLIĞI
+   ============================================================================= */
 
+/**
+ * Özel prompt kullanıldığında sonucun üstünde gösterilen başlık
+ * Kullanıcının hangi promptu yazdığını gösterir.
+ */
 .eksi-ai-custom-prompt-header {
     display: flex;
     flex-direction: column;
@@ -629,6 +772,7 @@
     border-left: 4px solid var(--eksi-ai-btn-bg);
 }
 
+/** "Özel Prompt:" etiketi */
 .eksi-ai-custom-prompt-label {
     font-size: 11px;
     font-weight: 600;
@@ -638,6 +782,7 @@
     opacity: 0.9;
 }
 
+/** Prompt metni */
 .eksi-ai-custom-prompt-text {
     font-size: 14px;
     color: var(--eksi-ai-text);
@@ -645,6 +790,7 @@
     font-style: italic;
 }
 
+/** Karanlık temada özel prompt başlığı */
 .eksi-ai-dark .eksi-ai-custom-prompt-header {
     background: linear-gradient(135deg, rgba(129, 193, 75, 0.15) 0%, rgba(129, 193, 75, 0.08) 100%);
     border-color: rgba(129, 193, 75, 0.35);

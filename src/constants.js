@@ -1,3 +1,26 @@
+/**
+ * @fileoverview Ekşi Sözlük AI Analiz - Sabit Değerler ve Yapılandırma
+ * 
+ * Bu dosya eklentinin tüm sabit değerlerini içerir:
+ * - SYSTEM_PROMPT: Gemini API'ye gönderilen sistem promptu
+ * - DEFAULT_PROMPTS: Varsayılan analiz butonları ve promptları
+ * - MODELS: Desteklenen Gemini model listesi
+ * - escapeHtml: XSS koruması için yardımcı fonksiyon
+ * 
+ * Bu dosya manifest.json'da content.js, options.js ve model-select.js'den
+ * önce yüklenir, böylece tüm sabitler bu dosyalarda kullanılabilir.
+ */
+
+// =============================================================================
+// SİSTEM PROMPTU
+// =============================================================================
+
+/**
+ * Gemini API'ye gönderilen sistem promptu.
+ * Model davranışını, çıktı formatını ve entry referans stilini belirler.
+ * 
+ * @constant {string}
+ */
 const SYSTEM_PROMPT = `Sen Ekşi Sözlük entry'lerini analiz eden bir yapay zeka asistanısın.
 
 ## Veri Formatı
@@ -15,6 +38,20 @@ Entry'lere link verirken şu formatı kullan:
 - Markdown link formatı: [açıklayıcı metin](https://eksisozluk.com/entry/entry_id)
 - Örnek: [bu entry](https://eksisozluk.com/entry/000000001)`;
 
+// =============================================================================
+// VARSAYILAN PROMPTLAR
+// =============================================================================
+
+/**
+ * Varsayılan analiz butonları ve promptları.
+ * Kullanıcı ayarlarında özelleştirilebilir, sıfırlandığında bu değerlere döner.
+ * 
+ * Her prompt objesi şu alanları içerir:
+ * - name: Buton üzerinde görüntülenen metin
+ * - prompt: Gemini API'ye gönderilen prompt metni
+ * 
+ * @constant {Array<{name: string, prompt: string}>}
+ */
 const DEFAULT_PROMPTS = [
     {
         name: "Özet",
@@ -74,6 +111,25 @@ Her alıntı şu formatta olsun:
     }
 ];
 
+// =============================================================================
+// GEMİNİ MODEL LİSTESİ
+// =============================================================================
+
+/**
+ * Desteklenen Gemini model listesi.
+ * Model seçimi sayfasında ve API çağrılarında kullanılır.
+ * 
+ * Her model objesi şu alanları içerir:
+ * - id: API'de kullanılan model tanımlayıcısı
+ * - name: Kullanıcıya gösterilen model adı (emoji ile)
+ * - description: Model hakkında kısa açıklama
+ * - cost: Maliyet bilgisi (ücretsiz/ücretli)
+ * - contextWindow: Maksimum token kapasitesi
+ * - responseTime: Tahmini yanıt süresi
+ * - isFree: Free tier'da kullanılabilirlik durumu
+ * 
+ * @constant {Array<{id: string, name: string, description: string, cost: string, contextWindow: number, responseTime: string, isFree: boolean}>}
+ */
 const MODELS = [
     {
         id: 'gemini-3-pro-preview',
@@ -113,15 +169,34 @@ const MODELS = [
     }
 ];
 
-// Helper function to escape HTML (prevents XSS)
+// =============================================================================
+// YARDIMCI FONKSİYONLAR
+// =============================================================================
+
+/**
+ * HTML özel karakterlerini escape eder (XSS koruması).
+ * 
+ * Tarayıcı ortamında document.createElement kullanır (daha güvenli),
+ * Node.js ortamında string replace kullanır.
+ * 
+ * @param {string} str - Escape edilecek metin
+ * @returns {string} HTML-safe metin
+ * 
+ * @example
+ * escapeHtml('<script>alert("xss")</script>')
+ * // Döndürür: '&lt;script&gt;alert("xss")&lt;/script&gt;'
+ */
 const escapeHtml = (str) => {
     if (!str) return '';
-    // Browser environment check - if document is available use it, otherwise simple replace
+    
+    // Tarayıcı ortamında DOM API kullan (daha güvenli ve hızlı)
     if (typeof document !== 'undefined') {
         const div = document.createElement('div');
         div.textContent = str;
         return div.innerHTML;
     }
+    
+    // Node.js veya diğer ortamlarda manuel escape
     return str
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
