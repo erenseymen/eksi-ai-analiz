@@ -12,10 +12,13 @@ Ekşi Sözlük başlıklarını yapay zeka ile analiz eden Chrome eklentisi.
 
 ## Kurulum
 
-1. Repoyu klonlayın
-2. Chrome'da `chrome://extensions` → "Geliştirici Modu" → "Paketlenmemiş öğe yükle"
-3. [Google AI Studio](https://aistudio.google.com/app/api-keys)'dan API key alın
-4. Eklenti ayarlarına API key'i girin
+1. [GitHub Releases](https://github.com/erenseymen/eksi-ai-analiz/releases) sayfasından en son sürümün zip dosyasını indirin
+2. Zip dosyasını bir klasöre çıkarın
+3. Chrome'da `chrome://extensions` sayfasına gidin
+4. Sağ üstteki "Geliştirici Modu"nu açın
+5. "Paketlenmemiş öğe yükle" butonuna tıklayın ve çıkardığınız klasörü seçin
+6. [Google AI Studio](https://aistudio.google.com/app/api-keys)'dan API key alın
+7. Eklenti ayarlarına API key'i girin
 
 ## Kullanım
 
