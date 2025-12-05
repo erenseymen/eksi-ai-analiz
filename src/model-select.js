@@ -54,7 +54,6 @@ const populateModelSelect = (savedModelId) => {
 const saveOptions = () => {
     const modelSelect = document.getElementById('modelSelect');
     const selectedModel = modelSelect.value;
-    const status = document.getElementById('status');
 
     // Mevcut ayarları al, sadece modeli güncelle
     chrome.storage.sync.get(['geminiApiKey', 'prompts'], (items) => {
@@ -65,13 +64,7 @@ const saveOptions = () => {
         };
 
         chrome.storage.sync.set(settings, () => {
-            // Kullanıcıya kısa bir geri bildirim göster
-            status.textContent = 'Model kaydedildi.';
-            status.className = 'status success';
-            setTimeout(() => {
-                status.textContent = '';
-                status.className = 'status';
-            }, 2000);
+            window.close();
         });
     });
 };
