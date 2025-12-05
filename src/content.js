@@ -1390,7 +1390,16 @@ const openCustomPromptModal = (customButton = null) => {
     const cancelBtn = document.getElementById('eksi-ai-modal-cancel');
     const submitBtn = document.getElementById('eksi-ai-modal-submit');
 
-    setTimeout(() => textarea.focus(), 100);
+    // Pre-fill with last custom prompt if exists
+    if (lastCustomPrompt) {
+        textarea.value = lastCustomPrompt;
+    }
+
+    setTimeout(() => {
+        textarea.focus();
+        // Move cursor to end of text
+        textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+    }, 100);
 
     // Close modal function
     const closeModal = () => {
