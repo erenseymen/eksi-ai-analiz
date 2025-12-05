@@ -1039,7 +1039,7 @@ const downloadJson = () => {
     downloadAnchorNode.remove();
 };
 
-const runGemini = async (userPrompt) => {
+const runGemini = async (userPrompt, showPromptHeader = false) => {
     const resultArea = document.getElementById('ai-result');
     const warningArea = document.getElementById('ai-warning');
 
@@ -1103,7 +1103,20 @@ ${userPrompt}`;
 
     try {
         const response = await callGeminiApi(apiKey, modelId, finalPrompt, abortController.signal);
-        resultArea.innerHTML = parseMarkdown(response);
+        
+        // Build result HTML
+        let resultHTML = '';
+        
+        // Show custom prompt header if requested
+        if (showPromptHeader && userPrompt) {
+            resultHTML += `<div class="eksi-ai-custom-prompt-header">
+                <span class="eksi-ai-custom-prompt-label">Özel Prompt:</span>
+                <span class="eksi-ai-custom-prompt-text">${escapeHtml(userPrompt)}</span>
+            </div>`;
+        }
+        
+        resultHTML += parseMarkdown(response);
+        resultArea.innerHTML = resultHTML;
         resultArea.classList.add('eksi-ai-markdown');
         
         // Add action buttons for the result
@@ -1321,7 +1334,7 @@ const openCustomPromptModal = () => {
     submitBtn.onclick = () => {
         const userPrompt = textarea.value.trim();
         if (userPrompt) {
-            runGemini(userPrompt);
+            runGemini(userPrompt, true); // true = show custom prompt header
             closeModal();
         } else {
             textarea.style.borderColor = '#d9534f';

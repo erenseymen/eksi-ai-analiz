@@ -556,3 +556,40 @@
     stroke: currentColor;
     fill: none;
 }
+
+/* ========================================
+   Custom Prompt Header
+   ======================================== */
+
+.eksi-ai-custom-prompt-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    background: linear-gradient(135deg, rgba(129, 193, 75, 0.12) 0%, rgba(129, 193, 75, 0.06) 100%);
+    border: 1px solid rgba(129, 193, 75, 0.25);
+    border-radius: 8px;
+    border-left: 4px solid var(--eksi-ai-btn-bg);
+}
+
+.eksi-ai-custom-prompt-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--eksi-ai-btn-bg);
+    opacity: 0.9;
+}
+
+.eksi-ai-custom-prompt-text {
+    font-size: 14px;
+    color: var(--eksi-ai-text);
+    line-height: 1.5;
+    font-style: italic;
+}
+
+.eksi-ai-dark .eksi-ai-custom-prompt-header {
+    background: linear-gradient(135deg, rgba(129, 193, 75, 0.15) 0%, rgba(129, 193, 75, 0.08) 100%);
+    border-color: rgba(129, 193, 75, 0.35);
+}
