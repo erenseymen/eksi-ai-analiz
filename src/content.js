@@ -1437,9 +1437,54 @@ const openCustomPromptModal = (customButton = null) => {
     };
 };
 
+// Helper to check if a string is valid JSON
+const isValidJson = (str) => {
+    try {
+        const parsed = JSON.parse(str);
+        // Must be object or array to be considered "real" JSON
+        return typeof parsed === 'object' && parsed !== null;
+    } catch {
+        return false;
+    }
+};
+
+// Helper to format JSON with syntax highlighting
+const formatJsonWithHighlight = (jsonStr) => {
+    try {
+        const parsed = JSON.parse(jsonStr);
+        const formatted = JSON.stringify(parsed, null, 2);
+        
+        // Apply syntax highlighting
+        let highlighted = escapeHtml(formatted);
+        
+        // Highlight keys (property names)
+        highlighted = highlighted.replace(/"([^"]+)":/g, '<span class="eksi-ai-json-key">"$1"</span>:');
+        
+        // Highlight string values (after colon)
+        highlighted = highlighted.replace(/: "([^"]*)"/g, ': <span class="eksi-ai-json-string">"$1"</span>');
+        
+        // Highlight numbers
+        highlighted = highlighted.replace(/: (-?\d+\.?\d*)/g, ': <span class="eksi-ai-json-number">$1</span>');
+        
+        // Highlight booleans and null
+        highlighted = highlighted.replace(/: (true|false|null)/g, ': <span class="eksi-ai-json-boolean">$1</span>');
+        
+        return highlighted;
+    } catch {
+        return escapeHtml(jsonStr);
+    }
+};
+
 // Simple Markdown Parser
 const parseMarkdown = (text) => {
     if (!text) return '';
+    
+    // Check if the entire response is JSON (no markdown, just raw JSON)
+    const trimmedText = text.trim();
+    if ((trimmedText.startsWith('{') || trimmedText.startsWith('[')) && isValidJson(trimmedText)) {
+        const formattedJson = formatJsonWithHighlight(trimmedText);
+        return `<pre class="eksi-ai-code-block eksi-ai-json-block"><code class="language-json">${formattedJson}</code></pre>`;
+    }
     
     // First, escape HTML
     let html = escapeHtml(text);
@@ -1451,7 +1496,15 @@ const parseMarkdown = (text) => {
     // Handle fenced code blocks (```)
     html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
         const index = codeBlocks.length;
-        codeBlocks.push(`<pre class="eksi-ai-code-block"><code class="language-${lang || 'text'}">${code.trim()}</code></pre>`);
+        const trimmedCode = code.trim();
+        
+        // Check if this is a JSON code block and format it nicely
+        if ((lang === 'json' || lang === '') && isValidJson(trimmedCode)) {
+            const formattedJson = formatJsonWithHighlight(trimmedCode);
+            codeBlocks.push(`<pre class="eksi-ai-code-block eksi-ai-json-block"><code class="language-json">${formattedJson}</code></pre>`);
+        } else {
+            codeBlocks.push(`<pre class="eksi-ai-code-block"><code class="language-${lang || 'text'}">${trimmedCode}</code></pre>`);
+        }
         return `%%CODEBLOCK${index}%%`;
     });
     

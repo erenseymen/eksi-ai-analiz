@@ -474,6 +474,37 @@
     font-size: inherit;
 }
 
+/* JSON Code Blocks - with word wrap for long strings */
+.eksi-ai-json-block {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+.eksi-ai-json-block code {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    word-break: break-word;
+}
+
+/* JSON Syntax Highlighting */
+.eksi-ai-json-key {
+    color: #9cdcfe;
+}
+
+.eksi-ai-json-string {
+    color: #ce9178;
+}
+
+.eksi-ai-json-number {
+    color: #b5cea8;
+}
+
+.eksi-ai-json-boolean {
+    color: #569cd6;
+}
+
 /* Tables */
 .eksi-ai-markdown table,
 .eksi-ai-markdown-table {
