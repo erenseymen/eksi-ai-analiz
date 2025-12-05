@@ -6,13 +6,7 @@ let shouldStopScraping = false;
 
 // DEFAULT_PROMPTS is now defined in constants.js
 
-// Helper function to escape HTML (prevents XSS)
-const escapeHtml = (str) => {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-};
+// escapeHtml is now defined in constants.js
 
 // Helper to get Settings
 const getSettings = async () => {
@@ -1351,16 +1345,6 @@ const openCustomPromptModal = () => {
 // Simple Markdown Parser
 const parseMarkdown = (text) => {
     if (!text) return '';
-    
-    // Escape HTML to prevent XSS
-    const escapeHtml = (str) => {
-        return str
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-    };
     
     // First, escape HTML
     let html = escapeHtml(text);
