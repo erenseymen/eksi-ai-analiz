@@ -408,12 +408,24 @@
     padding: 0.15em 0.4em;
     border-radius: 3px;
     border: 1px solid var(--eksi-ai-border);
-    color: #e83e8c;
+    color: var(--eksi-ai-text);
 }
 
 .eksi-ai-dark .eksi-ai-inline-code {
-    color: #f8a5c2;
+    color: var(--eksi-ai-text);
     background: rgba(0, 0, 0, 0.3);
+}
+
+/* Links inside inline code */
+.eksi-ai-inline-code a {
+    color: var(--eksi-ai-btn-bg);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--eksi-ai-btn-bg);
+}
+
+.eksi-ai-inline-code a:hover {
+    color: var(--eksi-ai-btn-hover);
+    border-bottom-style: solid;
 }
 
 /* Code Blocks */

@@ -1357,14 +1357,17 @@ const parseMarkdown = (text) => {
     html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
         const index = codeBlocks.length;
         codeBlocks.push(`<pre class="eksi-ai-code-block"><code class="language-${lang || 'text'}">${code.trim()}</code></pre>`);
-        return `%%CODEBLOCK_${index}%%`;
+        return `%%CODEBLOCK${index}%%`;
     });
     
     // Handle inline code (`)
+    // Also parse markdown links inside inline code
     html = html.replace(/`([^`]+)`/g, (match, code) => {
         const index = inlineCodes.length;
-        inlineCodes.push(`<code class="eksi-ai-inline-code">${code}</code>`);
-        return `%%INLINECODE_${index}%%`;
+        // Parse markdown links inside inline code
+        let processedCode = code.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+        inlineCodes.push(`<code class="eksi-ai-inline-code">${processedCode}</code>`);
+        return `%%INLINECODE${index}%%`;
     });
     
     // Handle headers (must be at start of line)
@@ -1621,18 +1624,18 @@ const parseMarkdown = (text) => {
     // Wrap in paragraph if not already wrapped
     if (!html.startsWith('<')) {
         html = '<p>' + html + '</p>';
-    } else if (!html.startsWith('<p>') && !html.startsWith('<h') && !html.startsWith('<ul>') && !html.startsWith('<ol>') && !html.startsWith('<blockquote>') && !html.startsWith('<hr>') && !html.startsWith('<div class="eksi-ai-table-wrapper">') && !html.startsWith('%%CODEBLOCK_')) {
+    } else if (!html.startsWith('<p>') && !html.startsWith('<h') && !html.startsWith('<ul>') && !html.startsWith('<ol>') && !html.startsWith('<blockquote>') && !html.startsWith('<hr>') && !html.startsWith('<div class="eksi-ai-table-wrapper">') && !html.startsWith('%%CODEBLOCK')) {
         html = '<p>' + html + '</p>';
     }
     
     // Restore code blocks
     codeBlocks.forEach((block, index) => {
-        html = html.replace(`%%CODEBLOCK_${index}%%`, block);
+        html = html.replace(`%%CODEBLOCK${index}%%`, block);
     });
     
     // Restore inline codes
     inlineCodes.forEach((code, index) => {
-        html = html.replace(`%%INLINECODE_${index}%%`, code);
+        html = html.replace(`%%INLINECODE${index}%%`, code);
     });
     
     // Clean up empty paragraphs
