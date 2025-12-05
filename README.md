@@ -11,7 +11,6 @@ Ekşi Sözlük başlıklarını yapay zeka ile analiz eden tarayıcı eklentisi.
 - 🤖 Gemini AI ile özet ve blog yazısı oluşturma
 - 📥 Entry'leri JSON olarak indirme  
 - ✏️ Özel prompt desteği
-- 🌙 Karanlık tema desteği
 
 ## Kurulum
 
