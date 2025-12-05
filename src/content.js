@@ -1121,8 +1121,9 @@ ${userPrompt}`;
         if (errorMessage.includes('not found') || errorMessage.includes('not supported')) {
             errorMessage = `Model "${modelId}" bulunamadı veya desteklenmiyor.\n\n` +
                           `Lütfen Ayarlar sayfasından mevcut bir model seçin:\n` +
-                          `- gemini-2.5-flash (Önerilen)\n` +
-                          `- gemini-2.5-pro\n` +
+                          `- gemini-3-pro-preview\n` +
+                          `- gemini-2.5-pro (Önerilen)\n` +
+                          `- gemini-2.5-flash\n` +
                           `- gemini-2.5-flash-lite\n\n` +
                           `Hata detayı: ${err.message}`;
             resultArea.textContent = "Hata: " + errorMessage;
