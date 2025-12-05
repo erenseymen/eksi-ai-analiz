@@ -1523,6 +1523,108 @@ const parseMarkdown = (text) => {
         return result.join('\n');
     };
     
+    // Handle tables
+    const processTables = (text) => {
+        const lines = text.split('\n');
+        let result = [];
+        let inTable = false;
+        let tableRows = [];
+        
+        const isTableSeparator = (line) => {
+            // Check if line contains only |- : and spaces, and at least one | or -
+            // Also allow spaces at start/end
+            const trimmed = line.trim();
+            if (!trimmed) return false;
+            // Must contain | or -
+            // Must generally look like |---|---| or ---|---
+            return /^\|?[\s\-:|]+\|?$/.test(trimmed) && trimmed.includes('-');
+        };
+
+        const splitTableLine = (line) => {
+            let content = line.trim();
+            if (content.startsWith('|')) content = content.substring(1);
+            if (content.endsWith('|')) content = content.substring(0, content.length - 1);
+            
+            // Handle escaped pipes if any (though usually code blocks catch them)
+            // We'll just split by | for now as code blocks are already extracted
+            return content.split('|');
+        };
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const trimmed = line.trim();
+            
+            if (inTable) {
+                if (trimmed.includes('|')) {
+                    tableRows.push(trimmed);
+                } else {
+                    // End of table
+                    result.push(renderTable(tableRows));
+                    inTable = false;
+                    tableRows = [];
+                    result.push(line);
+                }
+            } else {
+                // Check for start of table
+                // A table starts with a header row, followed by a separator row
+                if (trimmed.includes('|') && i + 1 < lines.length) {
+                    const nextLine = lines[i + 1];
+                    if (isTableSeparator(nextLine)) {
+                        inTable = true;
+                        tableRows.push(trimmed);
+                        // The next iteration will catch the separator as part of tableRows
+                        continue;
+                    }
+                }
+                result.push(line);
+            }
+        }
+        
+        if (inTable) {
+            result.push(renderTable(tableRows));
+        }
+        
+        return result.join('\n');
+    };
+
+    const renderTable = (rows) => {
+        if (rows.length < 2) return rows.join('\n');
+        
+        const header = rows[0];
+        // rows[1] is separator, we skip it for rendering content but could use it for alignment
+        const body = rows.slice(2);
+        
+        let html = '<div class="eksi-ai-table-wrapper"><table class="eksi-ai-markdown-table"><thead><tr>';
+        
+        // Process header
+        const splitTableLine = (line) => {
+            let content = line.trim();
+            if (content.startsWith('|')) content = content.substring(1);
+            if (content.endsWith('|')) content = content.substring(0, content.length - 1);
+            return content.split('|');
+        };
+
+        const headerCells = splitTableLine(header);
+        headerCells.forEach(cell => {
+            html += `<th>${cell.trim()}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+        
+        // Process body
+        body.forEach(row => {
+            html += '<tr>';
+            const cells = splitTableLine(row);
+            cells.forEach(cell => {
+                html += `<td>${cell.trim()}</td>`;
+            });
+            html += '</tr>';
+        });
+        
+        html += '</tbody></table></div>';
+        return html;
+    };
+
+    html = processTables(html);
     html = processUnorderedList(html);
     html = processOrderedList(html);
     
@@ -1530,12 +1632,12 @@ const parseMarkdown = (text) => {
     html = html.replace(/\n\n+/g, '</p><p>');
     
     // Handle single line breaks in non-list context
-    html = html.replace(/(?<!<\/li>|<\/ul>|<\/ol>|<\/blockquote>|<\/h[1-6]>|<hr>|<\/p>|<p>)\n(?!<li>|<ul>|<ol>|<blockquote>|<h[1-6]>|<hr>|<\/p>|<p>)/g, '<br>\n');
+    html = html.replace(/(?<!<\/li>|<\/ul>|<\/ol>|<\/blockquote>|<\/h[1-6]>|<hr>|<\/p>|<p>|<\/div>|<\/table>|<\/thead>|<\/tbody>|<\/tr>|<\/td>|<\/th>)\n(?!<li>|<ul>|<ol>|<blockquote>|<h[1-6]>|<hr>|<\/p>|<p>|<div class="eksi-ai-table-wrapper">|<table>|<thead>|<tbody>|<tr>|<td>|<th>)/g, '<br>\n');
     
     // Wrap in paragraph if not already wrapped
     if (!html.startsWith('<')) {
         html = '<p>' + html + '</p>';
-    } else if (!html.startsWith('<p>') && !html.startsWith('<h') && !html.startsWith('<ul>') && !html.startsWith('<ol>') && !html.startsWith('<blockquote>') && !html.startsWith('<hr>') && !html.startsWith('%%CODEBLOCK_')) {
+    } else if (!html.startsWith('<p>') && !html.startsWith('<h') && !html.startsWith('<ul>') && !html.startsWith('<ol>') && !html.startsWith('<blockquote>') && !html.startsWith('<hr>') && !html.startsWith('<div class="eksi-ai-table-wrapper">') && !html.startsWith('%%CODEBLOCK_')) {
         html = '<p>' + html + '</p>';
     }
     
@@ -1563,6 +1665,8 @@ const parseMarkdown = (text) => {
     html = html.replace(/(<hr>)<\/p>/g, '$1');
     html = html.replace(/<p>(<pre)/g, '$1');
     html = html.replace(/(<\/pre>)<\/p>/g, '$1');
+    html = html.replace(/<p>(<div class="eksi-ai-table-wrapper">)/g, '$1');
+    html = html.replace(/(<\/div>)<\/p>/g, '$1');
     
     return html;
 };

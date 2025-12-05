@@ -437,30 +437,36 @@
     font-size: inherit;
 }
 
-/* Tables (if needed in future) */
-.eksi-ai-markdown table {
+/* Tables */
+.eksi-ai-markdown table,
+.eksi-ai-markdown-table {
     border-collapse: collapse;
     width: 100%;
     margin: 1em 0;
 }
 
 .eksi-ai-markdown th,
-.eksi-ai-markdown td {
+.eksi-ai-markdown td,
+.eksi-ai-markdown-table th,
+.eksi-ai-markdown-table td {
     border: 1px solid var(--eksi-ai-border);
     padding: 0.6em 0.8em;
     text-align: left;
 }
 
-.eksi-ai-markdown th {
+.eksi-ai-markdown th,
+.eksi-ai-markdown-table th {
     background: var(--eksi-ai-bg);
     font-weight: 600;
 }
 
-.eksi-ai-markdown tr:nth-child(even) {
+.eksi-ai-markdown tr:nth-child(even),
+.eksi-ai-markdown-table tr:nth-child(even) {
     background: rgba(0, 0, 0, 0.02);
 }
 
-.eksi-ai-dark .eksi-ai-markdown tr:nth-child(even) {
+.eksi-ai-dark .eksi-ai-markdown tr:nth-child(even),
+.eksi-ai-dark .eksi-ai-markdown-table tr:nth-child(even) {
     background: rgba(255, 255, 255, 0.02);
 }
 
