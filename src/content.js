@@ -1014,10 +1014,14 @@ const renderActions = async (container, wasStopped = false) => {
 
     // Add listeners for dynamic buttons
     settings.prompts.forEach((item, index) => {
-        document.getElementById(`btn-prompt-${index}`).onclick = () => runGemini(item.prompt);
+        const btn = document.getElementById(`btn-prompt-${index}`);
+        btn.onclick = () => runGemini(item.prompt, false, btn);
     });
 
-    document.getElementById('btn-custom-manual').onclick = openCustomPromptModal;
+    document.getElementById('btn-custom-manual').onclick = () => {
+        const customBtn = document.getElementById('btn-custom-manual');
+        openCustomPromptModal(customBtn);
+    };
 };
 
 const sanitizeFilename = (name) => {
@@ -1039,9 +1043,20 @@ const downloadJson = () => {
     downloadAnchorNode.remove();
 };
 
-const runGemini = async (userPrompt, showPromptHeader = false) => {
+const runGemini = async (userPrompt, showPromptHeader = false, clickedButton = null) => {
     const resultArea = document.getElementById('ai-result');
     const warningArea = document.getElementById('ai-warning');
+    
+    // Mark clicked button as selected (remove from others first)
+    if (clickedButton) {
+        const actionsContainer = document.querySelector('.eksi-ai-actions');
+        if (actionsContainer) {
+            actionsContainer.querySelectorAll('.eksi-ai-btn').forEach(btn => {
+                btn.classList.remove('eksi-ai-btn-selected');
+            });
+        }
+        clickedButton.classList.add('eksi-ai-btn-selected');
+    }
 
     resultArea.style.display = 'block';
     
@@ -1263,7 +1278,7 @@ const showQuotaErrorWithCountdown = (resultArea, errorMessage, retrySeconds) => 
     updateCountdown();
 };
 
-const openCustomPromptModal = () => {
+const openCustomPromptModal = (customButton = null) => {
     // Create modal overlay
     const overlay = document.createElement('div');
     overlay.id = 'eksi-ai-modal-overlay';
@@ -1334,7 +1349,7 @@ const openCustomPromptModal = () => {
     submitBtn.onclick = () => {
         const userPrompt = textarea.value.trim();
         if (userPrompt) {
-            runGemini(userPrompt, true); // true = show custom prompt header
+            runGemini(userPrompt, true, customButton); // true = show custom prompt header, customButton = mark as selected
             closeModal();
         } else {
             textarea.style.borderColor = '#d9534f';

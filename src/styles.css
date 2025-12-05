@@ -98,6 +98,12 @@
     opacity: 0.7;
 }
 
+/* Selected button state */
+.eksi-ai-btn.eksi-ai-btn-selected {
+    background-color: var(--eksi-ai-btn-hover) !important;
+    box-shadow: 0 0 0 3px #ff9800 !important;
+}
+
 .eksi-ai-result-area {
     margin-top: 15px;
     padding: 15px;
