@@ -1472,10 +1472,10 @@ const formatJsonWithHighlight = (jsonStr) => {
         let highlighted = escapeHtml(formatted);
         
         // Highlight keys (property names)
-        highlighted = highlighted.replace(/"([^"]+)":/g, '<span class="eksi-ai-json-key">"$1"</span>:');
+        highlighted = highlighted.replace(/"((?:[^"\\]|\\.)+)":/g, '<span class="eksi-ai-json-key">"$1"</span>:');
         
         // Highlight string values (after colon)
-        highlighted = highlighted.replace(/: "([^"]*)"/g, ': <span class="eksi-ai-json-string">"$1"</span>');
+        highlighted = highlighted.replace(/: "((?:[^"\\]|\\.)*)"/g, ': <span class="eksi-ai-json-string">"$1"</span>');
         
         // Highlight numbers
         highlighted = highlighted.replace(/: (-?\d+\.?\d*)/g, ': <span class="eksi-ai-json-number">$1</span>');
