@@ -60,15 +60,17 @@ Ekşi Sözlük başlıklarını yapay zeka ile analiz eden tarayıcı eklentisi.
 ### Proje Yapısı
 
 ```
-├── manifest.json           # Chrome manifest
-├── manifest.firefox.json   # Firefox manifest
+├── manifest.json           # Chrome/Edge/Brave manifest (MV3)
+├── manifest.firefox.json   # Firefox manifest (MV2)
 ├── src/
-│   ├── content.js         # Ana içerik scripti
-│   ├── constants.js       # Sabitler ve varsayılan ayarlar (Default prompt'lar burada)
-│   ├── options.js         # Ayarlar sayfası
-│   ├── model-select.js    # Model seçim popup
+│   ├── content.js         # Ana içerik scripti (entry analiz, UI)
+│   ├── constants.js       # Sabitler, promptlar ve model listesi
+│   ├── options.html       # Ayarlar sayfası HTML
+│   ├── options.js         # Ayarlar sayfası JS
+│   ├── model-select.html  # Model seçim popup HTML
+│   ├── model-select.js    # Model seçim popup JS
 │   └── styles.css         # Stiller
-├── icons/                 # Eklenti ikonları
+├── icons/                 # Eklenti ikonları (16, 48, 128px)
 └── images/               # Promosyon görselleri
 ```
 
