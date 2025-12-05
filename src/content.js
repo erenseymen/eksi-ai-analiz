@@ -3,6 +3,8 @@ let allEntries = [];
 let topicTitle = "";
 let topicId = "";
 let shouldStopScraping = false;
+let responseCache = new Map(); // Cache for Gemini responses (key: prompt, value: response)
+let lastCustomPrompt = null; // Track the last custom prompt used
 
 // DEFAULT_PROMPTS is now defined in constants.js
 
@@ -166,8 +168,10 @@ const startAnalysisForTopic = async (h1Element, topicId) => {
         return;
     }
 
-    // Reset stop flag
+    // Reset stop flag and clear response cache for new analysis
     shouldStopScraping = false;
+    responseCache.clear();
+    lastCustomPrompt = null;
 
     // Change button to "Stop" button
     btn.textContent = "Durdur";
@@ -725,8 +729,10 @@ const startSingleEntryAnalysis = async () => {
         return;
     }
 
-    // Reset stop flag
+    // Reset stop flag and clear response cache for new analysis
     shouldStopScraping = false;
+    responseCache.clear();
+    lastCustomPrompt = null;
 
     // Change button to "Stop" button
     btn.textContent = "Durdur";
@@ -841,8 +847,10 @@ const startAnalysis = async () => {
         return;
     }
 
-    // Reset stop flag
+    // Reset stop flag and clear response cache for new analysis
     shouldStopScraping = false;
+    responseCache.clear();
+    lastCustomPrompt = null;
 
     // Change button to "Stop" button
     btn.textContent = "Durdur";
@@ -1020,6 +1028,20 @@ const renderActions = async (container, wasStopped = false) => {
 
     document.getElementById('btn-custom-manual').onclick = () => {
         const customBtn = document.getElementById('btn-custom-manual');
+        
+        // If button is already selected (showing cached result), open modal for new prompt
+        if (customBtn.classList.contains('eksi-ai-btn-selected')) {
+            openCustomPromptModal(customBtn);
+            return;
+        }
+        
+        // If there's a cached custom prompt response, show it
+        if (lastCustomPrompt && responseCache.has(lastCustomPrompt)) {
+            runGemini(lastCustomPrompt, true, customBtn);
+            return;
+        }
+        
+        // Otherwise, open modal for new prompt
         openCustomPromptModal(customBtn);
     };
 };
@@ -1059,6 +1081,37 @@ const runGemini = async (userPrompt, showPromptHeader = false, clickedButton = n
     }
 
     resultArea.style.display = 'block';
+    warningArea.style.display = 'none';
+    
+    // Check if we have a cached response for this prompt
+    const cacheKey = userPrompt;
+    if (responseCache.has(cacheKey)) {
+        const cachedData = responseCache.get(cacheKey);
+        
+        // Build result HTML from cache
+        let resultHTML = '';
+        
+        // Show custom prompt header if requested
+        if (showPromptHeader && userPrompt) {
+            resultHTML += `<div class="eksi-ai-custom-prompt-header">
+                <span class="eksi-ai-custom-prompt-label">Özel Prompt:</span>
+                <span class="eksi-ai-custom-prompt-text">${escapeHtml(userPrompt)}</span>
+            </div>`;
+        }
+        
+        resultHTML += parseMarkdown(cachedData.response);
+        resultArea.innerHTML = resultHTML;
+        resultArea.classList.add('eksi-ai-markdown');
+        
+        // Add action buttons for the result
+        addResultActionButtons(resultArea, cachedData.response);
+        
+        // Mark button as cached
+        if (clickedButton) {
+            clickedButton.classList.add('eksi-ai-btn-cached');
+        }
+        return;
+    }
     
     // Create AbortController for cancellation
     const abortController = new AbortController();
@@ -1088,7 +1141,6 @@ const runGemini = async (userPrompt, showPromptHeader = false, clickedButton = n
     loadingContainer.appendChild(stopButton);
     resultArea.innerHTML = '';
     resultArea.appendChild(loadingContainer);
-    warningArea.style.display = 'none';
 
     const settings = await getSettings();
     const apiKey = settings.geminiApiKey;
@@ -1118,6 +1170,14 @@ ${userPrompt}`;
 
     try {
         const response = await callGeminiApi(apiKey, modelId, finalPrompt, abortController.signal);
+        
+        // Cache the successful response
+        responseCache.set(cacheKey, { response, timestamp: Date.now() });
+        
+        // Mark button as cached
+        if (clickedButton) {
+            clickedButton.classList.add('eksi-ai-btn-cached');
+        }
         
         // Build result HTML
         let resultHTML = '';
@@ -1349,6 +1409,7 @@ const openCustomPromptModal = (customButton = null) => {
     submitBtn.onclick = () => {
         const userPrompt = textarea.value.trim();
         if (userPrompt) {
+            lastCustomPrompt = userPrompt; // Store the custom prompt for caching
             runGemini(userPrompt, true, customButton); // true = show custom prompt header, customButton = mark as selected
             closeModal();
         } else {
