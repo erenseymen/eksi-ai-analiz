@@ -1,6 +1,6 @@
-# Ekşi Sözlük AI Analiz
-
 ![Banner](images/banner.png)
+
+# Ekşi Sözlük AI Analiz
 
 Ekşi Sözlük başlıklarını yapay zeka ile analiz eden tarayıcı eklentisi.
 
