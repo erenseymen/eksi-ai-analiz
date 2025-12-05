@@ -18,7 +18,7 @@ const DEFAULT_PROMPTS = [
 - Entry'lerden kısa ve anlamlı alıntılar ekle (tırnak işareti ile)
 
 ## Link Formatı:
-- Entry'lere referans verirken Markdown link formatı kullan: [link metni](https://eksisozluk.com/entry/{entry_id})
+- Entry'lere referans verirken Markdown link formatı kullan: [link metni](https://eksisozluk.com/entry/entry_id)
 - JSON'daki entry_id değerini kullanarak link oluştur
 - Link metni entry'nin anahtar kelimesini veya bağlama uygun bir ifadeyi içersin
 
@@ -46,12 +46,12 @@ Entry'lerdeki farklı görüşleri, deneyimleri, mizahı ve eleştirileri sentez
 
 ## Alıntı Formatı
 Her alıntı şu formatta olsun:
-> [Entry içeriği]
-> 
-> — **{yazar}** · [{tarih}](https://eksisozluk.com/entry/{entry_id})
+> Entry içeriği
+> - yazarın_adı - [tarih](https://eksisozluk.com/entry/entry_id)
 
 Notlar:
-- Yukarıdaki satırı aynen bu Markdown yapısıyla üret (tarih tıklanabilir link olsun).
+- yazarın_adı, tarih ve entry_id değerlerini JSON verisinden al
+- Tarih tıklanabilir link olsun
 
 ## Çıktı Formatı
 - Yanıt YALNIZCA blog yazısı olsun (Markdown formatında)
