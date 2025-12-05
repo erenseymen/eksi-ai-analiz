@@ -8,7 +8,9 @@ alwaysApply: false
 
 ## Yabancı Kelimelerde Kaynaştırma Harfi
 
-Ünsüzle biten yabancı kökenli kelimelere (entry, computer, file, bug vb.) ünlü ile başlayan ek geldiğinde kaynaştırma harfi **"y"** kullanılır.
+Türkçe okunuşu ünlü ile biten yabancı kökenli kelimelere (entry, tree vb.) ünlü ile başlayan ek geldiğinde kaynaştırma harfi **"y"** kullanılır.
+
+Türkçe okunuşu ünsüz ile biten yabancı kökenli kelimelere (computer, file, bug vb.) ünlü ile başlayan ek geldiğinde kaynaştırma harfi **"y"** kullanılmaz.
 
 ### Doğru Kullanım
 - entry'ye ✓
