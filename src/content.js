@@ -1179,6 +1179,12 @@ ${userPrompt}`;
             clickedButton.classList.add('eksi-ai-btn-cached');
         }
         
+        // Check if button is still selected (user might have clicked another button while waiting)
+        // If not selected, don't overwrite the current result - user can click this button again to see cached result
+        if (clickedButton && !clickedButton.classList.contains('eksi-ai-btn-selected')) {
+            return;
+        }
+        
         // Build result HTML
         let resultHTML = '';
         
