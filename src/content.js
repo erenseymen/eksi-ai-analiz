@@ -563,6 +563,236 @@ const initTopicPage = () => {
 };
 
 
+// Scrape single entry from current entry page
+const scrapeSingleEntryFromCurrentPage = () => {
+    allEntries = [];
+    
+    // Extract entry ID from current URL (/entry/ENTRY_ID)
+    const entryIdMatch = window.location.pathname.match(/\/entry\/(\d+)/);
+    if (!entryIdMatch) {
+        console.error('Entry ID not found in URL');
+        return;
+    }
+    
+    const entryId = entryIdMatch[1];
+    
+    // Try multiple strategies to find the entry in the DOM
+    let entryItem = null;
+    let contentElement = null;
+    
+    // Strategy 1: Find by data-id attribute
+    entryItem = document.querySelector(`li[data-id="${entryId}"]`);
+    
+    // Strategy 2: Find via entry-item-list
+    if (!entryItem) {
+        const entryList = document.querySelector('#entry-item-list');
+        if (entryList) {
+            entryItem = entryList.querySelector(`li[data-id="${entryId}"]`) || 
+                       entryList.querySelector('li:first-child');
+        }
+    }
+    
+    // Strategy 3: Find by entry URL link (date link typically contains entry URL)
+    if (!entryItem) {
+        const entryLink = document.querySelector(`a[href="/entry/${entryId}"]`);
+        if (entryLink) {
+            entryItem = entryLink.closest('li');
+        }
+    }
+    
+    // Strategy 4: Find any list item in the main content area that might be the entry
+    if (!entryItem) {
+        const main = document.querySelector('main');
+        if (main) {
+            // Look for list items that contain the entry ID in links
+            const allLis = main.querySelectorAll('li');
+            for (const li of allLis) {
+                const links = li.querySelectorAll('a');
+                for (const link of links) {
+                    if (link.href.includes(`/entry/${entryId}`)) {
+                        entryItem = li;
+                        break;
+                    }
+                }
+                if (entryItem) break;
+            }
+        }
+    }
+    
+    if (!entryItem) {
+        console.error('Entry element not found on page');
+        return;
+    }
+    
+    // Extract entry data
+    const id = entryItem.getAttribute('data-id') || entryId;
+    
+    // Try to find content element - multiple possible structures
+    contentElement = entryItem.querySelector('.content');
+    if (!contentElement) {
+        // Try finding content directly in the list item
+        // On entry pages, content might be directly in the li without .content class
+        // We'll clone the item and remove metadata elements
+        const clone = entryItem.cloneNode(true);
+        
+        // Remove common metadata elements
+        clone.querySelectorAll('.entry-author, .entry-date, .entry-footer, .entry-meta, .entry-actions').forEach(el => el.remove());
+        
+        // Remove author links
+        clone.querySelectorAll('a[href^="/biri/"]').forEach(el => {
+            // Keep the text if it's not just the author name
+            if (el.textContent.trim() === el.href.split('/').pop()) {
+                el.remove();
+            }
+        });
+        
+        // Remove date links (they point to the entry itself)
+        clone.querySelectorAll(`a[href="/entry/${entryId}"]`).forEach(el => el.remove());
+        
+        contentElement = clone;
+    }
+    
+    const content = extractContentWithFullUrls(contentElement);
+    
+    // Extract author - try multiple selectors
+    let author = entryItem.querySelector('.entry-author')?.innerText.trim() || '';
+    if (!author) {
+        const authorLink = entryItem.querySelector('a[href^="/biri/"]');
+        if (authorLink) {
+            author = authorLink.innerText.trim();
+        }
+    }
+    
+    // Extract date - try multiple selectors
+    let date = entryItem.querySelector('.entry-date')?.innerText.trim() || '';
+    if (!date) {
+        const dateLink = entryItem.querySelector(`a[href="/entry/${entryId}"]`);
+        if (dateLink) {
+            date = dateLink.innerText.trim();
+        }
+    }
+    
+    // Extract topic title
+    topicTitle = document.querySelector('h1')?.innerText || 
+                 document.querySelector('#topic h1')?.innerText || 
+                 "Basliksiz";
+    
+    // Extract topic ID if available
+    const topicLink = document.querySelector('h1 a[href*="--"]') || 
+                     document.querySelector('a[href*="--"]');
+    if (topicLink) {
+        const urlMatch = topicLink.href.match(/--(\d+)/);
+        topicId = urlMatch ? urlMatch[1] : '';
+    }
+    
+    if (content && content.trim()) {
+        const entry = {
+            id,
+            author,
+            date,
+            content
+        };
+        
+        // Extract referenced entry IDs from content
+        const referencedEntryIds = extractReferencedEntryIds(content);
+        if (referencedEntryIds.length > 0) {
+            entry.referenced_entry_ids = referencedEntryIds;
+        }
+        
+        allEntries.push(entry);
+    } else {
+        console.error('Entry content could not be extracted');
+    }
+};
+
+// Start analysis for single entry on entry page
+const startSingleEntryAnalysis = async () => {
+    const btn = document.getElementById('eksi-ai-entry-btn');
+    const container = document.getElementById('eksi-ai-entry-container');
+
+    if (!btn || !container) {
+        console.error('Button or container not found');
+        return;
+    }
+
+    // Reset stop flag
+    shouldStopScraping = false;
+
+    // Change button to "Stop" button
+    btn.textContent = "Durdur";
+    btn.onclick = stopScraping;
+    btn.disabled = false;
+
+    container.style.display = 'block';
+    container.innerHTML = '<span class="eksi-ai-loading">Entry toplanıyor... Lütfen bekleyin.</span>';
+
+    try {
+        // Scrape single entry from current page
+        scrapeSingleEntryFromCurrentPage();
+        
+        // Fetch referenced entries if any
+        if (!shouldStopScraping && allEntries.length > 0) {
+            const statusSpan = container.querySelector('.eksi-ai-loading');
+            await fetchAllReferencedEntries(statusSpan);
+        }
+
+        // Render actions if we have entries
+        if (allEntries.length > 0) {
+            await renderActions(container, shouldStopScraping);
+        } else {
+            container.innerHTML = '<div class="eksi-ai-warning">Entry toplanamadı.</div>';
+        }
+    } catch (err) {
+        console.error(err);
+        container.innerHTML = `<div class="eksi-ai-warning">Hata oluştu: ${err.message}</div>`;
+    } finally {
+        // Restore original button
+        btn.disabled = false;
+        btn.textContent = "Bu Entry'yi Analiz Et";
+        btn.onclick = startSingleEntryAnalysis;
+    }
+};
+
+// Create button for single entry analysis on entry pages
+const createSingleEntryButton = (heading) => {
+    if (!heading) {
+        console.error('Heading is required');
+        return;
+    }
+
+    // Check if button already exists
+    if (document.getElementById('eksi-ai-entry-btn')) {
+        return; // Button already exists
+    }
+
+    const btn = document.createElement('button');
+    btn.id = 'eksi-ai-entry-btn';
+    btn.className = 'eksi-ai-btn';
+    btn.textContent = "Bu Entry'yi Analiz Et";
+    btn.onclick = startSingleEntryAnalysis;
+
+    // Insert button after h1
+    if (heading.nextSibling) {
+        heading.parentNode.insertBefore(btn, heading.nextSibling);
+    } else {
+        heading.parentNode.appendChild(btn);
+    }
+
+    // Create container for results/actions
+    const container = document.createElement('div');
+    container.id = 'eksi-ai-entry-container';
+    container.className = 'eksi-ai-container';
+    container.style.display = 'none';
+
+    // Apply theme
+    if (detectTheme()) {
+        container.classList.add('eksi-ai-dark');
+    }
+
+    // Insert container after the button
+    btn.parentNode.insertBefore(container, btn.nextSibling);
+};
+
 // Initialize single entry page
 const initEntryPage = () => {
     // On entry pages, we need to find the topic link and the heading
@@ -575,46 +805,8 @@ const initEntryPage = () => {
         return;
     }
     
-    // Look for the topic link - first check inside h1, then broader search
-    let topicLink = heading.querySelector('a[href*="--"]');
-    if (!topicLink) {
-        // Try to find topic link in the #topic container
-        const topicContainer = document.getElementById('topic');
-        if (topicContainer) {
-            topicLink = topicContainer.querySelector('a[href*="--"]');
-        }
-    }
-    if (!topicLink) {
-        // Fallback: find any link with topic URL pattern
-        topicLink = document.querySelector('a[href*="--"]');
-    }
-    
-    if (!topicLink) {
-        console.error('Entry page: topic link not found');
-        return;
-    }
-    
-    // Extract topic ID from URL
-    const urlMatch = topicLink.href.match(/--(\d+)/);
-    const topicId = urlMatch ? urlMatch[1] : 'entry-topic';
-    
-    // Extract entry ID from current URL (/entry/ENTRY_ID)
-    const entryIdMatch = window.location.pathname.match(/\/entry\/(\d+)/);
-    if (entryIdMatch) {
-        const entryId = entryIdMatch[1];
-        // Modify the topic link to include focusto parameter
-        const topicUrl = new URL(topicLink.href);
-        topicUrl.searchParams.set('focusto', entryId);
-        
-        // Store the modified href on the heading element for our use
-        // This ensures startAnalysisForTopic can find it reliably
-        heading.setAttribute('data-focusto-href', topicUrl.toString());
-    }
-    
-    // Also store the original topic URL on the heading so startAnalysisForTopic can use it
-    heading.setAttribute('data-topic-href', topicLink.href);
-    
-    createAnalysisButton(heading, topicId);
+    // Create button for single entry analysis
+    createSingleEntryButton(heading);
 };
 
 const detectTheme = () => {
@@ -672,9 +864,12 @@ const startAnalysis = async () => {
 
 const stopScraping = () => {
     shouldStopScraping = true;
-    const btn = document.getElementById('eksi-ai-main-btn');
-    btn.disabled = true;
-    btn.textContent = "Durduruluyor...";
+    // Try to find either button (main or entry page button)
+    const btn = document.getElementById('eksi-ai-main-btn') || document.getElementById('eksi-ai-entry-btn');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Durduruluyor...";
+    }
 };
 
 const scrapeEntries = async () => {
