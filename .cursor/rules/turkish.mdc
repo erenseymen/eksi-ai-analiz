@@ -8,15 +8,19 @@ alwaysApply: false
 
 ## Yabancı Kelimelerde Kaynaştırma Harfi
 
-Türkçe okunuşu ünlü ile biten yabancı kökenli kelimelere (entry, tree vb.) ünlü ile başlayan ek geldiğinde kaynaştırma harfi **"y"** kullanılır.
+Türkçe okunuşu **ünlü** ile biten yabancı kökenli kelimelere (entry, tree vb.) ünlü ile başlayan ek geldiğinde kaynaştırma harfi **"y"** kullanılır.
 
-Türkçe okunuşu ünsüz ile biten yabancı kökenli kelimelere (computer, file, bug vb.) ünlü ile başlayan ek geldiğinde kaynaştırma harfi **"y"** kullanılmaz.
+Türkçe okunuşu **ünsüz** ile biten yabancı kökenli kelimelere (computer, file, bug, UI vb.) ünlü ile başlayan ek geldiğinde kaynaştırma harfi **"y"** kullanılmaz.
+
+> **Not:** "UI" kelimesi "yu-ay" şeklinde okunur ve sondaki "y" sesi ünsüzdür.
 
 ### Doğru Kullanım
-- entry'ye ✓
-- file'a ✓
-- bug'a ✓
+- entry'ye ✓ (okunuşu "entri" → ünlü ile biter)
+- file'a ✓ (okunuşu "fayl" → ünsüz ile biter)
+- bug'a ✓ (okunuşu "bag" → ünsüz ile biter)
+- UI'a ✓ (okunuşu "yu-ay" → ünsüz "y" ile biter)
 
 ### Yanlış Kullanım
 - entry'e ✗
 - file'ya ✗
+- UI'ya ✗
