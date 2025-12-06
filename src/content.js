@@ -1378,7 +1378,7 @@ const runGemini = async (userPrompt, showPromptHeader = false, clickedButton = n
         resultArea.classList.add('eksi-ai-markdown');
         
         // Add action buttons for the result
-        addResultActionButtons(resultArea, cachedData.response);
+        addResultActionButtons(resultArea, cachedData.response, userPrompt, showPromptHeader, clickedButton);
         
         // Mark button as cached
         if (clickedButton) {
@@ -1475,7 +1475,7 @@ ${userPrompt}`;
         resultArea.classList.add('eksi-ai-markdown');
         
         // Add action buttons for the result
-        addResultActionButtons(resultArea, response);
+        addResultActionButtons(resultArea, response, userPrompt, showPromptHeader, clickedButton);
     } catch (err) {
         let errorMessage = err.message;
         
@@ -2166,16 +2166,19 @@ const parseMarkdown = (text) => {
 // =============================================================================
 
 /**
- * Sonuç alanına kopyala ve indir butonları ekler.
+ * Sonuç alanına kopyala, indir ve tekrar sor butonları ekler.
  * 
  * Analiz sonucu gösterildikten sonra kullanıcının sonucu
- * kopyalaması veya Markdown dosyası olarak indirmesi için
- * butonlar ekler.
+ * kopyalaması, Markdown dosyası olarak indirmesi veya
+ * aynı promptu tekrar sorması için butonlar ekler.
  * 
  * @param {HTMLElement} resultArea - Butonların ekleneceği sonuç alanı
  * @param {string} markdownContent - Kopyalanacak/indirilecek ham Markdown içeriği
+ * @param {string} userPrompt - Tekrar sormak için kullanılacak prompt
+ * @param {boolean} showPromptHeader - Özel prompt başlığı gösterilsin mi
+ * @param {HTMLElement|null} clickedButton - Seçili buton referansı
  */
-const addResultActionButtons = (resultArea, markdownContent) => {
+const addResultActionButtons = (resultArea, markdownContent, userPrompt, showPromptHeader, clickedButton) => {
     // Create action buttons container
     const actionsContainer = document.createElement('div');
     actionsContainer.className = 'eksi-ai-result-actions';
@@ -2206,8 +2209,31 @@ const addResultActionButtons = (resultArea, markdownContent) => {
     `;
     downloadBtn.onclick = () => downloadMarkdown(markdownContent);
     
+    // Retry button (Ask Again)
+    const retryBtn = document.createElement('button');
+    retryBtn.className = 'eksi-ai-result-action-btn';
+    retryBtn.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+        <span>Tekrar Sor</span>
+    `;
+    retryBtn.onclick = () => {
+        // Clear the cache for this prompt
+        responseCache.delete(userPrompt);
+        // Remove cached indicator from the button
+        if (clickedButton) {
+            clickedButton.classList.remove('eksi-ai-btn-cached');
+        }
+        // Re-run the prompt
+        runGemini(userPrompt, showPromptHeader, clickedButton);
+    };
+    
     actionsContainer.appendChild(copyBtn);
     actionsContainer.appendChild(downloadBtn);
+    actionsContainer.appendChild(retryBtn);
     
     // Insert at the top of result area
     resultArea.insertBefore(actionsContainer, resultArea.firstChild);
