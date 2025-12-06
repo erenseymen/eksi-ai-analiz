@@ -100,6 +100,8 @@ Her alıntı şu formatta olsun:
 > Entry içeriği
 > - yazar - [tarih](https://eksisozluk.com/entry/entry_id)
 
+**Not:** Entry içeriğini kısaltabilirsin.
+
 ## Çıktı Formatı
 - Yanıt YALNIZCA blog yazısı olsun (Markdown formatında)
 - Başlık, alt başlıklar ve paragrafları uygun şekilde formatla
