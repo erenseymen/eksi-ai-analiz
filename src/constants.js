@@ -71,7 +71,6 @@ const DEFAULT_PROMPTS = [
 - Akıcı ve okunabilir bir metin oluştur
 - Gereksiz spekülasyon veya çıkarımdan kaçın
 - Entry'lerden kısa ve anlamlı alıntılar ekle (tırnak işareti ile)
-- Entry'lere linkli referanslar kullan
 
 ## Çıktı:
 - Yanıtın sadece özet metni olsun, ek açıklama veya meta bilgi içermesin.`
