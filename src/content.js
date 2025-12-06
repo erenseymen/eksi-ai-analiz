@@ -455,6 +455,7 @@ const fetchAllReferencedEntries = async (statusSpan = null) => {
  * 
  * Ekşi Sözlük uzun URL'leri "..." ile kısaltır. Bu fonksiyon href değerini
  * kullanarak tam URL'yi geri yükler. Ayrıca gizli referansları (bkz) açığa çıkarır.
+ * Satır sonlarını (<br> etiketlerini) korur.
  * 
  * @param {HTMLElement} contentElement - Entry içeriğini barındıran DOM elementi
  * @returns {string} Temizlenmiş ve URL'leri düzeltilmiş metin içeriği
@@ -490,6 +491,12 @@ const extractContentWithFullUrls = (contentElement) => {
             // title is typically "(bkz: term)" format
             link.innerText = '* ' + title;
         }
+    });
+    
+    // Replace <br> tags with newline characters to preserve line breaks
+    // This must be done before getting innerText, as innerText collapses <br> into spaces
+    clone.querySelectorAll('br').forEach(br => {
+        br.replaceWith('\n');
     });
     
     return clone.innerText.trim();
