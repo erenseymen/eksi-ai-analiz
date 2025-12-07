@@ -135,6 +135,12 @@
     margin-bottom: 10px;
 }
 
+/** Gizle/Göster butonu (ana butonun yanında) */
+.eksi-ai-toggle-btn {
+    margin-top: 5px;
+    margin-bottom: 10px;
+}
+
 /** Buton hover durumu */
 #eksi-ai-container .eksi-ai-btn:hover,
 #eksi-ai-entry-container .eksi-ai-btn:hover {

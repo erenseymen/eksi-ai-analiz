@@ -290,6 +290,8 @@ const startAnalysisForTopic = async (h1Element, topicId) => {
         // Render actions if we have entries (even if stopped early)
         if (allEntries.length > 0) {
             await renderActions(container, shouldStopScraping);
+            // Gizle/Göster butonunu ekle
+            addToggleVisibilityButton(btnId, containerId);
         } else {
             container.innerHTML = '<div class="eksi-ai-warning">Hiç entry toplanamadı.</div>';
         }
@@ -1098,6 +1100,8 @@ const startAnalysis = async () => {
         // Render actions if we have entries (even if stopped early)
         if (allEntries.length > 0) {
             await renderActions(container, shouldStopScraping);
+            // Gizle/Göster butonunu ekle
+            addToggleVisibilityButton('eksi-ai-main-btn', 'eksi-ai-container');
         } else {
             container.innerHTML = '<div class="eksi-ai-warning">Hiç entry toplanamadı.</div>';
         }
@@ -1244,6 +1248,55 @@ const scrapeEntries = async () => {
 // =============================================================================
 // UI RENDER FONKSİYONLARI
 // =============================================================================
+
+/**
+ * Ana analiz butonunun yanına "Gizle/Göster" butonu ekler.
+ * 
+ * Entry'ler toplandıktan sonra çağrılır. Ana butonun sağına bir buton ekler
+ * ki kullanıcı eklentinin eklediği içeriği gizleyip gösterebilsin.
+ * 
+ * @param {string} mainBtnId - Ana analiz butonunun ID'si
+ * @param {string} containerId - Konteyner elementinin ID'si
+ */
+const addToggleVisibilityButton = (mainBtnId, containerId) => {
+    // Eğer buton zaten varsa, tekrar ekleme
+    const toggleBtnId = `${mainBtnId}-toggle`;
+    if (document.getElementById(toggleBtnId)) {
+        return;
+    }
+
+    const mainBtn = document.getElementById(mainBtnId);
+    const container = document.getElementById(containerId);
+
+    if (!mainBtn || !container) {
+        console.error('Main button or container not found for toggle button');
+        return;
+    }
+
+    // Gizle/Göster butonunu oluştur
+    const toggleBtn = document.createElement('button');
+    toggleBtn.id = toggleBtnId;
+    toggleBtn.className = 'eksi-ai-btn eksi-ai-toggle-btn';
+    toggleBtn.textContent = 'Gizle';
+    
+    // Buton tıklandığında container'ı gizle/göster
+    toggleBtn.onclick = () => {
+        if (container.style.display === 'none') {
+            container.style.display = 'block';
+            toggleBtn.textContent = 'Gizle';
+        } else {
+            container.style.display = 'none';
+            toggleBtn.textContent = 'Göster';
+        }
+    };
+
+    // Ana butonun yanına ekle
+    if (mainBtn.nextSibling) {
+        mainBtn.parentNode.insertBefore(toggleBtn, mainBtn.nextSibling);
+    } else {
+        mainBtn.parentNode.appendChild(toggleBtn);
+    }
+};
 
 /**
  * Analiz aksiyon butonlarını render eder.
