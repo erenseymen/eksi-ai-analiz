@@ -130,21 +130,25 @@
 }
 
 /** Buton hover durumu */
-#eksi-ai-container .eksi-ai-btn:hover {
+#eksi-ai-container .eksi-ai-btn:hover,
+#eksi-ai-entry-container .eksi-ai-btn:hover {
     background-color: var(--eksi-ai-btn-hover) !important;
 }
 
 /** İkincil buton stili (JSON İndir gibi) */
-#eksi-ai-container .eksi-ai-btn.secondary {
+#eksi-ai-container .eksi-ai-btn.secondary,
+#eksi-ai-entry-container .eksi-ai-btn.secondary {
     background-color: var(--eksi-ai-secondary-bg) !important;
 }
 
-#eksi-ai-container .eksi-ai-btn.secondary:hover {
+#eksi-ai-container .eksi-ai-btn.secondary:hover,
+#eksi-ai-entry-container .eksi-ai-btn.secondary:hover {
     background-color: var(--eksi-ai-secondary-hover) !important;
 }
 
 /** Devre dışı buton durumu */
-#eksi-ai-container .eksi-ai-btn:disabled {
+#eksi-ai-container .eksi-ai-btn:disabled,
+#eksi-ai-entry-container .eksi-ai-btn:disabled {
     background-color: #ccc !important;
     cursor: not-allowed;
     opacity: 0.7;
