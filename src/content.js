@@ -1651,12 +1651,14 @@ const callGeminiApi = async (apiKey, modelId, prompt, signal) => {
     const url = `https://generativelanguage.googleapis.com/${apiVersion}/models/${modelId}:generateContent?key=${apiKey}`;
     
     try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
+        // API versiyonuna göre payload yapısını belirle
+        // v1beta: systemInstruction alanını destekler
+        // v1: systemInstruction desteklemez, system instruction'ı prompt'un başına eklemeliyiz
+        let requestBody;
+        
+        if (apiVersion === 'v1beta') {
+            // v1beta: systemInstruction alanını kullan
+            requestBody = {
                 systemInstruction: {
                     parts: [{
                         text: SYSTEM_PROMPT
@@ -1667,7 +1669,25 @@ const callGeminiApi = async (apiKey, modelId, prompt, signal) => {
                         text: prompt
                     }]
                 }]
-            }),
+            };
+        } else {
+            // v1: system instruction'ı prompt'un başına ekle
+            const combinedPrompt = `${SYSTEM_PROMPT}\n\n${prompt}`;
+            requestBody = {
+                contents: [{
+                    parts: [{
+                        text: combinedPrompt
+                    }]
+                }]
+            };
+        }
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody),
             signal: signal
         });
 
