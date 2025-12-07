@@ -1660,10 +1660,110 @@ const getLowerModel = (currentModelId) => {
 };
 
 /**
+ * Model availability ve quota durumunu kontrol eder.
+ * 
+ * @param {string} apiKey - Gemini API anahtarı
+ * @param {string} modelId - Kontrol edilecek model ID'si
+ * @returns {Promise<{available: boolean, quotaExceeded?: boolean, error?: string}>} Model availability durumu
+ */
+const checkModelAvailability = async (apiKey, modelId) => {
+    if (!apiKey || !apiKey.trim()) {
+        return { available: false, error: 'API Key bulunamadı' };
+    }
+
+    try {
+        // Model listesinden kontrol et
+        const modelsUrl = `https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`;
+        const modelsResponse = await fetch(modelsUrl);
+        
+        if (!modelsResponse.ok) {
+            const errorData = await modelsResponse.json().catch(() => ({}));
+            const errorMsg = errorData.error?.message || 'Model listesi alınamadı';
+            return { available: false, error: errorMsg };
+        }
+
+        const modelsData = await modelsResponse.json();
+        const modelExists = modelsData.models?.some(m => {
+            const modelName = m.name.replace('models/', '');
+            return modelName === modelId;
+        });
+        
+        if (!modelExists) {
+            return { available: false, error: 'Model bulunamadı veya erişilemiyor' };
+        }
+
+        // Model mevcut, quota kontrolü yap
+        try {
+            // Küçük bir test isteği yaparak quota durumunu kontrol et
+            const testUrl = `https://generativelanguage.googleapis.com/v1/models/${modelId}:generateContent?key=${apiKey}`;
+            const testResponse = await fetch(testUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{
+                            text: 'test'
+                        }]
+                    }]
+                })
+            });
+
+            if (testResponse.ok) {
+                return { available: true, quotaExceeded: false };
+            } else {
+                const errorData = await testResponse.json().catch(() => ({}));
+                const errorMsg = errorData.error?.message || 'Test isteği başarısız';
+                
+                // Quota/rate limit hatalarını kontrol et
+                if (errorMsg.includes('quota') || errorMsg.includes('Quota exceeded') || 
+                    errorMsg.includes('rate limit') || errorMsg.includes('Rate limit') ||
+                    errorMsg.includes('RESOURCE_EXHAUSTED') || errorMsg.includes('429')) {
+                    return { available: true, quotaExceeded: true, error: 'Quota limiti aşıldı' };
+                }
+                
+                return { available: true, quotaExceeded: false, error: errorMsg };
+            }
+        } catch (testError) {
+            return { available: true, quotaExceeded: false, error: testError.message };
+        }
+    } catch (error) {
+        return { available: false, error: error.message };
+    }
+};
+
+/**
+ * Tüm modelleri kontrol ederek quota'sı yeterli olan ilk modeli bulur.
+ * 
+ * @param {string} apiKey - Gemini API anahtarı
+ * @param {string} [excludeModelId] - Kontrol edilmeyecek model ID'si (opsiyonel)
+ * @returns {Promise<Object|null>} Uygun model objesi veya bulunamazsa null
+ */
+const findAvailableModel = async (apiKey, excludeModelId = null) => {
+    // Tüm modelleri sırayla kontrol et (yüksekten düşüğe)
+    for (const model of MODELS) {
+        // Exclude edilen modeli atla
+        if (excludeModelId && model.id === excludeModelId) {
+            continue;
+        }
+        
+        const availability = await checkModelAvailability(apiKey, model.id);
+        
+        // Model mevcut ve quota yeterli
+        if (availability.available && !availability.quotaExceeded) {
+            return model;
+        }
+    }
+    
+    return null; // Uygun model bulunamadı
+};
+
+/**
  * Kota aşım hatasını modal pencere ile gösterir.
  * 
- * Gemini API rate limit aşıldığında kullanıcıya modal pencere açarak
- * daha düşük bir modelle tekrar deneme seçeneği sunar.
+ * Gemini API rate limit aşıldığında tüm modelleri kontrol eder ve
+ * quota'sı yeterli olan bir model bulursa kullanıcıya sunar.
  * 
  * @param {HTMLElement} resultArea - Hata mesajının gösterileceği element
  * @param {string} errorMessage - API'den gelen hata mesajı
@@ -1675,13 +1775,7 @@ const getLowerModel = (currentModelId) => {
 const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, showPromptHeader, clickedButton, currentModelId = null) => {
     const settings = await getSettings();
     const modelId = currentModelId || settings.selectedModel || 'gemini-2.5-flash';
-    let lowerModel = getLowerModel(modelId);
-    
-    // Özel durum: gemini-2.5-flash-lite kullanılıyorsa ve alt model yoksa,
-    // gemini-2.5-flash ile denemeyi öner
-    if (!lowerModel && modelId === 'gemini-2.5-flash-lite') {
-        lowerModel = MODELS.find(m => m.id === 'gemini-2.5-flash');
-    }
+    const apiKey = settings.geminiApiKey;
     
     // Create modal overlay
     const overlay = document.createElement('div');
@@ -1697,19 +1791,36 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
     const modal = document.createElement('div');
     modal.className = 'eksi-ai-modal-content';
     
+    // Loading durumu göster
+    modal.innerHTML = `
+        <h3 class="eksi-ai-modal-title">API Kota Limiti Aşıldı</h3>
+        <div class="eksi-ai-quota-modal-message">
+            <p>Mevcut model (<strong>${modelId}</strong>) için API kota limiti aşıldı.</p>
+            <p>Uygun model aranıyor...</p>
+        </div>
+    `;
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    // Tüm modelleri kontrol et ve uygun bir model bul
+    const availableModel = await findAvailableModel(apiKey, modelId);
+    
+    // Modal içeriğini güncelle
     let modalContent = `
         <h3 class="eksi-ai-modal-title">API Kota Limiti Aşıldı</h3>
         <div class="eksi-ai-quota-modal-message">
             <p>Mevcut model (<strong>${modelId}</strong>) için API kota limiti aşıldı.</p>
     `;
     
-    if (lowerModel) {
+    if (availableModel) {
         modalContent += `
-            <p>Bir düşük model (<strong>${lowerModel.id}</strong>) ile deneyeyim mi?</p>
+            <p>Uygun bir model bulundu: <strong>${availableModel.name}</strong></p>
+            <p>Bu model ile devam edeyim mi?</p>
         `;
     } else {
         modalContent += `
-            <p>Zaten en düşük model kullanılıyor. Lütfen daha sonra tekrar deneyin.</p>
+            <p><strong>Maalesef şu anda kullanılabilir bir model bulunamadı.</strong></p>
+            <p>Tüm modeller için quota limiti aşılmış görünüyor. Lütfen daha sonra tekrar deneyin.</p>
         `;
     }
     
@@ -1718,7 +1829,7 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
         <div class="eksi-ai-modal-actions">
     `;
     
-    if (lowerModel) {
+    if (availableModel) {
         modalContent += `
             <button id="eksi-ai-quota-modal-cancel" 
                     class="eksi-ai-modal-btn eksi-ai-modal-cancel-btn">
@@ -1726,7 +1837,7 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
             </button>
             <button id="eksi-ai-quota-modal-retry" 
                     class="eksi-ai-modal-btn eksi-ai-modal-submit-btn">
-                ${lowerModel.name.replace(/^[^\s]+\s*/, '')} ile dene
+                ${availableModel.name.replace(/^[^\s]+\s*/, '')} ile dene
             </button>
         `;
     } else {
@@ -1744,8 +1855,6 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
     `;
     
     modal.innerHTML = modalContent;
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
     
     const cancelBtn = document.getElementById('eksi-ai-quota-modal-cancel');
     const retryBtn = document.getElementById('eksi-ai-quota-modal-retry');
@@ -1755,7 +1864,11 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
         overlay.remove();
         // Show error message in result area
         resultArea.style.display = 'block';
-        resultArea.innerHTML = '<div class="eksi-ai-warning">API kota limiti aşıldı. Lütfen daha sonra tekrar deneyin.</div>';
+        if (availableModel) {
+            resultArea.innerHTML = '<div class="eksi-ai-warning">API kota limiti aşıldı. Lütfen daha sonra tekrar deneyin.</div>';
+        } else {
+            resultArea.innerHTML = '<div class="eksi-ai-warning">Tüm modeller için quota limiti aşıldı. Lütfen daha sonra tekrar deneyin.</div>';
+        }
     };
     
     // Cancel button
@@ -1779,8 +1892,8 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
     };
     document.addEventListener('keydown', handleEscape, true);
     
-    // Retry button - only if lower model is available
-    if (retryBtn && lowerModel) {
+    // Retry button - only if available model is found
+    if (retryBtn && availableModel) {
         retryBtn.onclick = async () => {
             closeModal();
             
@@ -1817,9 +1930,8 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
             resultArea.innerHTML = '';
             resultArea.appendChild(loadingContainer);
             
-            // Call Gemini with the lower model
+            // Call Gemini with the available model
             try {
-                const apiKey = settings.geminiApiKey;
                 const limitedEntries = allEntries;
                 const entriesJson = JSON.stringify(limitedEntries);
                 
@@ -1830,10 +1942,10 @@ ${entriesJson}
 
 ${userPrompt}`;
                 
-                const response = await callGeminiApi(apiKey, lowerModel.id, finalPrompt, abortController.signal);
+                const response = await callGeminiApi(apiKey, availableModel.id, finalPrompt, abortController.signal);
                 
                 // Cache the successful response with model info
-                responseCache.set(userPrompt, { response, modelId: lowerModel.id, timestamp: Date.now() });
+                responseCache.set(userPrompt, { response, modelId: availableModel.id, timestamp: Date.now() });
                 
                 // Build result HTML
                 let resultHTML = '';
@@ -1846,7 +1958,7 @@ ${userPrompt}`;
                 }
                 
                 // Add a note about the model used
-                resultHTML += `<div class="eksi-ai-model-note">📝 ${lowerModel.id}</div>`;
+                resultHTML += `<div class="eksi-ai-model-note">📝 ${availableModel.id}</div>`;
                 
                 resultHTML += parseMarkdown(response);
                 resultArea.innerHTML = resultHTML;
@@ -1864,7 +1976,7 @@ ${userPrompt}`;
                 } else if (retryErrorMessage.includes('quota') || retryErrorMessage.includes('Quota exceeded')) {
                     // If retry also fails with quota error, handle it recursively
                     // This allows the retry mechanism to work as if it's the first time
-                    await showQuotaErrorWithRetry(resultArea, retryErrorMessage, userPrompt, showPromptHeader, clickedButton, lowerModel.id);
+                    await showQuotaErrorWithRetry(resultArea, retryErrorMessage, userPrompt, showPromptHeader, clickedButton, availableModel.id);
                 } else {
                     // If retry fails with a different error, show the error
                     resultArea.innerHTML = `<div class="eksi-ai-warning">Hata: ${escapeHtml(retryErrorMessage)}</div>`;
