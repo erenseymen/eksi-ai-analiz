@@ -763,7 +763,7 @@ const testSelectedModel = async () => {
 };
 
 /**
- * Modelleri test et butonuna tıklandığında hem seçili modeli hem de tüm modelleri test eder.
+ * Modelleri test et butonuna tıklandığında tüm modelleri test eder.
  */
 const testAllModels = async () => {
     const testBtn = document.getElementById('testModelsBtn');
@@ -776,9 +776,6 @@ const testAllModels = async () => {
     // Cache'i temizle
     modelAvailabilityCache.clear();
     lastAvailabilityCheck = 0;
-    
-    // Seçili modeli test et
-    await testSelectedModel();
     
     // Tüm modelleri test et
     await updateAllModelsStatus();
