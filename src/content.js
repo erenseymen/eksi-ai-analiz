@@ -1917,11 +1917,17 @@ ${userPrompt}`;
                 statusDiv.className = 'eksi-ai-model-check-status available';
                 statusDiv.textContent = '✅ Başarılı';
 
+                // Response'u kısalt (ilk karakterler)
+                const maxLength = 80;
+                const truncatedResponse = response.length > maxLength
+                    ? response.substring(0, maxLength).trim() + '...'
+                    : response;
+
                 modelRow.innerHTML = `
                     <div class="eksi-ai-model-check-info">
                         <div class="eksi-ai-model-check-name">${model.name}</div>
                     </div>
-                    <div class="eksi-ai-use-model-btn-wrapper" style="position: relative;">
+                    <div class="eksi-ai-use-model-btn-wrapper">
                         <button class="eksi-ai-use-model-btn" 
                                 data-model-id="${model.id}"
                                 style="padding: 8px 16px; background-color: #81c14b; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; font-weight: 500; transition: background-color 0.2s ease;">
@@ -1934,68 +1940,15 @@ ${userPrompt}`;
                 const infoDiv = modelRow.querySelector('.eksi-ai-model-check-info');
                 infoDiv.appendChild(statusDiv);
 
-                // Buton wrapper'ına tooltip ekle
-                const btnWrapper = modelRow.querySelector('.eksi-ai-use-model-btn-wrapper');
-
-                // Custom tooltip oluştur (kısaltılmış response için)
-                const tooltip = document.createElement('div');
-                tooltip.className = 'eksi-ai-response-tooltip eksi-ai-markdown';
-
-                // Response'u kısalt (ilk 300 karakter)
-                const maxLength = 300;
-                const truncatedResponse = response.length > maxLength
-                    ? response.substring(0, maxLength).trim() + '...'
-                    : response;
-
-                tooltip.style.cssText = `
-                    position: absolute;
-                    bottom: 100%;
-                    right: 0;
-                    margin-bottom: 8px;
-                    padding: 12px 14px;
-                    background: #333;
-                    color: white;
-                    border-radius: 8px;
-                    font-size: 0.8em;
-                    width: 500px;
-                    max-height: 180px;
-                    overflow: hidden;
-                    z-index: 100000;
-                    opacity: 0;
-                    pointer-events: none;
-                    transition: opacity 0.2s;
-                    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-                    text-align: left;
-                `;
-                // Markdown olarak render et
-                tooltip.innerHTML = parseMarkdown(truncatedResponse);
-
-                // Tooltip ok (arrow) ekle
-                const arrow = document.createElement('div');
-                arrow.style.cssText = `
-                    position: absolute;
-                    top: 100%;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    width: 0;
-                    height: 0;
-                    border-left: 8px solid transparent;
-                    border-right: 8px solid transparent;
-                    border-top: 8px solid #333;
-                `;
-                tooltip.appendChild(arrow);
-                btnWrapper.appendChild(tooltip);
-
-                // Buton üzerinde hover event'leri
-                const useBtn = modelRow.querySelector('.eksi-ai-use-model-btn');
-                useBtn.addEventListener('mouseenter', () => {
-                    tooltip.style.opacity = '1';
-                });
-                useBtn.addEventListener('mouseleave', () => {
-                    tooltip.style.opacity = '0';
-                });
+                // Response önizlemesi ekle (ayarlar sayfasındaki tooltip stiliyle)
+                const responsePreview = document.createElement('small');
+                responsePreview.style.cssText = 'color: #666; font-style: italic; display: block; margin-top: 4px; max-width: 500px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
+                responsePreview.title = truncatedResponse; // Kırpılmış response
+                responsePreview.textContent = '💬 ' + truncatedResponse;
+                infoDiv.appendChild(responsePreview);
 
                 // Buton event listener ekle
+                const useBtn = modelRow.querySelector('.eksi-ai-use-model-btn');
                 useBtn.onclick = async () => {
                     // Escape listener'ını kaldır (modal kapatılmadan önce)
                     document.removeEventListener('keydown', handleEscape, true);
