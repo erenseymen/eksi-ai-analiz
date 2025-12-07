@@ -186,8 +186,8 @@ const saveOptions = async () => {
         renderPrompts();
         
         // API key değiştiyse tüm modellerin durumunu güncelleme - artık sadece buton ile yapılıyor
-        // API key değişmediyse, sadece model seçimine göre UI'daki butonları güncelle
-        else if (!isCheckingModels) {
+        // Model seçimine göre UI'daki butonları güncelle (eğer modeller kontrol edilmiyorsa)
+        if (!isCheckingModels) {
             // Seçilen modelin satırını güncelle
             MODELS.forEach(m => {
                 const rowId = `model-status-${m.id}`;
