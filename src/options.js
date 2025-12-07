@@ -309,16 +309,29 @@ const updateAllModelsStatus = async () => {
     
     // Her model için ayrı bir DOM elementi oluştur (hepsi loading durumunda başlar)
     statusList.innerHTML = '';
+    const modelSelect = document.getElementById('modelSelect');
+    const selectedModelId = modelSelect ? modelSelect.value : null;
+    
     MODELS.forEach((model) => {
         const modelRowId = `model-status-${model.id}`;
         const modelRow = document.createElement('div');
         modelRow.id = modelRowId;
-        modelRow.style.cssText = 'padding: 8px; margin-bottom: 5px; border-left: 3px solid #999; background: #f5f5f5;';
+        modelRow.style.cssText = 'padding: 8px; margin-bottom: 5px; border-left: 3px solid #999; background: #f5f5f5; display: flex; align-items: center; justify-content: space-between;';
+        
+        // Seçili model için loading durumunda bile "Seçilen" butonunu göster
+        const isSelected = model.id === selectedModelId;
+        const buttonHtml = isSelected
+            ? `<button class="selected-model-btn" data-model-id="${model.id}" disabled style="padding: 6px 12px; background-color: #6c757d; color: white; border: none; border-radius: 4px; font-size: 0.85em; font-weight: 500; cursor: not-allowed; opacity: 0.8;">
+                Seçilen
+            </button>`
+            : '';
+        
         modelRow.innerHTML = `
             <div>
                 <strong>${model.name}</strong><br>
                 <small style="color: #666;">⏳ Kontrol ediliyor...</small>
             </div>
+            ${buttonHtml}
         `;
         statusList.appendChild(modelRow);
     });
