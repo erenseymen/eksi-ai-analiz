@@ -980,3 +980,49 @@
     background: linear-gradient(135deg, rgba(129, 193, 75, 0.15) 0%, rgba(129, 193, 75, 0.08) 100%);
     border-color: rgba(129, 193, 75, 0.35);
 }
+
+/* =============================================================================
+   10. KARŞILAŞTIRMA MODAL STİLLERİ
+   ============================================================================= */
+
+/**
+ * Model cevaplarını karşılaştırma modalındaki kart stilleri
+ */
+
+/** Karşılaştırma grid konteyneri */
+.eksi-ai-compare-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+    overflow-y: auto;
+    flex: 1;
+    padding: 10px;
+}
+
+/** Model kartı */
+.eksi-ai-compare-card {
+    border: 1px solid var(--eksi-ai-border);
+    border-radius: 8px;
+    padding: 15px;
+    background: var(--eksi-ai-bg);
+    display: flex;
+    flex-direction: column;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+/** Model kartı başlığı */
+.eksi-ai-compare-card-header {
+    font-weight: 600;
+    font-size: 1.1em;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #5cb85c;
+    color: #5cb85c;
+}
+
+/** Karanlık temada kart içeriği */
+.eksi-ai-dark .eksi-ai-compare-card {
+    background: var(--eksi-ai-bg);
+    border-color: var(--eksi-ai-border);
+}

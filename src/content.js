@@ -2136,7 +2136,7 @@ const showCompareResultsModal = (modelResults, parentOverlay, parentEscapeHandle
     // Modal başlığı
     let modalContent = `
         <h3 class="eksi-ai-modal-title" style="margin-bottom: 20px;">Model Cevaplarını Karşılaştır</h3>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; overflow-y: auto; flex: 1; padding: 10px;">
+        <div class="eksi-ai-compare-grid">
     `;
 
     // Her model için bir sütun oluştur
@@ -2144,8 +2144,8 @@ const showCompareResultsModal = (modelResults, parentOverlay, parentEscapeHandle
         const response = modelResults.get(model.id);
         if (response) {
             modalContent += `
-                <div style="border: 1px solid #ddd; border-radius: 8px; padding: 15px; background: #f9f9f9; display: flex; flex-direction: column; max-height: 70vh; overflow-y: auto;">
-                    <div style="font-weight: 600; font-size: 1.1em; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px solid #5cb85c; color: #5cb85c;">
+                <div class="eksi-ai-compare-card">
+                    <div class="eksi-ai-compare-card-header">
                         ${model.name}
                     </div>
                     <div class="eksi-ai-markdown" style="flex: 1; overflow-y: auto;">
