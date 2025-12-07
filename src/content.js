@@ -87,52 +87,52 @@ const getSettings = async () => {
  */
 const detectPageType = () => {
     const path = window.location.pathname;
-    
+
     // Başlık sayfası: /baslik-adi--id formatı
     if (/^\/[^\/]+--\d+/.test(path)) {
         return 'topic-page';
     }
-    
+
     // Ana sayfa
     if (path === '/' || path === '') {
         return 'home-page';
     }
-    
+
     // Gündem sayfası
     if (path === '/basliklar/gundem') {
         return 'gundem-page';
     }
-    
+
     // Olay sayfası
     if (path === '/basliklar/olay') {
         return 'olay-page';
     }
-    
+
     // Debe sayfası
     if (path === '/debe') {
         return 'debe-page';
     }
-    
+
     // Kanal sayfaları
     if (path.startsWith('/basliklar/kanal/')) {
         return 'channel-page';
     }
-    
+
     // Yazar profil sayfası
     if (path.startsWith('/biri/')) {
         return 'author-page';
     }
-    
+
     // Entry sayfası
     if (path.startsWith('/entry/')) {
         return 'entry-page';
     }
-    
+
     // İstatistik sayfaları
     if (path.startsWith('/istatistik/')) {
         return 'statistics-page';
     }
-    
+
     return 'unknown';
 };
 
@@ -167,7 +167,7 @@ const createAnalysisButton = (h1Element, topicId = null, useCurrentPage = false)
     btn.id = existingBtnId;
     btn.className = 'eksi-ai-btn';
     btn.textContent = "Entry'leri Analiz Et";
-    
+
     // Use current page analysis for topic pages, otherwise use topic-specific analysis
     if (useCurrentPage) {
         btn.onclick = startAnalysis;
@@ -177,11 +177,11 @@ const createAnalysisButton = (h1Element, topicId = null, useCurrentPage = false)
 
     // Find the parent container (usually a heading wrapper or topic section)
     let parentContainer = h1Element.parentElement;
-    
+
     // Try to find a more appropriate container
     while (parentContainer && parentContainer !== document.body) {
         // Look for common container patterns
-        if (parentContainer.id === 'topic' || 
+        if (parentContainer.id === 'topic' ||
             parentContainer.classList.contains('topic') ||
             parentContainer.tagName === 'MAIN' ||
             parentContainer.querySelector('ul[ref*="entry"]') ||
@@ -230,12 +230,12 @@ const startAnalysisForTopic = async (h1Element, topicId) => {
     // Check if there's a focusto href on the heading (set by initEntryPage for /entry/ID URLs)
     // This takes priority over the regular topic link
     let topicUrl = h1Element.getAttribute('data-focusto-href');
-    
+
     if (!topicUrl) {
         // Check for stored topic URL (set by initEntryPage)
         topicUrl = h1Element.getAttribute('data-topic-href');
     }
-    
+
     if (!topicUrl) {
         // Extract topic URL from h1 link
         const topicLink = h1Element.querySelector('a');
@@ -247,7 +247,7 @@ const startAnalysisForTopic = async (h1Element, topicId) => {
     }
     const btnId = topicId ? `eksi-ai-main-btn-${topicId}` : 'eksi-ai-main-btn';
     const containerId = topicId ? `eksi-ai-container-${topicId}` : 'eksi-ai-container';
-    
+
     const btn = document.getElementById(btnId);
     const container = document.getElementById(containerId);
 
@@ -311,15 +311,15 @@ const startAnalysisForTopic = async (h1Element, topicId) => {
  */
 const extractReferencedEntryIds = (content) => {
     if (!content) return [];
-    
+
     const regex = /\(bkz:\s*#(\d+)\)/gi;
     const matches = [];
     let match;
-    
+
     while ((match = regex.exec(content)) !== null) {
         matches.push(match[1]); // Extract just the entry ID
     }
-    
+
     return matches;
 };
 
@@ -337,34 +337,34 @@ const fetchEntryById = async (entryId) => {
     try {
         const url = `https://eksisozluk.com/entry/${entryId}`;
         const response = await fetch(url);
-        
+
         if (!response.ok) {
             console.warn(`Failed to fetch entry ${entryId}: ${response.status}`);
             return null;
         }
-        
+
         const text = await response.text();
         const parser = new DOMParser();
         const doc = parser.parseFromString(text, 'text/html');
-        
+
         // Find the entry item
-        const entryItem = doc.querySelector(`li[data-id="${entryId}"]`) || 
-                          doc.querySelector('#entry-item-list > li');
-        
+        const entryItem = doc.querySelector(`li[data-id="${entryId}"]`) ||
+            doc.querySelector('#entry-item-list > li');
+
         if (!entryItem) {
             console.warn(`Entry element not found for ${entryId}`);
             return null;
         }
-        
+
         const contentElement = entryItem.querySelector('.content');
         const content = extractContentWithFullUrls(contentElement);
         const author = entryItem.querySelector('.entry-author')?.innerText.trim();
         const date = entryItem.querySelector('.entry-date')?.innerText.trim();
-        
+
         if (!content) {
             return null;
         }
-        
+
         return {
             id: entryId,
             author,
@@ -389,7 +389,7 @@ const fetchAllReferencedEntries = async (statusSpan = null) => {
     // Collect all unique referenced entry IDs
     const existingIds = new Set(allEntries.map(e => e.id));
     const referencedIds = new Set();
-    
+
     allEntries.forEach(entry => {
         if (entry.referenced_entry_ids) {
             entry.referenced_entry_ids.forEach(id => {
@@ -399,36 +399,36 @@ const fetchAllReferencedEntries = async (statusSpan = null) => {
             });
         }
     });
-    
+
     if (referencedIds.size === 0) {
         return;
     }
-    
+
     const idsToFetch = Array.from(referencedIds);
     const fetchedEntries = new Map();
-    
+
     // Fetch each referenced entry
     for (let i = 0; i < idsToFetch.length; i++) {
         if (shouldStopScraping) {
             break;
         }
-        
+
         const entryId = idsToFetch[i];
         if (statusSpan) {
             statusSpan.textContent = `Referans entry'ler alınıyor... (${i + 1}/${idsToFetch.length})`;
         }
-        
+
         const entry = await fetchEntryById(entryId);
         if (entry) {
             fetchedEntries.set(entryId, entry);
         }
-        
+
         // Rate limiting
         if (i < idsToFetch.length - 1) {
             await new Promise(r => setTimeout(r, 300));
         }
     }
-    
+
     // Also include entries from allEntries that are referenced
     allEntries.forEach(entry => {
         if (!fetchedEntries.has(entry.id)) {
@@ -440,14 +440,14 @@ const fetchAllReferencedEntries = async (statusSpan = null) => {
             });
         }
     });
-    
+
     // Update allEntries with full referenced entry objects
     allEntries.forEach(entry => {
         if (entry.referenced_entry_ids && entry.referenced_entry_ids.length > 0) {
             entry.referenced_entries = entry.referenced_entry_ids
                 .map(id => fetchedEntries.get(id) || { id, error: 'Entry bulunamadı' })
                 .filter(e => e !== null);
-            
+
             // Remove the temporary IDs field
             delete entry.referenced_entry_ids;
         }
@@ -470,28 +470,28 @@ const fetchAllReferencedEntries = async (statusSpan = null) => {
  */
 const extractContentWithFullUrls = (contentElement) => {
     if (!contentElement) return '';
-    
+
     // Clone the element to avoid modifying the DOM
     const clone = contentElement.cloneNode(true);
-    
+
     // Find all links and replace their text with actual href if the text appears to be a truncated URL
     const links = clone.querySelectorAll('a');
     links.forEach(link => {
         const href = link.getAttribute('href');
         const text = link.innerText.trim();
         const title = link.getAttribute('title');
-        
+
         // Check if this looks like a URL link (text starts with http or contains ...)
         // and if the href is a full URL (starts with http)
         if (href && href.startsWith('http')) {
             // If text contains ellipsis (…) or looks like a truncated URL, replace with full href
-            if (text.includes('…') || text.includes('...') || 
+            if (text.includes('…') || text.includes('...') ||
                 (text.startsWith('http') && text !== href)) {
                 // Add space before and after the URL for better readability
                 link.innerText = ' ' + href + ' ';
             }
         }
-        
+
         // Handle hidden references in title attribute (like "* " links with "(bkz: swh)" titles)
         // These are typically inside <sup class="ab"> elements
         if (title && text === '*') {
@@ -500,13 +500,13 @@ const extractContentWithFullUrls = (contentElement) => {
             link.innerText = '* ' + title;
         }
     });
-    
+
     // Replace <br> tags with newline characters to preserve line breaks
     // This must be done before getting innerText, as innerText collapses <br> into spaces
     clone.querySelectorAll('br').forEach(br => {
         br.replaceWith('\n');
     });
-    
+
     return clone.innerText.trim();
 };
 
@@ -523,11 +523,11 @@ const extractContentWithFullUrls = (contentElement) => {
 const extractEntriesFromDoc = (doc, focustoEntryId = null) => {
     const entries = [];
     let foundFocusEntry = !focustoEntryId; // If no focusto, include all entries
-    
+
     const entryItems = doc.querySelectorAll('#entry-item-list > li');
     entryItems.forEach(item => {
         const id = item.getAttribute('data-id');
-        
+
         // If we have a focusto entry ID, skip entries until we find it
         if (focustoEntryId && !foundFocusEntry) {
             if (id === focustoEntryId) {
@@ -536,7 +536,7 @@ const extractEntriesFromDoc = (doc, focustoEntryId = null) => {
                 return; // Skip this entry
             }
         }
-        
+
         const contentElement = item.querySelector('.content');
         const content = extractContentWithFullUrls(contentElement);
         const author = item.querySelector('.entry-author')?.innerText.trim();
@@ -549,17 +549,17 @@ const extractEntriesFromDoc = (doc, focustoEntryId = null) => {
                 date,
                 content
             };
-            
+
             // Extract referenced entry IDs from content (will be populated with full entries later)
             const referencedEntryIds = extractReferencedEntryIds(content);
             if (referencedEntryIds.length > 0) {
                 entry.referenced_entry_ids = referencedEntryIds;
             }
-            
+
             entries.push(entry);
         }
     });
-    
+
     return { entries, foundFocusEntry };
 };
 
@@ -583,38 +583,38 @@ const extractEntriesFromDoc = (doc, focustoEntryId = null) => {
  */
 const scrapeEntriesFromUrl = async (url) => {
     allEntries = [];
-    
+
     // Parse URL to preserve query parameters
     const urlObj = new URL(url);
     const baseUrl = urlObj.origin + urlObj.pathname;
     const existingParams = new URLSearchParams(urlObj.search);
-    
+
     // Check for focusto parameter
     const focustoEntryId = existingParams.get('focusto');
-    
+
     // Get current page number from URL (if exists)
     const currentPageParam = existingParams.get('p');
     let startPage = currentPageParam ? parseInt(currentPageParam) : 1;
-    
+
     // Remove 'p' parameter if it exists (we'll add it in the loop)
     existingParams.delete('p');
-    
+
     // Build URL for first page fetch with preserved query parameters (without p)
     // Keep focusto parameter as the server uses it to determine which page to show
     const firstPageParams = new URLSearchParams(existingParams);
-    const firstPageUrl = firstPageParams.toString() 
+    const firstPageUrl = firstPageParams.toString()
         ? `${baseUrl}?${firstPageParams.toString()}`
         : baseUrl;
-    
+
     // Fetch the topic page (first page or focusto page)
     const response = await fetch(firstPageUrl);
     const text = await response.text();
     const parser = new DOMParser();
     const doc = parser.parseFromString(text, 'text/html');
-    
+
     // Extract topic title
     topicTitle = doc.querySelector('h1')?.innerText || doc.querySelector('#topic h1')?.innerText || "Basliksiz";
-    
+
     // Extract topic ID from URL
     const urlMatch = url.match(/--(\d+)/);
     topicId = urlMatch ? urlMatch[1] : '';
@@ -626,7 +626,7 @@ const scrapeEntriesFromUrl = async (url) => {
         const lastPageLink = pager.getAttribute('data-pagecount');
         totalPages = parseInt(lastPageLink) || 1;
     }
-    
+
     // If we have focusto, the server redirects to the page containing that entry
     // We need to detect which page we're on
     if (focustoEntryId) {
@@ -637,7 +637,7 @@ const scrapeEntriesFromUrl = async (url) => {
     }
 
     const statusSpan = document.querySelector('.eksi-ai-loading');
-    
+
     // Remove focusto from params for subsequent page fetches (we only need it for the first page)
     existingParams.delete('focusto');
 
@@ -647,9 +647,9 @@ const scrapeEntriesFromUrl = async (url) => {
         const startPageParams = new URLSearchParams(existingParams);
         startPageParams.set('p', startPage.toString());
         const startPageUrl = `${baseUrl}?${startPageParams.toString()}`;
-        
+
         if (statusSpan) statusSpan.textContent = `Sayfa ${startPage}/${totalPages} taranıyor...`;
-        
+
         const startPageResponse = await fetch(startPageUrl);
         const startPageText = await startPageResponse.text();
         const startPageDoc = parser.parseFromString(startPageText, 'text/html');
@@ -660,7 +660,7 @@ const scrapeEntriesFromUrl = async (url) => {
         // Process first page entries from fetched document (with focusto filtering if applicable)
         const { entries, foundFocusEntry } = extractEntriesFromDoc(doc, focustoEntryId);
         allEntries.push(...entries);
-        
+
         // If focusto entry was not found on this page, something went wrong
         if (focustoEntryId && !foundFocusEntry) {
             console.warn(`focusto entry ${focustoEntryId} not found on page ${startPage}`);
@@ -681,7 +681,7 @@ const scrapeEntriesFromUrl = async (url) => {
         const params = new URLSearchParams(existingParams);
         params.set('p', i.toString());
         const pageUrl = `${baseUrl}?${params.toString()}`;
-        
+
         const pageResponse = await fetch(pageUrl);
         const pageText = await pageResponse.text();
         const pageDoc = parser.parseFromString(pageText, 'text/html');
@@ -693,7 +693,7 @@ const scrapeEntriesFromUrl = async (url) => {
         // Sunucuya yük bindirmemek için bekleme (rate limiting)
         await new Promise(r => setTimeout(r, 500));
     }
-    
+
     // Referans entry'lerin içeriklerini al
     if (!shouldStopScraping) {
         await fetchAllReferencedEntries(statusSpan);
@@ -712,7 +712,7 @@ const scrapeEntriesFromUrl = async (url) => {
  */
 const init = () => {
     const pageType = detectPageType();
-    
+
     switch (pageType) {
         case 'topic-page':
             // Single topic page - existing logic
@@ -766,32 +766,32 @@ const initTopicPage = () => {
  */
 const scrapeSingleEntryFromCurrentPage = () => {
     allEntries = [];
-    
+
     // Extract entry ID from current URL (/entry/ENTRY_ID)
     const entryIdMatch = window.location.pathname.match(/\/entry\/(\d+)/);
     if (!entryIdMatch) {
         console.error('Entry ID not found in URL');
         return;
     }
-    
+
     const entryId = entryIdMatch[1];
-    
+
     // Try multiple strategies to find the entry in the DOM
     let entryItem = null;
     let contentElement = null;
-    
+
     // Strategy 1: Find by data-id attribute
     entryItem = document.querySelector(`li[data-id="${entryId}"]`);
-    
+
     // Strategy 2: Find via entry-item-list
     if (!entryItem) {
         const entryList = document.querySelector('#entry-item-list');
         if (entryList) {
-            entryItem = entryList.querySelector(`li[data-id="${entryId}"]`) || 
-                       entryList.querySelector('li:first-child');
+            entryItem = entryList.querySelector(`li[data-id="${entryId}"]`) ||
+                entryList.querySelector('li:first-child');
         }
     }
-    
+
     // Strategy 3: Find by entry URL link (date link typically contains entry URL)
     if (!entryItem) {
         const entryLink = document.querySelector(`a[href="/entry/${entryId}"]`);
@@ -799,7 +799,7 @@ const scrapeSingleEntryFromCurrentPage = () => {
             entryItem = entryLink.closest('li');
         }
     }
-    
+
     // Strategy 4: Find any list item in the main content area that might be the entry
     if (!entryItem) {
         const main = document.querySelector('main');
@@ -818,15 +818,15 @@ const scrapeSingleEntryFromCurrentPage = () => {
             }
         }
     }
-    
+
     if (!entryItem) {
         console.error('Entry element not found on page');
         return;
     }
-    
+
     // Extract entry data
     const id = entryItem.getAttribute('data-id') || entryId;
-    
+
     // Try to find content element - multiple possible structures
     contentElement = entryItem.querySelector('.content');
     if (!contentElement) {
@@ -834,10 +834,10 @@ const scrapeSingleEntryFromCurrentPage = () => {
         // On entry pages, content might be directly in the li without .content class
         // We'll clone the item and remove metadata elements
         const clone = entryItem.cloneNode(true);
-        
+
         // Remove common metadata elements
         clone.querySelectorAll('.entry-author, .entry-date, .entry-footer, .entry-meta, .entry-actions').forEach(el => el.remove());
-        
+
         // Remove author links
         clone.querySelectorAll('a[href^="/biri/"]').forEach(el => {
             // Keep the text if it's not just the author name
@@ -845,15 +845,15 @@ const scrapeSingleEntryFromCurrentPage = () => {
                 el.remove();
             }
         });
-        
+
         // Remove date links (they point to the entry itself)
         clone.querySelectorAll(`a[href="/entry/${entryId}"]`).forEach(el => el.remove());
-        
+
         contentElement = clone;
     }
-    
+
     const content = extractContentWithFullUrls(contentElement);
-    
+
     // Extract author - try multiple selectors
     let author = entryItem.querySelector('.entry-author')?.innerText.trim() || '';
     if (!author) {
@@ -862,7 +862,7 @@ const scrapeSingleEntryFromCurrentPage = () => {
             author = authorLink.innerText.trim();
         }
     }
-    
+
     // Extract date - try multiple selectors
     let date = entryItem.querySelector('.entry-date')?.innerText.trim() || '';
     if (!date) {
@@ -871,20 +871,20 @@ const scrapeSingleEntryFromCurrentPage = () => {
             date = dateLink.innerText.trim();
         }
     }
-    
+
     // Extract topic title
-    topicTitle = document.querySelector('h1')?.innerText || 
-                 document.querySelector('#topic h1')?.innerText || 
-                 "Basliksiz";
-    
+    topicTitle = document.querySelector('h1')?.innerText ||
+        document.querySelector('#topic h1')?.innerText ||
+        "Basliksiz";
+
     // Extract topic ID if available
-    const topicLink = document.querySelector('h1 a[href*="--"]') || 
-                     document.querySelector('a[href*="--"]');
+    const topicLink = document.querySelector('h1 a[href*="--"]') ||
+        document.querySelector('a[href*="--"]');
     if (topicLink) {
         const urlMatch = topicLink.href.match(/--(\d+)/);
         topicId = urlMatch ? urlMatch[1] : '';
     }
-    
+
     if (content && content.trim()) {
         const entry = {
             id,
@@ -892,13 +892,13 @@ const scrapeSingleEntryFromCurrentPage = () => {
             date,
             content
         };
-        
+
         // Extract referenced entry IDs from content
         const referencedEntryIds = extractReferencedEntryIds(content);
         if (referencedEntryIds.length > 0) {
             entry.referenced_entry_ids = referencedEntryIds;
         }
-        
+
         allEntries.push(entry);
     } else {
         console.error('Entry content could not be extracted');
@@ -936,7 +936,7 @@ const startSingleEntryAnalysis = async () => {
     try {
         // Scrape single entry from current page
         scrapeSingleEntryFromCurrentPage();
-        
+
         // Fetch referenced entries if any
         if (!shouldStopScraping && allEntries.length > 0) {
             const statusSpan = container.querySelector('.eksi-ai-loading');
@@ -1018,14 +1018,14 @@ const createSingleEntryButton = (heading) => {
 const initEntryPage = () => {
     // On entry pages, we need to find the topic link and the heading
     // The DOM structure on entry pages: h1 contains the topic title link
-    
+
     // First, find the h1 element (topic title)
     const heading = document.querySelector('#topic h1') || document.querySelector('h1');
     if (!heading) {
         console.error('Entry page: heading not found');
         return;
     }
-    
+
     // Create button for single entry analysis
     createSingleEntryButton(heading);
 };
@@ -1148,14 +1148,14 @@ const scrapeEntries = async () => {
     const currentUrlObj = new URL(window.location.href);
     const baseUrl = currentUrlObj.origin + currentUrlObj.pathname;
     const existingParams = new URLSearchParams(currentUrlObj.search);
-    
+
     // Check for focusto parameter
     const focustoEntryId = existingParams.get('focusto');
-    
+
     // Get current page number from URL (if exists)
     const currentPageParam = existingParams.get('p');
     let startPage = currentPageParam ? parseInt(currentPageParam) : 1;
-    
+
     // If we have focusto, the server shows the page containing that entry
     // We need to detect which page we're on from the pager
     if (focustoEntryId) {
@@ -1164,7 +1164,7 @@ const scrapeEntries = async () => {
             startPage = parseInt(currentPageFromPager) || 1;
         }
     }
-    
+
     // Remove 'p' parameter if it exists (we'll add it in the loop)
     existingParams.delete('p');
     // Remove focusto from params for subsequent page fetches
@@ -1178,7 +1178,7 @@ const scrapeEntries = async () => {
         // Process entries from current DOM (with focusto filtering if applicable)
         const { entries, foundFocusEntry } = extractEntriesFromDoc(document, focustoEntryId);
         allEntries.push(...entries);
-        
+
         // If focusto entry was not found on this page, something went wrong
         if (focustoEntryId && !foundFocusEntry) {
             console.warn(`focusto entry ${focustoEntryId} not found on current page`);
@@ -1188,9 +1188,9 @@ const scrapeEntries = async () => {
         const startPageParams = new URLSearchParams(existingParams);
         startPageParams.set('p', startPage.toString());
         const startPageUrl = `${baseUrl}?${startPageParams.toString()}`;
-        
+
         if (statusSpan) statusSpan.textContent = `Sayfa ${startPage}/${totalPages} taranıyor...`;
-        
+
         const startPageResponse = await fetch(startPageUrl);
         const startPageText = await startPageResponse.text();
         const parser = new DOMParser();
@@ -1214,7 +1214,7 @@ const scrapeEntries = async () => {
         const params = new URLSearchParams(existingParams);
         params.set('p', i.toString());
         const url = `${baseUrl}?${params.toString()}`;
-        
+
         const response = await fetch(url);
         const text = await response.text();
         const parser = new DOMParser();
@@ -1227,7 +1227,7 @@ const scrapeEntries = async () => {
         // Rate limiting - sunucuya nazik davran
         await new Promise(r => setTimeout(r, 500));
     }
-    
+
     // Referans entry'lerin içeriklerini al
     if (!shouldStopScraping) {
         await fetchAllReferencedEntries(statusSpan);
@@ -1267,7 +1267,7 @@ const addToggleVisibilityButton = (mainBtnId, containerId) => {
     toggleBtn.id = toggleBtnId;
     toggleBtn.className = 'eksi-ai-btn secondary eksi-ai-toggle-btn';
     toggleBtn.textContent = 'Gizle';
-    
+
     // Buton tıklandığında container'ı gizle/göster
     toggleBtn.onclick = () => {
         if (container.style.display === 'none') {
@@ -1333,7 +1333,7 @@ const renderActions = async (container, wasStopped = false) => {
     // Add listeners for dynamic buttons
     settings.prompts.forEach((item, index) => {
         const btn = document.getElementById(`btn-prompt-${index}`);
-        
+
         // Ana butona basıldığında, eğer "ve" butonundan gelen cached result varsa onu göster
         btn.onclick = () => {
             // "ve" butonundan gelen cached result'ı kontrol et
@@ -1348,7 +1348,7 @@ const renderActions = async (container, wasStopped = false) => {
                 runGemini(item.prompt, false, btn);
             }
         };
-        
+
         // Add listener for "ve" button
         const veBtn = document.getElementById(`btn-prompt-ve-${index}`);
         veBtn.onclick = () => openCustomPromptModal(null, item.prompt, btn);
@@ -1356,19 +1356,19 @@ const renderActions = async (container, wasStopped = false) => {
 
     document.getElementById('btn-custom-manual').onclick = () => {
         const customBtn = document.getElementById('btn-custom-manual');
-        
+
         // If button is already selected (showing cached result), open modal for new prompt
         if (customBtn.classList.contains('eksi-ai-btn-selected')) {
             openCustomPromptModal(customBtn);
             return;
         }
-        
+
         // If there's a cached custom prompt response, show it
         if (lastCustomPrompt && responseCache.has(lastCustomPrompt)) {
             runGemini(lastCustomPrompt, true, customBtn);
             return;
         }
-        
+
         // Otherwise, open modal for new prompt
         openCustomPromptModal(customBtn);
     };
@@ -1438,19 +1438,19 @@ const runGemini = async (userPrompt, showPromptHeader = false, clickedButton = n
     if (clickedButton) {
         container = clickedButton.closest('#eksi-ai-container, #eksi-ai-entry-container');
     }
-    
+
     // Find result and warning areas within the container, or fallback to getElementById
-    const resultArea = container 
-        ? container.querySelector('#ai-result') 
+    const resultArea = container
+        ? container.querySelector('#ai-result')
         : document.getElementById('ai-result');
-    const warningArea = container 
-        ? container.querySelector('#ai-warning') 
+    const warningArea = container
+        ? container.querySelector('#ai-warning')
         : document.getElementById('ai-warning');
-    
+
     // Mark clicked button as selected (remove from others first)
     if (clickedButton) {
         // Find actions container within the same container as the button
-        const actionsContainer = container 
+        const actionsContainer = container
             ? container.querySelector('.eksi-ai-actions')
             : clickedButton.closest('.eksi-ai-actions');
         if (actionsContainer) {
@@ -1469,15 +1469,15 @@ const runGemini = async (userPrompt, showPromptHeader = false, clickedButton = n
 
     resultArea.style.display = 'block';
     warningArea.style.display = 'none';
-    
+
     // Check if we have a cached response for this prompt
     const cacheKey = userPrompt;
     if (responseCache.has(cacheKey)) {
         const cachedData = responseCache.get(cacheKey);
-        
+
         // Build result HTML from cache
         let resultHTML = '';
-        
+
         // Show custom prompt header if requested
         if (showPromptHeader && userPrompt) {
             resultHTML += `<div class="eksi-ai-custom-prompt-header">
@@ -1485,38 +1485,38 @@ const runGemini = async (userPrompt, showPromptHeader = false, clickedButton = n
                 <span class="eksi-ai-custom-prompt-text">${escapeHtml(userPrompt).replace(/\n/g, '<br>')}</span>
             </div>`;
         }
-        
+
         // Show model note if available
         if (cachedData.modelId) {
             resultHTML += `<div class="eksi-ai-model-note">📝 ${cachedData.modelId}</div>`;
         }
-        
+
         resultHTML += parseMarkdown(cachedData.response);
         resultArea.innerHTML = resultHTML;
         resultArea.classList.add('eksi-ai-markdown');
-        
+
         // Add action buttons for the result
         addResultActionButtons(resultArea, cachedData.response, userPrompt, showPromptHeader, clickedButton);
-        
+
         // Mark button as cached
         if (clickedButton) {
             clickedButton.classList.add('eksi-ai-btn-cached');
         }
         return;
     }
-    
+
     // Create AbortController for cancellation
     const abortController = new AbortController();
-    
+
     // Create loading message with stop button
     const loadingContainer = document.createElement('div');
     loadingContainer.style.display = 'flex';
     loadingContainer.style.alignItems = 'center';
     loadingContainer.style.gap = '10px';
-    
+
     const loadingText = document.createElement('span');
     loadingText.textContent = "Gemini düşünüyor...";
-    
+
     const stopButton = document.createElement('button');
     stopButton.textContent = "Durdur";
     stopButton.className = 'eksi-ai-btn';
@@ -1528,7 +1528,7 @@ const runGemini = async (userPrompt, showPromptHeader = false, clickedButton = n
         loadingText.textContent = "İstek iptal ediliyor...";
         stopButton.disabled = true;
     };
-    
+
     loadingContainer.appendChild(loadingText);
     loadingContainer.appendChild(stopButton);
     resultArea.innerHTML = '';
@@ -1562,29 +1562,29 @@ ${userPrompt}`;
 
     try {
         const response = await callGeminiApi(apiKey, modelId, finalPrompt, abortController.signal);
-        
+
         // Cache the successful response with model info
         responseCache.set(cacheKey, { response, modelId, timestamp: Date.now() });
-        
+
         // Mark button as cached
         if (clickedButton) {
             clickedButton.classList.add('eksi-ai-btn-cached');
         }
-        
+
         // Eğer "ve" butonundan geldiyse, ana butonun cached işaretini ekle
         if (mainButton) {
             mainButton.classList.add('eksi-ai-btn-cached');
         }
-        
+
         // Check if button is still selected (user might have clicked another button while waiting)
         // If not selected, don't overwrite the current result - user can click this button again to see cached result
         if (clickedButton && !clickedButton.classList.contains('eksi-ai-btn-selected')) {
             return;
         }
-        
+
         // Build result HTML
         let resultHTML = '';
-        
+
         // Show custom prompt header if requested
         if (showPromptHeader && userPrompt) {
             resultHTML += `<div class="eksi-ai-custom-prompt-header">
@@ -1592,28 +1592,28 @@ ${userPrompt}`;
                 <span class="eksi-ai-custom-prompt-text">${escapeHtml(userPrompt).replace(/\n/g, '<br>')}</span>
             </div>`;
         }
-        
+
         // Show model note
         resultHTML += `<div class="eksi-ai-model-note">📝 ${modelId}</div>`;
-        
+
         resultHTML += parseMarkdown(response);
         resultArea.innerHTML = resultHTML;
         resultArea.classList.add('eksi-ai-markdown');
-        
+
         // Add action buttons for the result
         addResultActionButtons(resultArea, response, userPrompt, showPromptHeader, clickedButton);
     } catch (err) {
         let errorMessage = err.message;
-        
+
         // Provide helpful error message for model not found
         if (errorMessage.includes('not found') || errorMessage.includes('not supported')) {
             errorMessage = `Model "${modelId}" bulunamadı veya desteklenmiyor.\n\n` +
-                          `Lütfen Ayarlar sayfasından mevcut bir model seçin:\n` +
-                          `- gemini-3-pro-preview\n` +
-                          `- gemini-2.5-pro (Önerilen)\n` +
-                          `- gemini-2.5-flash\n` +
-                          `- gemini-2.5-flash-lite\n\n` +
-                          `Hata detayı: ${err.message}`;
+                `Lütfen Ayarlar sayfasından mevcut bir model seçin:\n` +
+                `- gemini-3-pro-preview\n` +
+                `- gemini-2.5-pro (Önerilen)\n` +
+                `- gemini-2.5-flash\n` +
+                `- gemini-2.5-flash-lite\n\n` +
+                `Hata detayı: ${err.message}`;
             resultArea.textContent = "Hata: " + errorMessage;
         } else if (errorMessage.includes('quota') || errorMessage.includes('Quota exceeded')) {
             showQuotaErrorWithRetry(resultArea, errorMessage, userPrompt, showPromptHeader, clickedButton, modelId);
@@ -1644,18 +1644,18 @@ ${userPrompt}`;
  */
 const callGeminiApi = async (apiKey, modelId, prompt, signal) => {
     const startTime = performance.now();
-    
+
     // Model bazlı API versiyonu belirleme (constants.js'den al)
     const model = MODELS.find(m => m.id === modelId);
     const apiVersion = model?.apiVersion || 'v1';
     const url = `https://generativelanguage.googleapis.com/${apiVersion}/models/${modelId}:generateContent?key=${apiKey}`;
-    
+
     try {
         // API versiyonuna göre payload yapısını belirle
         // v1beta: systemInstruction alanını destekler
         // v1: systemInstruction desteklemez, system instruction'ı prompt'un başına eklemeliyiz
         let requestBody;
-        
+
         if (apiVersion === 'v1beta') {
             // v1beta: systemInstruction alanını kullan
             requestBody = {
@@ -1681,7 +1681,7 @@ const callGeminiApi = async (apiKey, modelId, prompt, signal) => {
                 }]
             };
         }
-        
+
         const response = await fetch(url, {
             method: 'POST',
             headers: {
@@ -1695,17 +1695,17 @@ const callGeminiApi = async (apiKey, modelId, prompt, signal) => {
             const data = await response.json();
             const endTime = performance.now();
             const responseTime = endTime - startTime;
-            
+
             console.log(`Gemini API Response Time: ${responseTime.toFixed(2)}ms (${apiVersion}/${modelId})`);
             window.geminiResponseTime = responseTime;
-            
+
             return data.candidates[0].content.parts[0].text;
         } else {
             const errorData = await response.json();
             // Get full error message including details
             const errorMsg = errorData.error?.message || 'API request failed';
             // Include error details if available
-            const fullError = errorData.error?.details 
+            const fullError = errorData.error?.details
                 ? `${errorMsg}\n\n${JSON.stringify(errorData.error.details, null, 2)}`
                 : errorMsg;
             throw new Error(fullError);
@@ -1746,15 +1746,15 @@ const findAvailableModel = async (apiKey, excludeModelId = null) => {
         if (excludeModelId && model.id === excludeModelId) {
             continue;
         }
-        
+
         const availability = await checkModelAvailability(apiKey, model.id);
-        
+
         // Model mevcut ve quota yeterli
         if (availability.available && !availability.quotaExceeded) {
             return model;
         }
     }
-    
+
     return null; // Uygun model bulunamadı
 };
 
@@ -1776,22 +1776,22 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
     const settings = await getSettings();
     const modelId = currentModelId || settings.selectedModel || 'gemini-2.5-flash';
     const apiKey = settings.geminiApiKey;
-    
+
     // Create modal overlay
     const overlay = document.createElement('div');
     overlay.id = 'eksi-ai-quota-modal-overlay';
     overlay.className = 'eksi-ai-modal-overlay';
-    
+
     // Apply theme to overlay/modal
     if (detectTheme()) {
         overlay.classList.add('eksi-ai-dark');
     }
-    
+
     // Create modal content
     const modal = document.createElement('div');
     modal.className = 'eksi-ai-modal-content';
     modal.style.maxWidth = '600px';
-    
+
     // Modal başlığı ve açıklama
     let modalContent = `
         <h3 class="eksi-ai-modal-title">API Kota Limiti Aşıldı</h3>
@@ -1801,11 +1801,11 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
         </div>
         <div id="eksi-ai-models-check-list">
     `;
-    
+
     // Her model için bir satır oluştur (hepsi loading durumunda başlar)
     MODELS.forEach((model, index) => {
         const modelRowId = `eksi-ai-model-check-${model.id}`;
-        
+
         // Tüm modeller için loading durumu
         modalContent += `
             <div id="${modelRowId}" class="eksi-ai-model-check-row">
@@ -1818,7 +1818,7 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
             </div>
         `;
     });
-    
+
     modalContent += `
         </div>
         <div class="eksi-ai-modal-actions" style="display: flex; gap: 10px; justify-content: space-between; align-items: center;">
@@ -1833,11 +1833,11 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
             </button>
         </div>
     `;
-    
+
     modal.innerHTML = modalContent;
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
-    
+
     // Close modal function
     const closeModal = () => {
         overlay.remove();
@@ -1845,17 +1845,17 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
         resultArea.style.display = 'block';
         resultArea.innerHTML = '<div class="eksi-ai-warning">API kota limiti aşıldı. Lütfen daha sonra tekrar deneyin.</div>';
     };
-    
+
     const cancelBtn = document.getElementById('eksi-ai-quota-modal-cancel');
     cancelBtn.onclick = closeModal;
-    
+
     // Close on overlay click (but not on modal click)
     overlay.onclick = (e) => {
         if (e.target === overlay) {
             closeModal();
         }
     };
-    
+
     // Close on Escape key
     const handleEscape = (e) => {
         if (e.key === 'Escape') {
@@ -1866,10 +1866,10 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
         }
     };
     document.addEventListener('keydown', handleEscape, true);
-    
+
     // Model sonuçlarını saklamak için Map (modelId -> response)
     const modelResults = new Map();
-    
+
     // Kullanıcının gerçek prompt'unu hazırla (entry'lerle birlikte)
     const limitedEntries = allEntries;
     const entriesJson = JSON.stringify(limitedEntries);
@@ -1879,18 +1879,18 @@ Aşağıda Ekşi Sözlük entry'leri JSON formatında verilmiştir:
 ${entriesJson}
 
 ${userPrompt}`;
-    
+
     // Her modeli kontrol et ve gerçek prompt ile sonuç al
     const checkModelAndUpdateUI = async (model) => {
         const modelRowId = `eksi-ai-model-check-${model.id}`;
         const modelRow = document.getElementById(modelRowId);
-        
+
         if (!modelRow) return;
-        
+
         try {
             // Önce model availability kontrolü yap
             const availability = await checkModelAvailability(apiKey, model.id, false); // Quota kontrolü yapma
-            
+
             if (!availability.available) {
                 // Model kullanılamıyor
                 modelRow.innerHTML = `
@@ -1903,21 +1903,21 @@ ${userPrompt}`;
                 `;
                 return;
             }
-            
+
             // Model mevcut, gerçek prompt ile API çağrısı yap
             try {
                 const abortController = new AbortController();
                 const response = await callGeminiApi(apiKey, model.id, finalPrompt, abortController.signal);
-                
+
                 // Sonucu sakla
                 modelResults.set(model.id, response);
-                
+
                 // Başarılı - hover ile tooltip göster ve buton ekle
                 const statusDiv = document.createElement('div');
                 statusDiv.className = 'eksi-ai-model-check-status available';
                 statusDiv.style.cssText = 'cursor: help; position: relative;';
                 statusDiv.textContent = '✅ Başarılı';
-                
+
                 // Custom tooltip oluştur
                 const tooltip = document.createElement('div');
                 tooltip.className = 'eksi-ai-response-tooltip';
@@ -1944,7 +1944,7 @@ ${userPrompt}`;
                     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
                 `;
                 tooltip.textContent = response;
-                
+
                 // Tooltip ok (arrow) ekle
                 const arrow = document.createElement('div');
                 arrow.style.cssText = `
@@ -1959,9 +1959,9 @@ ${userPrompt}`;
                     border-top: 8px solid #333;
                 `;
                 tooltip.appendChild(arrow);
-                
+
                 statusDiv.appendChild(tooltip);
-                
+
                 // Hover event'leri
                 statusDiv.addEventListener('mouseenter', () => {
                     tooltip.style.opacity = '1';
@@ -1969,7 +1969,7 @@ ${userPrompt}`;
                 statusDiv.addEventListener('mouseleave', () => {
                     tooltip.style.opacity = '0';
                 });
-                
+
                 modelRow.innerHTML = `
                     <div class="eksi-ai-model-check-info">
                         <div class="eksi-ai-model-check-name">${model.name}</div>
@@ -1980,26 +1980,29 @@ ${userPrompt}`;
                         Bu sonucu göster
                     </button>
                 `;
-                
+
                 // Status div'i ekle
                 const infoDiv = modelRow.querySelector('.eksi-ai-model-check-info');
                 infoDiv.appendChild(statusDiv);
-                
+
                 // Buton event listener ekle
                 const useBtn = modelRow.querySelector('.eksi-ai-use-model-btn');
                 useBtn.onclick = async () => {
                     // Escape listener'ını kaldır (modal kapatılmadan önce)
                     document.removeEventListener('keydown', handleEscape, true);
-                    
+
                     // Modal'ı kapat
                     overlay.remove();
-                    
-                    // Mark clicked button as selected (if available)
+
+                    // Response'u cache'e kaydet (tekrar erişim için)
+                    responseCache.set(userPrompt, { response, modelId: model.id, timestamp: Date.now() });
+
+                    // Mark clicked button as selected and cached (if available)
                     if (clickedButton) {
                         // Find container from clickedButton
                         const container = clickedButton.closest('#eksi-ai-container, #eksi-ai-entry-container');
                         // Find actions container within the same container as the button
-                        const actionsContainer = container 
+                        const actionsContainer = container
                             ? container.querySelector('.eksi-ai-actions')
                             : clickedButton.closest('.eksi-ai-actions');
                         if (actionsContainer) {
@@ -2008,33 +2011,35 @@ ${userPrompt}`;
                             });
                         }
                         clickedButton.classList.add('eksi-ai-btn-selected');
+                        // Butona ok işareti ekle (cached indicator)
+                        clickedButton.classList.add('eksi-ai-btn-cached');
                     }
-                    
+
                     // Sonucu göster
                     resultArea.style.display = 'block';
                     resultArea.innerHTML = '';
-                    
+
                     // Build result HTML
                     let resultHTML = '';
-                    
+
                     if (showPromptHeader && userPrompt) {
                         resultHTML += `<div class="eksi-ai-custom-prompt-header">
                             <span class="eksi-ai-custom-prompt-label">Özel Prompt:</span>
                             <span class="eksi-ai-custom-prompt-text">${escapeHtml(userPrompt).replace(/\n/g, '<br>')}</span>
                         </div>`;
                     }
-                    
+
                     // Add a note about the model used
                     resultHTML += `<div class="eksi-ai-model-note">📝 ${model.id}</div>`;
-                    
+
                     resultHTML += parseMarkdown(response);
                     resultArea.innerHTML = resultHTML;
                     resultArea.classList.add('eksi-ai-markdown');
-                    
+
                     // Add action buttons for the result
                     addResultActionButtons(resultArea, response, userPrompt, showPromptHeader, clickedButton);
                 };
-                
+
                 // Hover efekti
                 useBtn.onmouseenter = () => {
                     useBtn.style.backgroundColor = '#6da53e';
@@ -2042,12 +2047,12 @@ ${userPrompt}`;
                 useBtn.onmouseleave = () => {
                     useBtn.style.backgroundColor = '#81c14b';
                 };
-                
+
             } catch (apiError) {
                 const errorMsg = apiError.message || 'API çağrısı başarısız';
-                
+
                 // Quota/rate limit hatalarını kontrol et
-                if (errorMsg.includes('quota') || errorMsg.includes('Quota exceeded') || 
+                if (errorMsg.includes('quota') || errorMsg.includes('Quota exceeded') ||
                     errorMsg.includes('rate limit') || errorMsg.includes('Rate limit') ||
                     errorMsg.includes('RESOURCE_EXHAUSTED') || errorMsg.includes('429')) {
                     // Quota aşıldı
@@ -2083,11 +2088,11 @@ ${userPrompt}`;
             `;
         }
     };
-    
+
     // Tüm modelleri paralel olarak kontrol et
     const checkPromises = MODELS.map(model => checkModelAndUpdateUI(model));
     await Promise.all(checkPromises);
-    
+
     // En az bir sonuç varsa "Cevapları Karşılaştır" butonunu göster
     const compareBtn = document.getElementById('eksi-ai-compare-results-btn');
     if (compareBtn && modelResults.size > 0) {
@@ -2110,30 +2115,30 @@ ${userPrompt}`;
 const showCompareResultsModal = (modelResults, parentOverlay, parentEscapeHandler) => {
     // Ana modal'ı gizle (kaldırma, sadece gizle)
     parentOverlay.style.display = 'none';
-    
+
     // Yeni karşılaştırma modal'ı oluştur
     const overlay = document.createElement('div');
     overlay.id = 'eksi-ai-compare-modal-overlay';
     overlay.className = 'eksi-ai-modal-overlay';
-    
+
     // Apply theme to overlay/modal
     if (detectTheme()) {
         overlay.classList.add('eksi-ai-dark');
     }
-    
+
     const modal = document.createElement('div');
     modal.className = 'eksi-ai-modal-content';
     modal.style.maxWidth = '95vw';
     modal.style.maxHeight = '90vh';
     modal.style.display = 'flex';
     modal.style.flexDirection = 'column';
-    
+
     // Modal başlığı
     let modalContent = `
         <h3 class="eksi-ai-modal-title" style="margin-bottom: 20px;">Model Cevaplarını Karşılaştır</h3>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; overflow-y: auto; flex: 1; padding: 10px;">
     `;
-    
+
     // Her model için bir sütun oluştur
     MODELS.forEach(model => {
         const response = modelResults.get(model.id);
@@ -2150,7 +2155,7 @@ const showCompareResultsModal = (modelResults, parentOverlay, parentEscapeHandle
             `;
         }
     });
-    
+
     modalContent += `
         </div>
         <div class="eksi-ai-modal-actions" style="margin-top: 20px; display: flex; justify-content: flex-end;">
@@ -2160,11 +2165,11 @@ const showCompareResultsModal = (modelResults, parentOverlay, parentEscapeHandle
             </button>
         </div>
     `;
-    
+
     modal.innerHTML = modalContent;
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
-    
+
     // Close modal function - karşılaştırma modal'ını kapat ve ana modal'ı tekrar göster
     const closeModal = () => {
         overlay.remove();
@@ -2175,17 +2180,17 @@ const showCompareResultsModal = (modelResults, parentOverlay, parentEscapeHandle
             document.addEventListener('keydown', parentEscapeHandler, true);
         }
     };
-    
+
     const closeBtn = document.getElementById('eksi-ai-compare-modal-close');
     closeBtn.onclick = closeModal;
-    
+
     // Close on overlay click
     overlay.onclick = (e) => {
         if (e.target === overlay) {
             closeModal();
         }
     };
-    
+
     // Close on Escape key
     const handleEscape = (e) => {
         if (e.key === 'Escape') {
@@ -2211,25 +2216,25 @@ const showCompareResultsModal = (modelResults, parentOverlay, parentEscapeHandle
 const useModelForRetry = async (model, userPrompt, showPromptHeader, clickedButton, resultArea, overlay) => {
     const settings = await getSettings();
     const apiKey = settings.geminiApiKey;
-    
+
     // Modal'ı kapat
     overlay.remove();
-    
+
     // Clear the cache for this prompt
     responseCache.delete(userPrompt);
-    
+
     // Create AbortController for cancellation
     const abortController = new AbortController();
-    
+
     // Create loading message with stop button
     const loadingContainer = document.createElement('div');
     loadingContainer.style.display = 'flex';
     loadingContainer.style.alignItems = 'center';
     loadingContainer.style.gap = '10px';
-    
+
     const loadingText = document.createElement('span');
     loadingText.textContent = "Gemini düşünüyor...";
-    
+
     const stopButton = document.createElement('button');
     stopButton.textContent = "Durdur";
     stopButton.className = 'eksi-ai-btn';
@@ -2241,53 +2246,53 @@ const useModelForRetry = async (model, userPrompt, showPromptHeader, clickedButt
         loadingText.textContent = "İstek iptal ediliyor...";
         stopButton.disabled = true;
     };
-    
+
     loadingContainer.appendChild(loadingText);
     loadingContainer.appendChild(stopButton);
     resultArea.style.display = 'block';
     resultArea.innerHTML = '';
     resultArea.appendChild(loadingContainer);
-    
+
     // Call Gemini with the selected model
     try {
         const limitedEntries = allEntries;
         const entriesJson = JSON.stringify(limitedEntries);
-        
+
         const finalPrompt = `Başlık: "${topicTitle}"
 
 Aşağıda Ekşi Sözlük entry'leri JSON formatında verilmiştir:
 ${entriesJson}
 
 ${userPrompt}`;
-        
+
         const response = await callGeminiApi(apiKey, model.id, finalPrompt, abortController.signal);
-        
+
         // Cache the successful response with model info
         responseCache.set(userPrompt, { response, modelId: model.id, timestamp: Date.now() });
-        
+
         // Build result HTML
         let resultHTML = '';
-        
+
         if (showPromptHeader && userPrompt) {
             resultHTML += `<div class="eksi-ai-custom-prompt-header">
                 <span class="eksi-ai-custom-prompt-label">Özel Prompt:</span>
                 <span class="eksi-ai-custom-prompt-text">${escapeHtml(userPrompt).replace(/\n/g, '<br>')}</span>
             </div>`;
         }
-        
+
         // Add a note about the model used
         resultHTML += `<div class="eksi-ai-model-note">📝 ${model.id}</div>`;
-        
+
         resultHTML += parseMarkdown(response);
         resultArea.innerHTML = resultHTML;
         resultArea.classList.add('eksi-ai-markdown');
-        
+
         // Add action buttons for the result
         addResultActionButtons(resultArea, response, userPrompt, showPromptHeader, clickedButton);
-        
+
     } catch (retryErr) {
         let retryErrorMessage = retryErr.message;
-        
+
         // Check if error is due to abort
         if (retryErr.name === 'AbortError' || retryErrorMessage.includes('aborted')) {
             resultArea.innerHTML = '<div class="eksi-ai-warning">İstek iptal edildi.</div>';
@@ -2473,22 +2478,22 @@ const formatJsonWithHighlight = (jsonStr) => {
     try {
         const parsed = JSON.parse(jsonStr);
         const formatted = JSON.stringify(parsed, null, 2);
-        
+
         // Apply syntax highlighting
         let highlighted = escapeHtml(formatted);
-        
+
         // Highlight keys (property names)
         highlighted = highlighted.replace(/"((?:[^"\\]|\\.)+)":/g, '<span class="eksi-ai-json-key">"$1"</span>:');
-        
+
         // Highlight string values (after colon)
         highlighted = highlighted.replace(/: "((?:[^"\\]|\\.)*)"/g, ': <span class="eksi-ai-json-string">"$1"</span>');
-        
+
         // Highlight numbers
         highlighted = highlighted.replace(/: (-?\d+\.?\d*)/g, ': <span class="eksi-ai-json-number">$1</span>');
-        
+
         // Highlight booleans and null
         highlighted = highlighted.replace(/: (true|false|null)/g, ': <span class="eksi-ai-json-boolean">$1</span>');
-        
+
         return highlighted;
     } catch {
         return escapeHtml(jsonStr);
@@ -2514,26 +2519,26 @@ const formatJsonWithHighlight = (jsonStr) => {
  */
 const parseMarkdown = (text) => {
     if (!text) return '';
-    
+
     // Check if the entire response is JSON (no markdown, just raw JSON)
     const trimmedText = text.trim();
     if ((trimmedText.startsWith('{') || trimmedText.startsWith('[')) && isValidJson(trimmedText)) {
         const formattedJson = formatJsonWithHighlight(trimmedText);
         return `<pre class="eksi-ai-code-block eksi-ai-json-block"><code class="language-json">${formattedJson}</code></pre>`;
     }
-    
+
     // First, escape HTML
     let html = escapeHtml(text);
-    
+
     // Store code blocks temporarily to prevent processing inside them
     const codeBlocks = [];
     const inlineCodes = [];
-    
+
     // Handle fenced code blocks (```)
     html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
         const index = codeBlocks.length;
         const trimmedCode = code.trim();
-        
+
         // Check if this is a JSON code block and format it nicely
         if ((lang === 'json' || lang === '') && isValidJson(trimmedCode)) {
             const formattedJson = formatJsonWithHighlight(trimmedCode);
@@ -2543,7 +2548,7 @@ const parseMarkdown = (text) => {
         }
         return `%%CODEBLOCK${index}%%`;
     });
-    
+
     // Handle inline code (`)
     // Also parse markdown links inside inline code
     html = html.replace(/`([^`]+)`/g, (match, code) => {
@@ -2553,7 +2558,7 @@ const parseMarkdown = (text) => {
         inlineCodes.push(`<code class="eksi-ai-inline-code">${processedCode}</code>`);
         return `%%INLINECODE${index}%%`;
     });
-    
+
     // Handle headers (must be at start of line)
     html = html.replace(/^######\s+(.+)$/gm, '<h6>$1</h6>');
     html = html.replace(/^#####\s+(.+)$/gm, '<h5>$1</h5>');
@@ -2561,52 +2566,52 @@ const parseMarkdown = (text) => {
     html = html.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>');
     html = html.replace(/^##\s+(.+)$/gm, '<h2>$1</h2>');
     html = html.replace(/^#\s+(.+)$/gm, '<h1>$1</h1>');
-    
+
     // Handle blockquotes (can be multiline)
     html = html.replace(/^&gt;\s*(.*)$/gm, '<blockquote>$1</blockquote>');
     // Merge consecutive blockquotes
     html = html.replace(/<\/blockquote>\n<blockquote>/g, '\n');
-    
+
     // Handle horizontal rules
     html = html.replace(/^(?:---|\*\*\*|___)$/gm, '<hr>');
-    
+
     // Handle bold and italic
     html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
     html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
     html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
     html = html.replace(/_(.+?)_/g, '<em>$1</em>');
-    
+
     // Handle strikethrough
     html = html.replace(/~~(.+?)~~/g, '<del>$1</del>');
-    
+
     // Handle links [text](url)
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-    
+
     // Auto-link plain URLs (not already inside an anchor tag)
     // Match URLs that are not preceded by href=" or >
     html = html.replace(/(?<!href="|>)(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
-    
+
     // Handle unordered lists
     const processUnorderedList = (text) => {
         const lines = text.split('\n');
         let result = [];
         let listStack = []; // Stores indentation levels
-        
+
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             const listMatch = line.match(/^(\s*)[\-\*]\s+(.+)$/);
-            
+
             if (listMatch) {
                 const indent = listMatch[1].length;
                 const content = listMatch[2];
-                
+
                 if (listStack.length === 0) {
                     result.push('<ul>');
                     listStack.push(indent);
                 } else {
                     const currentIndent = listStack[listStack.length - 1];
-                    
+
                     if (indent > currentIndent) {
                         result.push('<ul>');
                         listStack.push(indent);
@@ -2615,7 +2620,7 @@ const parseMarkdown = (text) => {
                             result.push('</ul>');
                             listStack.pop();
                         }
-                        
+
                         // If indent level is still not matching (e.g. weird indentation), start new or append
                         if (listStack.length === 0) {
                             result.push('<ul>');
@@ -2632,35 +2637,35 @@ const parseMarkdown = (text) => {
                 result.push(line);
             }
         }
-        
+
         while (listStack.length > 0) {
             result.push('</ul>');
             listStack.pop();
         }
-        
+
         return result.join('\n');
     };
-    
+
     // Handle ordered lists
     const processOrderedList = (text) => {
         const lines = text.split('\n');
         let result = [];
         let listStack = []; // Stores indentation levels
-        
+
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             const listMatch = line.match(/^(\s*)\d+\.\s+(.+)$/);
-            
+
             if (listMatch) {
                 const indent = listMatch[1].length;
                 const content = listMatch[2];
-                
+
                 if (listStack.length === 0) {
                     result.push('<ol>');
                     listStack.push(indent);
                 } else {
                     const currentIndent = listStack[listStack.length - 1];
-                    
+
                     if (indent > currentIndent) {
                         result.push('<ol>');
                         listStack.push(indent);
@@ -2669,7 +2674,7 @@ const parseMarkdown = (text) => {
                             result.push('</ol>');
                             listStack.pop();
                         }
-                        
+
                         if (listStack.length === 0) {
                             result.push('<ol>');
                             listStack.push(indent);
@@ -2685,22 +2690,22 @@ const parseMarkdown = (text) => {
                 result.push(line);
             }
         }
-        
+
         while (listStack.length > 0) {
             result.push('</ol>');
             listStack.pop();
         }
-        
+
         return result.join('\n');
     };
-    
+
     // Handle tables
     const processTables = (text) => {
         const lines = text.split('\n');
         let result = [];
         let inTable = false;
         let tableRows = [];
-        
+
         const isTableSeparator = (line) => {
             // Check if line contains only |- : and spaces, and at least one | or -
             // Also allow spaces at start/end
@@ -2715,7 +2720,7 @@ const parseMarkdown = (text) => {
             let content = line.trim();
             if (content.startsWith('|')) content = content.substring(1);
             if (content.endsWith('|')) content = content.substring(0, content.length - 1);
-            
+
             // Handle escaped pipes if any (though usually code blocks catch them)
             // We'll just split by | for now as code blocks are already extracted
             return content.split('|');
@@ -2724,7 +2729,7 @@ const parseMarkdown = (text) => {
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             const trimmed = line.trim();
-            
+
             if (inTable) {
                 if (trimmed.includes('|')) {
                     tableRows.push(trimmed);
@@ -2750,23 +2755,23 @@ const parseMarkdown = (text) => {
                 result.push(line);
             }
         }
-        
+
         if (inTable) {
             result.push(renderTable(tableRows));
         }
-        
+
         return result.join('\n');
     };
 
     const renderTable = (rows) => {
         if (rows.length < 2) return rows.join('\n');
-        
+
         const header = rows[0];
         // rows[1] is separator, we skip it for rendering content but could use it for alignment
         const body = rows.slice(2);
-        
+
         let html = '<div class="eksi-ai-table-wrapper"><table class="eksi-ai-markdown-table"><thead><tr>';
-        
+
         // Process header
         const splitTableLine = (line) => {
             let content = line.trim();
@@ -2780,7 +2785,7 @@ const parseMarkdown = (text) => {
             html += `<th>${cell.trim()}</th>`;
         });
         html += '</tr></thead><tbody>';
-        
+
         // Process body
         body.forEach(row => {
             html += '<tr>';
@@ -2790,7 +2795,7 @@ const parseMarkdown = (text) => {
             });
             html += '</tr>';
         });
-        
+
         html += '</tbody></table></div>';
         return html;
     };
@@ -2798,30 +2803,30 @@ const parseMarkdown = (text) => {
     html = processTables(html);
     html = processUnorderedList(html);
     html = processOrderedList(html);
-    
+
     // Handle paragraphs (double newlines)
     html = html.replace(/\n\n+/g, '</p><p>');
-    
+
     // Handle single line breaks in non-list context
     html = html.replace(/(?<!<\/li>|<\/ul>|<\/ol>|<\/blockquote>|<\/h[1-6]>|<hr>|<\/p>|<p>|<\/div>|<\/table>|<\/thead>|<\/tbody>|<\/tr>|<\/td>|<\/th>)\n(?!<li>|<ul>|<ol>|<blockquote>|<h[1-6]>|<hr>|<\/p>|<p>|<div class="eksi-ai-table-wrapper">|<table>|<thead>|<tbody>|<tr>|<td>|<th>)/g, '<br>\n');
-    
+
     // Wrap in paragraph if not already wrapped
     if (!html.startsWith('<')) {
         html = '<p>' + html + '</p>';
     } else if (!html.startsWith('<p>') && !html.startsWith('<h') && !html.startsWith('<ul>') && !html.startsWith('<ol>') && !html.startsWith('<blockquote>') && !html.startsWith('<hr>') && !html.startsWith('<div class="eksi-ai-table-wrapper">') && !html.startsWith('%%CODEBLOCK')) {
         html = '<p>' + html + '</p>';
     }
-    
+
     // Restore code blocks
     codeBlocks.forEach((block, index) => {
         html = html.replace(`%%CODEBLOCK${index}%%`, block);
     });
-    
+
     // Restore inline codes
     inlineCodes.forEach((code, index) => {
         html = html.replace(`%%INLINECODE${index}%%`, code);
     });
-    
+
     // Clean up empty paragraphs
     html = html.replace(/<p>\s*<\/p>/g, '');
     html = html.replace(/<p>(<h[1-6]>)/g, '$1');
@@ -2838,7 +2843,7 @@ const parseMarkdown = (text) => {
     html = html.replace(/(<\/pre>)<\/p>/g, '$1');
     html = html.replace(/<p>(<div class="eksi-ai-table-wrapper">)/g, '$1');
     html = html.replace(/(<\/div>)<\/p>/g, '$1');
-    
+
     return html;
 };
 
@@ -2863,7 +2868,7 @@ const addResultActionButtons = (resultArea, markdownContent, userPrompt, showPro
     // Create action buttons container
     const actionsContainer = document.createElement('div');
     actionsContainer.className = 'eksi-ai-result-actions';
-    
+
     // Copy button
     const copyBtn = document.createElement('button');
     copyBtn.className = 'eksi-ai-result-action-btn';
@@ -2875,7 +2880,7 @@ const addResultActionButtons = (resultArea, markdownContent, userPrompt, showPro
         <span>Kopyala</span>
     `;
     copyBtn.onclick = () => copyToClipboard(markdownContent, copyBtn);
-    
+
     // Download MD button with custom icon
     const downloadBtn = document.createElement('button');
     downloadBtn.className = 'eksi-ai-result-action-btn';
@@ -2889,7 +2894,7 @@ const addResultActionButtons = (resultArea, markdownContent, userPrompt, showPro
         <span>Markdown İndir</span>
     `;
     downloadBtn.onclick = () => downloadMarkdown(markdownContent);
-    
+
     // Retry button (Ask Again)
     const retryBtn = document.createElement('button');
     retryBtn.className = 'eksi-ai-result-action-btn';
@@ -2911,11 +2916,11 @@ const addResultActionButtons = (resultArea, markdownContent, userPrompt, showPro
         // Re-run the prompt
         runGemini(userPrompt, showPromptHeader, clickedButton);
     };
-    
+
     actionsContainer.appendChild(copyBtn);
     actionsContainer.appendChild(downloadBtn);
     actionsContainer.appendChild(retryBtn);
-    
+
     // Insert at the top of result area
     resultArea.insertBefore(actionsContainer, resultArea.firstChild);
 };
