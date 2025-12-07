@@ -1631,8 +1631,9 @@ ${userPrompt}`;
 /**
  * Gemini API'ye HTTP isteği yapar.
  * 
- * Önce v1 (stable) API'yi dener, başarısız olursa v1beta'ya düşer.
- * Bu sayede yeni modeller için geriye uyumluluk sağlanır.
+ * Model bazlı API versiyonu kullanır:
+ * - Gemini 3 Pro Preview → v1beta
+ * - Diğer modeller → v1
  * 
  * @param {string} apiKey - Gemini API anahtarı
  * @param {string} modelId - Kullanılacak model ID'si
@@ -1644,66 +1645,53 @@ ${userPrompt}`;
 const callGeminiApi = async (apiKey, modelId, prompt, signal) => {
     const startTime = performance.now();
     
-    // Try v1 first (stable), fallback to v1beta if needed
-    const attempts = [
-        { version: 'v1', model: modelId },
-        { version: 'v1beta', model: modelId }
-    ];
-
-    let lastError = null;
+    // Model bazlı API versiyonu belirleme
+    const apiVersion = modelId === 'gemini-3-pro-preview' ? 'v1beta' : 'v1';
+    const url = `https://generativelanguage.googleapis.com/${apiVersion}/models/${modelId}:generateContent?key=${apiKey}`;
     
-    for (const attempt of attempts) {
-        const url = `https://generativelanguage.googleapis.com/${attempt.version}/models/${attempt.model}:generateContent?key=${apiKey}`;
-        
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    systemInstruction: {
-                        parts: [{
-                            text: SYSTEM_PROMPT
-                        }]
-                    },
-                    contents: [{
-                        parts: [{
-                            text: prompt
-                        }]
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                systemInstruction: {
+                    parts: [{
+                        text: SYSTEM_PROMPT
                     }]
-                }),
-                signal: signal
-            });
+                },
+                contents: [{
+                    parts: [{
+                        text: prompt
+                    }]
+                }]
+            }),
+            signal: signal
+        });
 
-            if (response.ok) {
-                const data = await response.json();
-                const endTime = performance.now();
-                const responseTime = endTime - startTime;
-                
-                console.log(`Gemini API Response Time: ${responseTime.toFixed(2)}ms (${attempt.version}/${attempt.model})`);
-                window.geminiResponseTime = responseTime;
-                
-                return data.candidates[0].content.parts[0].text;
-            } else {
-                const errorData = await response.json();
-                // Get full error message including details
-                const errorMsg = errorData.error?.message || 'API request failed';
-                // Include error details if available
-                const fullError = errorData.error?.details 
-                    ? `${errorMsg}\n\n${JSON.stringify(errorData.error.details, null, 2)}`
-                    : errorMsg;
-                lastError = fullError;
-                // Continue to next attempt
-            }
-        } catch (err) {
-            lastError = err.message;
-            // Continue to next attempt
+        if (response.ok) {
+            const data = await response.json();
+            const endTime = performance.now();
+            const responseTime = endTime - startTime;
+            
+            console.log(`Gemini API Response Time: ${responseTime.toFixed(2)}ms (${apiVersion}/${modelId})`);
+            window.geminiResponseTime = responseTime;
+            
+            return data.candidates[0].content.parts[0].text;
+        } else {
+            const errorData = await response.json();
+            // Get full error message including details
+            const errorMsg = errorData.error?.message || 'API request failed';
+            // Include error details if available
+            const fullError = errorData.error?.details 
+                ? `${errorMsg}\n\n${JSON.stringify(errorData.error.details, null, 2)}`
+                : errorMsg;
+            throw new Error(fullError);
         }
+    } catch (err) {
+        throw new Error(err.message || 'Model bulunamadı. Lütfen model adını ve API versiyonunu kontrol edin.');
     }
-    
-    // If all attempts failed, throw the last error with helpful message
-    throw new Error(lastError || 'Model bulunamadı. Lütfen model adını ve API versiyonunu kontrol edin.');
 };
 
 /**

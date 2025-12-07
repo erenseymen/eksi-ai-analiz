@@ -135,7 +135,7 @@ Her alıntı şu formatta olsun:
 const MODELS = [
     {
         id: 'gemini-3-pro-preview',
-        name: '💎 Gemini 3 Pro Preview (Ücretli)',
+        name: '💎 Gemini 3 Pro Preview (Beta)',
         description: 'En yeni nesil model. Üstün performans, gelişmiş muhakeme ve çoklu modalite desteği.',
         cost: '💰 Ücretli (Free tier\'da kullanılamaz)',
         contextWindow: 1048576,
