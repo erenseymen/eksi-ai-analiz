@@ -214,24 +214,64 @@ const escapeHtml = (str) => {
 };
 
 // =============================================================================
+// TEST PROMPT'LARI
+// =============================================================================
+
+/**
+ * Model availability kontrolü için kullanılan eğlenceli test prompt'ları.
+ * Her prompt eklentiyi tanıtır ve eğlenceli bir soru/istek içerir.
+ * 
+ * @constant {Array<string>}
+ */
+const TEST_PROMPTS = [
+    `Merhaba! Ben Ekşi Sözlük AI Analiz tarayıcı eklentisiyim. Ekşi Sözlük entry'lerini toplayıp Gemini AI ile analiz ediyorum. Kullanıcılar için özet, blog yazısı ve özel prompt'larla analiz yapabiliyorum. Şimdi bir test yapıyorum - bana kısa bir şaka yapabilir misin?`,
+    
+    `Selam! Ekşi Sözlük AI Analiz eklentisiyim. Ekşi Sözlük başlıklarındaki entry'leri toplayıp Gemini AI ile analiz ederek özet ve blog yazıları oluşturuyorum. Ayrıca kullanıcılar özel prompt'lar da yazabiliyor. Test için buradayım - bana 3 emoji ile bir hikaye anlatabilir misin?`,
+    
+    `Hey! Ben bir tarayıcı eklentisiyim ve Ekşi Sözlük entry'lerini yapay zeka ile analiz ediyorum. Gemini AI kullanarak entry'lerden özet, blog yazısı ve daha fazlasını oluşturuyorum. Şu anda model kontrolü yapıyorum - en sevdiğin programlama dilini ve nedenini kısaca söyleyebilir misin?`,
+    
+    `Merhaba Gemini! Ekşi Sözlük AI Analiz eklentisiyim. Ekşi Sözlük'teki entry'leri toplayıp seninle analiz ediyorum. Kullanıcılar için özet, blog ve özel prompt desteği sunuyorum. Test için buradayım - bana kısa bir haiku yazabilir misin? (5-7-5 hece)`,
+    
+    `Selam! Ben Ekşi Sözlük entry'lerini analiz eden bir tarayıcı eklentisiyim. Gemini AI ile çalışarak entry'lerden özet ve blog yazıları oluşturuyorum. Özel prompt desteğim de var. Şimdi bir test yapıyorum - bana bir tarayıcı eklentisi hakkında kısa bir şiir yazabilir misin?`,
+    
+    `Hey Gemini! Ekşi Sözlük AI Analiz eklentisiyim. Ekşi Sözlük başlıklarındaki entry'leri toplayıp seninle analiz ediyorum. Özet, blog ve özel prompt'lar ile kullanıcılara yardımcı oluyorum. Test için buradayım - bana yapay zeka hakkında komik bir one-liner söyleyebilir misin?`,
+    
+    `Merhaba! Ben Ekşi Sözlük entry'lerini analiz eden bir tarayıcı eklentisiyim. Gemini AI kullanarak entry'lerden özet, blog yazısı ve daha fazlasını oluşturuyorum. Kullanıcılar özel prompt'lar da yazabiliyor. Şu anda model kontrolü yapıyorum - bana "eklenti" kelimesiyle ilgili kısa bir kelime oyunu yapabilir misin?`,
+    
+    `Selam Gemini! Ekşi Sözlük AI Analiz eklentisiyim. Ekşi Sözlük'teki entry'leri toplayıp seninle analiz ediyorum. Özet, blog ve özel prompt desteği sunuyorum. Test için buradayım - bana bir AI asistanı ve bir tarayıcı eklentisinin sohbetini kısa bir diyalog olarak yazabilir misin?`
+];
+
+/**
+ * Rastgele bir test prompt'u seçer.
+ * 
+ * @returns {string} Rastgele seçilmiş test prompt'u
+ */
+const getRandomTestPrompt = () => {
+    return TEST_PROMPTS[Math.floor(Math.random() * TEST_PROMPTS.length)];
+};
+
+// =============================================================================
 // API YARDIMCI FONKSİYONLARI
 // =============================================================================
 
 /**
  * Model availability ve quota durumunu kontrol eder.
  * 
- * Önce model listesinden kontrol eder, sonra küçük bir test isteği yaparak
- * quota durumunu kontrol eder.
+ * Önce model listesinden kontrol eder, sonra eğlenceli bir test isteği yaparak
+ * quota durumunu kontrol eder. Başarılı cevap gelirse cevabı da döndürür.
  * 
  * @param {string} apiKey - Gemini API anahtarı
  * @param {string} modelId - Kontrol edilecek model ID'si
  * @param {boolean} [checkQuota=true] - Quota kontrolü yapılsın mı (opsiyonel)
- * @returns {Promise<{available: boolean, quotaExceeded?: boolean, error?: string}>} Model availability durumu
+ * @returns {Promise<{available: boolean, quotaExceeded?: boolean, error?: string, response?: string}>} Model availability durumu ve test cevabı
  * 
  * @example
  * const result = await checkModelAvailability('AIza...', 'gemini-2.5-pro');
  * if (result.available && !result.quotaExceeded) {
  *     console.log('Model kullanılabilir');
+ *     if (result.response) {
+ *         console.log('Test cevabı:', result.response);
+ *     }
  * }
  */
 const checkModelAvailability = async (apiKey, modelId, checkQuota = true) => {
@@ -268,7 +308,9 @@ const checkModelAvailability = async (apiKey, modelId, checkQuota = true) => {
         // Model mevcut, quota kontrolü yap
         if (checkQuota) {
             try {
-                // Küçük bir test isteği yaparak quota durumunu kontrol et
+                // Eğlenceli bir test isteği yaparak quota durumunu kontrol et
+                // System prompt kullanılmıyor, sadece user prompt gönderiliyor
+                const testPrompt = getRandomTestPrompt();
                 const testUrl = `https://generativelanguage.googleapis.com/${apiVersion}/models/${modelId}:generateContent?key=${apiKey}`;
                 const testResponse = await fetch(testUrl, {
                     method: 'POST',
@@ -278,15 +320,22 @@ const checkModelAvailability = async (apiKey, modelId, checkQuota = true) => {
                     body: JSON.stringify({
                         contents: [{
                             parts: [{
-                                text: 'test'
+                                text: testPrompt
                             }]
                         }]
                     })
                 });
 
                 if (testResponse.ok) {
-                    // Quota yeterli
-                    return { available: true, quotaExceeded: false };
+                    // Quota yeterli, cevabı al
+                    const testData = await testResponse.json();
+                    const responseText = testData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                    
+                    return { 
+                        available: true, 
+                        quotaExceeded: false,
+                        response: responseText.trim()
+                    };
                 } else {
                     const errorData = await testResponse.json().catch(() => ({}));
                     const errorMsg = errorData.error?.message || 'Test isteği başarısız';

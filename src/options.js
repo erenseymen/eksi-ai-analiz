@@ -432,10 +432,16 @@ const updateAllModelsStatus = async () => {
                         Bu modeli kullan
                     </button>`;
                 
+                // Test cevabını göster (varsa)
+                const responseHtml = availability.response 
+                    ? `<br><small style="color: #666; font-style: italic; display: block; margin-top: 4px; max-width: 500px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(availability.response)}">💬 ${escapeHtml(availability.response)}</small>`
+                    : '';
+                
                 modelRow.innerHTML = `
                     <div>
                         <strong>${model.name}</strong><br>
                         <small style="color: #5cb85c;"><strong>✅ Kullanılabilir</strong></small>
+                        ${responseHtml}
                     </div>
                     ${buttonHtml}
                 `;

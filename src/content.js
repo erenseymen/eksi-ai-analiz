@@ -1875,6 +1875,11 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
             
             // Sonucu göster
             if (availability.available && !availability.quotaExceeded) {
+                // Test cevabını göster (varsa)
+                const responseHtml = availability.response 
+                    ? `<div class="eksi-ai-model-check-response" style="margin-top: 6px; padding: 6px; background: #f9f9f9; border-radius: 4px; font-size: 0.85em; color: #555; font-style: italic; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(availability.response)}">💬 ${escapeHtml(availability.response)}</div>`
+                    : '';
+                
                 // Uygun model - buton ekle
                 modelRow.innerHTML = `
                     <div class="eksi-ai-model-check-info">
@@ -1882,6 +1887,7 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
                         <div class="eksi-ai-model-check-status available">
                             ✅ Kullanılabilir
                         </div>
+                        ${responseHtml}
                     </div>
                     <button class="eksi-ai-use-model-btn" 
                             data-model-id="${model.id}">
