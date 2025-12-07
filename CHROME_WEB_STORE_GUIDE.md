@@ -52,7 +52,7 @@ Manifest dosyanız Chrome Web Store gereksinimlerini karşılıyor:
 🤖 Gemini AI ile özet ve blog yazısı oluşturma
 ✏️ Özel prompt
 📥 Entry'leri JSON olarak indirme
-🎯 Ekşi Sözlük'ün çeşitli sayfalarında doğru entry'leri toplar.
+🎯 Ekşi Sözlük'ün çeşitli sayfalarında doğru entry'leri toplama
 
 ℹ️ Google AI Studio'dan ücretsiz API anahtarı gerektirir.
 ```
