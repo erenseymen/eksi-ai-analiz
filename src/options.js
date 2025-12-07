@@ -240,8 +240,11 @@ const checkModelAvailability = async (apiKey, modelId, checkQuota = true) => {
     }
 
     try {
+        // Model bazlı API versiyonu belirleme (gemini-3-pro-preview için v1beta)
+        const apiVersion = modelId === 'gemini-3-pro-preview' ? 'v1beta' : 'v1';
+        
         // Model listesinden kontrol et
-        const modelsUrl = `https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`;
+        const modelsUrl = `https://generativelanguage.googleapis.com/${apiVersion}/models?key=${apiKey}`;
         const modelsResponse = await fetch(modelsUrl);
         
         if (!modelsResponse.ok) {
@@ -265,7 +268,7 @@ const checkModelAvailability = async (apiKey, modelId, checkQuota = true) => {
         if (checkQuota) {
             try {
                 // Küçük bir test isteği yaparak quota durumunu kontrol et
-                const testUrl = `https://generativelanguage.googleapis.com/v1/models/${modelId}:generateContent?key=${apiKey}`;
+                const testUrl = `https://generativelanguage.googleapis.com/${apiVersion}/models/${modelId}:generateContent?key=${apiKey}`;
                 const testResponse = await fetch(testUrl, {
                     method: 'POST',
                     headers: {
