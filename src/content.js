@@ -1371,18 +1371,38 @@ const downloadJson = () => {
  * @param {HTMLElement|null} [mainButton=null] - "ve" butonundan geldiğinde ilgili ana buton (ok işareti için)
  */
 const runGemini = async (userPrompt, showPromptHeader = false, clickedButton = null, mainButton = null) => {
-    const resultArea = document.getElementById('ai-result');
-    const warningArea = document.getElementById('ai-warning');
+    // Find container from clickedButton if available, otherwise use getElementById as fallback
+    let container = null;
+    if (clickedButton) {
+        container = clickedButton.closest('#eksi-ai-container, #eksi-ai-entry-container');
+    }
+    
+    // Find result and warning areas within the container, or fallback to getElementById
+    const resultArea = container 
+        ? container.querySelector('#ai-result') 
+        : document.getElementById('ai-result');
+    const warningArea = container 
+        ? container.querySelector('#ai-warning') 
+        : document.getElementById('ai-warning');
     
     // Mark clicked button as selected (remove from others first)
     if (clickedButton) {
-        const actionsContainer = document.querySelector('.eksi-ai-actions');
+        // Find actions container within the same container as the button
+        const actionsContainer = container 
+            ? container.querySelector('.eksi-ai-actions')
+            : clickedButton.closest('.eksi-ai-actions');
         if (actionsContainer) {
             actionsContainer.querySelectorAll('.eksi-ai-btn').forEach(btn => {
                 btn.classList.remove('eksi-ai-btn-selected');
             });
         }
         clickedButton.classList.add('eksi-ai-btn-selected');
+    }
+
+    // Early return if result area not found
+    if (!resultArea || !warningArea) {
+        console.error('Result area or warning area not found');
+        return;
     }
 
     resultArea.style.display = 'block';

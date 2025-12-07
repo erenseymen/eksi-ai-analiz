@@ -129,6 +129,12 @@
     margin-bottom: 10px;
 }
 
+/** Entry sayfası analiz butonu */
+#eksi-ai-entry-btn {
+    margin-top: 5px;
+    margin-bottom: 10px;
+}
+
 /** Buton hover durumu */
 #eksi-ai-container .eksi-ai-btn:hover,
 #eksi-ai-entry-container .eksi-ai-btn:hover {
