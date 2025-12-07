@@ -94,12 +94,12 @@ Tek entry sayfasında sadece o entry analiz edilir.
 │   └── styles.css         # Stiller
 ├── icons/                 # Eklenti ikonları (16, 48, 128px)
 ├── images/                # Promosyon görselleri
-└── README-Store.md        # Store açıklamaları (Chrome/Firefox)
+└── docs/                  # Dökümanlar
 ```
 
 ## Gizlilik
 
-Bu eklenti kullanıcı verilerini toplamaz. API anahtarı ve ayarlar yalnızca tarayıcınızda saklanır. Detaylar için [Gizlilik Politikası](PRIVACY_POLICY.md)'na bakın.
+Bu eklenti kullanıcı verilerini toplamaz. API anahtarı ve ayarlar yalnızca tarayıcınızda saklanır. Detaylar için [Gizlilik Politikası](docs/PRIVACY_POLICY.md)'na bakın.
 
 ## Lisans
 
