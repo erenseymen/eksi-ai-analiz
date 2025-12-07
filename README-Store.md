@@ -1,37 +1,22 @@
 # Title:
 
-Ekşi Sözlük başlıklarını Gemini AI ile özetle, blog yazısına dönüştür ve entry'leri kolayca dışa aktar.
+Ekşi Sözlük AI Analiz
 
+# Summary (Kısa Açıklama):
 
-# Description:
+Ekşi Sözlük başlıklarını Gemini AI ile özetleyin ve analiz edin.
 
-🚀 Ekşi Sözlük deneyiminizi yapay zeka ile güçlendirin!
+# Description (Tam Açıklama):
 
-Entry'leri tek tek okumak yerine, yapay zekanın gücüyle başlıkları saniyeler içinde kavrayın.
+Ekşi Sözlük başlıklarını yapay zeka ile analiz eden tarayıcı eklentisi.
 
-✨ Ne Yapabilirsiniz?
+✨ Özellikler:
+• Gemini AI ile başlık özeti oluşturma
+• Entry'lerden blog yazısı hazırlama
+• Özel prompt ile istediğiniz analizi yaptırma
+• Entry'leri JSON olarak dışa aktarma
 
-• ÖZET: Yüzlerce entry'yi özetleyin
-• BLOG: Entry'leri düzenli bir blog yazısına dönüştürün  
-• ÖZEL PROMPT: Kendi sorularınızı sorun, kendi analizinizi yapın
-• JSON İNDİR: Entry'leri veri olarak dışa aktarın
-
-🎯 Akıllı Filtreleme
-
+🎯 Akıllı Filtreleme:
 Şükela, günün en beğenilenleri, belirli tarih veya sayfa - hangi filtreyi uygularsanız uygulayın, eklenti doğru entry'leri toplar.
 
-⚡ Nasıl Çalışır?
-
-1. Herhangi bir Ekşi Sözlük başlığına gidin
-2. "Entry'leri Analiz Et" butonuna tıklayın
-3. Özet, Blog veya Özel Prompt seçin
-4. Sonuç saniyeler içinde karşınızda!
-
-🔐 Gizlilik
-
-Verileriniz güvende. API anahtarınız ve ayarlarınız yalnızca kendi tarayıcınızda saklanır, hiçbir sunucuya gönderilmez.
-
-💡 İpucu: Google AI Studio'dan ücretsiz Gemini API anahtarı alarak hemen kullanmaya başlayabilirsiniz.
-
----
-Açık kaynak · github.com/erenseymen/eksi-ai-analiz
+ℹ️ Bu eklentiyi kullanmak için Google AI Studio'dan ücretsiz API anahtarı almanız gerekir.

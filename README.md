@@ -92,7 +92,8 @@ Tek entry sayfasında sadece o entry'nin analiz edilmesine olanak tanır.
 │   ├── model-select.js    # Model seçim popup JS
 │   └── styles.css         # Stiller
 ├── icons/                 # Eklenti ikonları (16, 48, 128px)
-└── images/               # Promosyon görselleri
+├── images/                # Promosyon görselleri
+└── README-Store.md        # Store açıklamaları (Chrome/Firefox)
 ```
 
 ## Gizlilik
