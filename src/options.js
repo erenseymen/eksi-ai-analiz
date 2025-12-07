@@ -73,12 +73,12 @@ const updatePromptsFromDOM = () => {
 const validateApiKey = async (apiKey, updateInputStyle = true) => {
     const apiKeyInput = document.getElementById('apiKey');
     
-    // Boş anahtar kontrolü
+    // Boş anahtar kontrolü - boş API Key geçerli bir durumdur
     if (!apiKey || apiKey.trim() === '') {
         if (updateInputStyle) {
             apiKeyInput.classList.remove('valid', 'invalid');
         }
-        return { valid: false, error: 'API Key boş olamaz.' };
+        return { valid: true };
     }
 
     try {
