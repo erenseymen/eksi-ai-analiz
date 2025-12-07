@@ -471,14 +471,30 @@ const useModelInSettings = async (modelId) => {
         // Tüm modellerin durumunu yeniden kontrol etme - zaten devam eden kontrol varsa onu bozmamak için
         // Sadece seçilen modelin satırını güncelle (eğer kontrol tamamlandıysa)
         if (!isCheckingModels) {
-            // Kontrol tamamlandıysa, sadece seçilen modelin satırını güncelle
+            // Önce tüm modellerdeki "(Seçili)" yazısını temizle
+            MODELS.forEach(m => {
+                const rowId = `model-status-${m.id}`;
+                const row = document.getElementById(rowId);
+                if (row) {
+                    const modelNameElement = row.querySelector('strong');
+                    if (modelNameElement) {
+                        // "(Seçili)" yazısını kaldır
+                        let currentText = modelNameElement.textContent;
+                        currentText = currentText.replace(/\s*\(Seçili\)\s*$/, '');
+                        modelNameElement.textContent = currentText;
+                    }
+                }
+            });
+            
+            // Sonra sadece seçilen modelde "(Seçili)" yazısını göster
             const modelRowId = `model-status-${modelId}`;
             const modelRow = document.getElementById(modelRowId);
             if (modelRow) {
-                // Seçilen modeli vurgula (isteğe bağlı)
                 const currentModel = modelRow.querySelector('strong');
                 if (currentModel) {
-                    currentModel.textContent = `${model?.name || modelId} (Seçili)`;
+                    // Model adını al (zaten "(Seçili)" yazısı yoksa)
+                    let modelName = currentModel.textContent.replace(/\s*\(Seçili\)\s*$/, '');
+                    currentModel.textContent = `${modelName} (Seçili)`;
                 }
             }
         }
