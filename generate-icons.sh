@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Icon generation script for eksi-ai-analiz
-# Generates different icon sizes from the source 128x128 icon
+# Generates different icon sizes from the source icon
 # Requires: ImageMagick (install with: sudo apt install imagemagick)
 
-SOURCE_ICON="icons/icon128.png"
+SOURCE_ICON="icons/icon.png"
 OUTPUT_DIR="icons"
 
 # Icon sizes to generate (add or remove sizes as needed)
