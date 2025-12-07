@@ -48,14 +48,13 @@ Manifest dosyanız Chrome Web Store gereksinimlerini karşılıyor:
 
 #### 2. **Açıklama**
 ```
-Ekşi Sözlük başlıklarını yapay zeka ile analiz eden, özetleyen ve blog yazısı hazırlayan Chrome eklentisi.
-
 Özellikler:
 🤖 Gemini AI ile özet ve blog yazısı oluşturma
+✏️ Özel prompt
 📥 Entry'leri JSON olarak indirme
-✏️ Özel prompt desteği
+🎯 Ekşi Sözlük'ün çeşitli sayfalarında doğru entry'leri toplar.
 
-Not: Bu eklenti kendi Google Gemini API anahtarınızı kullanır. API anahtarı almak için Google AI Studio'yu ziyaret edin.
+ℹ️ Google AI Studio'dan ücretsiz API anahtarı gerektirir.
 ```
 
 #### 3. **Kategori**

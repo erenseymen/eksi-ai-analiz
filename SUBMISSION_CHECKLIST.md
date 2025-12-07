@@ -64,20 +64,13 @@
 ### Store Listing Açıklaması (Kopyala-Yapıştır)
 
 ```
-Ekşi Sözlük başlıklarını yapay zeka ile analiz eden, özetleyen ve blog yazısı hazırlayan Chrome eklentisi.
-
 Özellikler:
 🤖 Gemini AI ile özet ve blog yazısı oluşturma
+✏️ Özel prompt
 📥 Entry'leri JSON olarak indirme
-✏️ Özel prompt desteği
-⚙️ Farklı AI modelleri arasında seçim yapma
+🎯 Ekşi Sözlük'ün çeşitli sayfalarında doğru entry'leri toplar.
 
-Kullanım:
-1. Ekşi Sözlük başlığına gidin
-2. "Entry'leri Analiz Et" butonuna tıklayın
-3. Özet, Blog veya özel prompt seçin
-
-Not: Bu eklenti kendi Google Gemini API anahtarınızı kullanır. API anahtarı almak için Google AI Studio'yu ziyaret edin.
+ℹ️ Google AI Studio'dan ücretsiz API anahtarı gerektirir.
 ```
 
 ### Gizlilik Politikası URL (Geçici Çözüm)

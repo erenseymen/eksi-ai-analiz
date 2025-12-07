@@ -44,7 +44,7 @@ Bu komut `eksi-ai-analiz-v{VERSION}-firefox.zip` dosyasını oluşturacaktır.
 |------|-------|
 | **Name** | Ekşi Sözlük AI Analiz |
 | **Add-on URL** | `eksi-ai-analiz` |
-| **Summary (Özet)** | Ekşi Sözlük başlıklarını analiz eden, özetleyen ve blog yazısı hazırlayan yapay zeka asistanı. |
+| **Summary (Özet)** | Ekşi Sözlük başlıklarını analiz eden, özetleyen ve blog yazısı hazırlayan yapay zeka asistanı |
 | **Categories** | Productivity, Tools |
 
 #### Açıklama (Description)
