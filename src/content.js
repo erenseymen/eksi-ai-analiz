@@ -1797,7 +1797,7 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
         <h3 class="eksi-ai-modal-title">API Kota Limiti Aşıldı</h3>
         <div class="eksi-ai-quota-modal-message">
             <p>Mevcut model (<strong>${modelId}</strong>) için API kota limiti aşıldı.</p>
-            <p>Tüm modeller kontrol ediliyor...</p>
+            <p>Tüm modellerle sorgunuz deneniyor ve sonuçlar hazırlanıyor...</p>
         </div>
         <div id="eksi-ai-models-check-list">
     `;
@@ -1812,7 +1812,7 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
                 <div class="eksi-ai-model-check-info">
                     <div class="eksi-ai-model-check-name">${model.name}${model.id === modelId ? ' <span style="opacity: 0.7; font-size: 0.85em;">(Mevcut)</span>' : ''}</div>
                     <div class="eksi-ai-model-check-status checking">
-                        <span class="eksi-ai-checking-spinner">⏳</span> Kontrol ediliyor...
+                        <span class="eksi-ai-checking-spinner">⏳</span> Sorgu çalıştırılıyor...
                     </div>
                 </div>
             </div>
@@ -1862,7 +1862,20 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
     };
     document.addEventListener('keydown', handleEscape, true);
     
-    // Her modeli kontrol et ve sonucu göster
+    // Model sonuçlarını saklamak için Map (modelId -> response)
+    const modelResults = new Map();
+    
+    // Kullanıcının gerçek prompt'unu hazırla (entry'lerle birlikte)
+    const limitedEntries = allEntries;
+    const entriesJson = JSON.stringify(limitedEntries);
+    const finalPrompt = `Başlık: "${topicTitle}"
+
+Aşağıda Ekşi Sözlük entry'leri JSON formatında verilmiştir:
+${entriesJson}
+
+${userPrompt}`;
+    
+    // Her modeli kontrol et ve gerçek prompt ile sonuç al
     const checkModelAndUpdateUI = async (model) => {
         const modelRowId = `eksi-ai-model-check-${model.id}`;
         const modelRow = document.getElementById(modelRowId);
@@ -1870,48 +1883,11 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
         if (!modelRow) return;
         
         try {
-            // Kontrol et
-            const availability = await checkModelAvailability(apiKey, model.id);
+            // Önce model availability kontrolü yap
+            const availability = await checkModelAvailability(apiKey, model.id, false); // Quota kontrolü yapma
             
-            // Sonucu göster
-            if (availability.available && !availability.quotaExceeded) {
-                // Test cevabını göster (varsa)
-                const responseHtml = availability.response 
-                    ? `<div class="eksi-ai-model-check-response" style="margin-top: 6px; padding: 6px; background: #f9f9f9; border-radius: 4px; font-size: 0.85em; color: #555; font-style: italic; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(availability.response)}">💬 ${escapeHtml(availability.response)}</div>`
-                    : '';
-                
-                // Uygun model - buton ekle
-                modelRow.innerHTML = `
-                    <div class="eksi-ai-model-check-info">
-                        <div class="eksi-ai-model-check-name">${model.name}</div>
-                        <div class="eksi-ai-model-check-status available">
-                            ✅ Kullanılabilir
-                        </div>
-                        ${responseHtml}
-                    </div>
-                    <button class="eksi-ai-use-model-btn" 
-                            data-model-id="${model.id}">
-                        Bu modeli kullan
-                    </button>
-                `;
-                
-                // Buton event listener ekle
-                const useBtn = modelRow.querySelector('.eksi-ai-use-model-btn');
-                useBtn.onclick = async () => {
-                    await useModelForRetry(model, userPrompt, showPromptHeader, clickedButton, resultArea, overlay);
-                };
-            } else if (availability.quotaExceeded) {
-                // Quota aşıldı
-                modelRow.innerHTML = `
-                    <div class="eksi-ai-model-check-info">
-                        <div class="eksi-ai-model-check-name">${model.name}</div>
-                        <div class="eksi-ai-model-check-status quota-exceeded">
-                            ⚠️ Quota limiti aşıldı
-                        </div>
-                    </div>
-                `;
-            } else {
-                // Kullanılamıyor
+            if (!availability.available) {
+                // Model kullanılamıyor
                 modelRow.innerHTML = `
                     <div class="eksi-ai-model-check-info">
                         <div class="eksi-ai-model-check-name">${model.name}</div>
@@ -1920,6 +1896,107 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
                         </div>
                     </div>
                 `;
+                return;
+            }
+            
+            // Model mevcut, gerçek prompt ile API çağrısı yap
+            try {
+                const abortController = new AbortController();
+                const response = await callGeminiApi(apiKey, model.id, finalPrompt, abortController.signal);
+                
+                // Sonucu sakla
+                modelResults.set(model.id, response);
+                
+                // Sonucu kısalt (gösterim için)
+                const truncatedResponse = response.length > 150 
+                    ? response.substring(0, 150) + '...' 
+                    : response;
+                
+                // Başarılı - sonucu göster ve buton ekle
+                modelRow.innerHTML = `
+                    <div class="eksi-ai-model-check-info">
+                        <div class="eksi-ai-model-check-name">${model.name}</div>
+                        <div class="eksi-ai-model-check-status available">
+                            ✅ Başarılı
+                        </div>
+                        <div class="eksi-ai-model-check-response" style="margin-top: 6px; padding: 8px; background: #f0f8f0; border-left: 3px solid #5cb85c; border-radius: 4px; font-size: 0.85em; color: #333; max-width: 500px; max-height: 100px; overflow-y: auto;">
+                            <div style="font-weight: 600; margin-bottom: 4px; color: #5cb85c;">💬 Sonuç:</div>
+                            <div style="white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(truncatedResponse)}</div>
+                        </div>
+                    </div>
+                    <button class="eksi-ai-use-model-btn" 
+                            data-model-id="${model.id}"
+                            style="padding: 8px 16px; background-color: #81c14b; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; font-weight: 500; transition: background-color 0.2s ease;">
+                        Bu sonucu göster
+                    </button>
+                `;
+                
+                // Buton event listener ekle
+                const useBtn = modelRow.querySelector('.eksi-ai-use-model-btn');
+                useBtn.onclick = async () => {
+                    // Modal'ı kapat
+                    overlay.remove();
+                    
+                    // Sonucu göster
+                    resultArea.style.display = 'block';
+                    resultArea.innerHTML = '';
+                    
+                    // Build result HTML
+                    let resultHTML = '';
+                    
+                    if (showPromptHeader && userPrompt) {
+                        resultHTML += `<div class="eksi-ai-custom-prompt-header">
+                            <span class="eksi-ai-custom-prompt-label">Özel Prompt:</span>
+                            <span class="eksi-ai-custom-prompt-text">${escapeHtml(userPrompt).replace(/\n/g, '<br>')}</span>
+                        </div>`;
+                    }
+                    
+                    // Add a note about the model used
+                    resultHTML += `<div class="eksi-ai-model-note">📝 ${model.id}</div>`;
+                    
+                    resultHTML += parseMarkdown(response);
+                    resultArea.innerHTML = resultHTML;
+                    resultArea.classList.add('eksi-ai-markdown');
+                    
+                    // Add action buttons for the result
+                    addResultActionButtons(resultArea, response, userPrompt, showPromptHeader, clickedButton);
+                };
+                
+                // Hover efekti
+                useBtn.onmouseenter = () => {
+                    useBtn.style.backgroundColor = '#6da53e';
+                };
+                useBtn.onmouseleave = () => {
+                    useBtn.style.backgroundColor = '#81c14b';
+                };
+                
+            } catch (apiError) {
+                const errorMsg = apiError.message || 'API çağrısı başarısız';
+                
+                // Quota/rate limit hatalarını kontrol et
+                if (errorMsg.includes('quota') || errorMsg.includes('Quota exceeded') || 
+                    errorMsg.includes('rate limit') || errorMsg.includes('Rate limit') ||
+                    errorMsg.includes('RESOURCE_EXHAUSTED') || errorMsg.includes('429')) {
+                    // Quota aşıldı
+                    modelRow.innerHTML = `
+                        <div class="eksi-ai-model-check-info">
+                            <div class="eksi-ai-model-check-name">${model.name}</div>
+                            <div class="eksi-ai-model-check-status quota-exceeded">
+                                ⚠️ Quota limiti aşıldı
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Diğer hatalar
+                    modelRow.innerHTML = `
+                        <div class="eksi-ai-model-check-info">
+                            <div class="eksi-ai-model-check-name">${model.name}</div>
+                            <div class="eksi-ai-model-check-status unavailable">
+                                ❌ Hata: ${escapeHtml(errorMsg)}
+                            </div>
+                        </div>
+                    `;
+                }
             }
         } catch (error) {
             // Hata durumu
