@@ -66,6 +66,26 @@ const getSettings = async () => {
 };
 
 // =============================================================================
+// YARDIMCI FONKSİYONLAR
+// =============================================================================
+
+/**
+ * Model ID'den model ismini alır.
+ * 
+ * @param {string} modelId - Model ID'si (örn: "gemini-2.5-pro")
+ * @returns {string} Model ismi veya model ID'si (bulunamazsa)
+ */
+const getModelDisplayName = (modelId) => {
+    if (!modelId) return '';
+    const model = MODELS.find(m => m.id === modelId);
+    if (model) {
+        // Emoji'yi kaldır ve sadece model ismini al
+        return model.name.replace(/^[^\w\s]*\s*/, '').trim();
+    }
+    return modelId;
+};
+
+// =============================================================================
 // SAYFA TİPİ TESPİTİ
 // =============================================================================
 
@@ -1426,7 +1446,8 @@ const runGemini = async (userPrompt, showPromptHeader = false, clickedButton = n
         
         // Show model note if available
         if (cachedData.modelId) {
-            resultHTML += `<div class="eksi-ai-model-note">📝 ${cachedData.modelId}</div>`;
+            const modelName = getModelDisplayName(cachedData.modelId);
+            resultHTML += `<div class="eksi-ai-model-note"><span class="eksi-ai-model-prefix">&gt;</span> ${modelName}</div>`;
         }
         
         resultHTML += parseMarkdown(cachedData.response);
@@ -1532,7 +1553,8 @@ ${userPrompt}`;
         }
         
         // Show model note
-        resultHTML += `<div class="eksi-ai-model-note">📝 ${modelId}</div>`;
+        const modelName = getModelDisplayName(modelId);
+        resultHTML += `<div class="eksi-ai-model-note"><span class="eksi-ai-model-prefix">&gt;</span> ${modelName}</div>`;
         
         resultHTML += parseMarkdown(response);
         resultArea.innerHTML = resultHTML;
@@ -2032,7 +2054,8 @@ ${userPrompt}`;
         }
         
         // Add a note about the model used
-        resultHTML += `<div class="eksi-ai-model-note">📝 ${model.id}</div>`;
+        const modelName = getModelDisplayName(model.id);
+        resultHTML += `<div class="eksi-ai-model-note"><span class="eksi-ai-model-prefix">&gt;</span> ${modelName}</div>`;
         
         resultHTML += parseMarkdown(response);
         resultArea.innerHTML = resultHTML;
