@@ -1,0 +1,161 @@
+---
+description: Gemini API kullanım kılavuzu ve test sonuçları
+globs: ["src/**/*.js"]
+alwaysApply: true
+---
+
+# Gemini API Kullanımı
+
+Bu proje Google Gemini API kullanarak Ekşi Sözlük entry'lerini analiz eder.
+
+## API Bilgileri
+
+- **Base URL:** `https://generativelanguage.googleapis.com`
+- **API Versiyonları:** `v1` (stable) veya `v1beta` (beta modeller için)
+- **Authentication:** URL parametresi olarak `key={API_KEY}`
+
+## Desteklenen Modeller
+
+| Model ID | İsim | Açıklama | API Version |
+|----------|------|----------|-------------|
+| `gemini-2.5-pro` | Gemini 2.5 Pro | Güçlü muhakeme, 1M token | v1 |
+| `gemini-2.5-flash` | Gemini 2.5 Flash | Hızlı ve verimli | v1 |
+| `gemini-2.5-flash-lite` | Gemini 2.5 Flash-Lite | En hızlı, basit görevler | v1 |
+| `gemini-3-pro-preview` | Gemini 3 Pro Preview | Beta, ücretli | v1beta |
+
+## API Endpoints
+
+### Model Listesi Alma
+```bash
+GET https://generativelanguage.googleapis.com/v1/models?key={API_KEY}
+```
+
+### İçerik Oluşturma (generateContent)
+```bash
+POST https://generativelanguage.googleapis.com/v1/models/{MODEL_ID}:generateContent?key={API_KEY}
+Content-Type: application/json
+
+{
+  "contents": [
+    {
+      "parts": [
+        {
+          "text": "Kullanıcı mesajı"
+        }
+      ]
+    }
+  ],
+  "systemInstruction": {
+    "parts": [
+      {
+        "text": "Sistem promptu (opsiyonel)"
+      }
+    ]
+  }
+}
+```
+
+## Yanıt Formatı
+
+```json
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "Model yanıtı"
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP"
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 22,
+    "candidatesTokenCount": 16,
+    "totalTokenCount": 64,
+    "thoughtsTokenCount": 26
+  },
+  "modelVersion": "gemini-2.5-flash"
+}
+```
+
+## Proje İçi Kullanım
+
+### API Anahtarı Depolama
+- Chrome Storage API: `chrome.storage.sync.get(['geminiApiKey'])`
+- Yapılandırma: `src/options.js` ve `src/options.html`
+
+### Ana API Fonksiyonları
+- **`checkModelAvailability(apiKey, modelId, checkQuota)`** - `src/constants.js`
+  - Model erişilebilirliğini ve quota durumunu kontrol eder
+  - Eğlenceli test prompt'larıyla API'yi doğrular
+
+### Yanıt Alma
+```javascript
+// Yanıt çıkarma
+const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+```
+
+## Hata Yönetimi
+
+### Quota/Rate Limit Hataları
+- `RESOURCE_EXHAUSTED`
+- `429` HTTP status
+- `quota exceeded` / `rate limit` mesajları
+
+### Hata Kontrol Örneği
+```javascript
+if (errorMsg.includes('quota') || errorMsg.includes('RESOURCE_EXHAUSTED') || errorMsg.includes('429')) {
+    return { available: true, quotaExceeded: true, error: 'Quota limiti aşıldı' };
+}
+```
+
+## Test Sonuçları (2025-12-07)
+
+### API Key Test Durumu
+
+| # | API Key (Son 4) | gemini-2.5-flash | gemini-2.5-pro |
+|---|-----------------|------------------|----------------|
+| 1 | ...r1c | ✅ Çalışıyor | ✅ Çalışıyor |
+| 2 | ...TyM | ✅ Çalışıyor | ❌ Quota Aşıldı |
+| 3 | ...Eeg | ✅ Çalışıyor | ❌ Quota Aşıldı |
+
+### Quota Limitleri (Free Tier)
+
+Her model için ayrı quota limiti vardır:
+- `gemini-2.5-flash`: Daha yüksek limit, çoğu anahtar için çalışıyor
+- `gemini-2.5-pro`: Daha düşük limit, hızlı tükeniyor
+- Quota mesajı: `"Please retry in X seconds"` formatında süre belirtir
+
+### Quota Aşıldığında Dönen Hata
+```json
+{
+  "error": {
+    "message": "You exceeded your current quota...",
+    "details": [
+      "Quota exceeded for metric: generate_content_free_tier_requests, limit: 0, model: gemini-2.5-pro"
+    ]
+  }
+}
+```
+
+### Örnek Başarılı Yanıt
+```
+Model: gemini-2.5-flash
+Prompt: "Merhaba! API test."
+Yanıt: "Merhaba!"
+Token Kullanımı: 11 (prompt) + 2 (response) + 592 (thinking) = 605 total
+```
+
+## Önemli Notlar
+
+1. **Model Bazlı Quota:** Her model için ayrı quota limiti var, bir model quota aşsa bile diğeri çalışabilir
+2. **Thinking Token:** Gemini 2.5 modelleri "thinking" özelliğine sahip - basit sorularda bile 500-800 thinking token harcar
+3. **Fallback Stratejisi:** `gemini-2.5-pro` quota aşıldığında `gemini-2.5-flash`'a geçiş yapılabilir
+4. **Context Window:** Tüm modeller 1M token destekler
+5. **Output Limit:** 8K-65K arası değişir
+6. **Free Tier:** Bazı modeller (gemini-3-pro-preview) ücretsiz planda kullanılamaz
+7. **Rate Limit Recovery:** Quota aşıldığında genellikle 30-60 saniye beklemek yeterli
