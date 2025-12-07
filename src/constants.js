@@ -157,7 +157,7 @@ const checkModelAvailability = async (apiKey, modelId, checkQuota = true) => {
 
         const modelsData = await modelsResponse.json();
         const modelExists = modelsData.models?.some(m => {
-            // Model name formatı: "models/gemini-2.5-pro" veya sadece "gemini-2.5-pro"
+            // Model adı formatı: "models/gemini-2.5-pro" veya "gemini-2.5-pro"
             const modelName = m.name.replace('models/', '');
             return modelName === modelId;
         });
@@ -212,7 +212,7 @@ const checkModelAvailability = async (apiKey, modelId, checkQuota = true) => {
                     return { available: true, quotaExceeded: false, error: errorMsg };
                 }
             } catch (testError) {
-                // Test isteği hatası, ama model mevcut
+                // Test isteği hatası, ancak model mevcut
                 return { available: true, quotaExceeded: false, error: testError.message };
             }
         }

@@ -28,7 +28,7 @@ const populateModelSelect = (savedModelId) => {
 
     select.innerHTML = '';
 
-    // Her model için option elementi oluştur
+    // Model option'larını oluştur
     MODELS.forEach(model => {
         const option = document.createElement('option');
         option.value = model.id;
@@ -55,7 +55,7 @@ const saveOptions = () => {
     const modelSelect = document.getElementById('modelSelect');
     const selectedModel = modelSelect.value;
 
-    // Mevcut ayarları al, sadece modeli güncelle
+    // Mevcut ayarları al ve sadece modeli güncelle
     chrome.storage.sync.get(['geminiApiKey', 'prompts'], (items) => {
         const settings = {
             geminiApiKey: items.geminiApiKey || '',
@@ -104,8 +104,7 @@ document.getElementById('settingsLink').addEventListener('click', (e) => {
  */
 document.addEventListener('DOMContentLoaded', () => {
     restoreOptions();
-    
-    // Model seçimi değiştiğinde otomatik kaydet
-    // (popup'ta ayrı kaydet butonu olmadığı için)
+
+    // Model değiştiğinde otomatik kaydet
     document.getElementById('modelSelect').addEventListener('change', saveOptions);
 });

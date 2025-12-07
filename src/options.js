@@ -34,16 +34,16 @@ let prompts = [];
 const updatePromptsFromDOM = () => {
     const promptItems = document.querySelectorAll('.prompt-item');
     const newPrompts = [];
-    
+
     promptItems.forEach(item => {
         const name = item.querySelector('.prompt-name').value;
         const prompt = item.querySelector('.prompt-text').value;
-        // Sadece hem isim hem de prompt dolu olan öğeleri kaydet
+        // Sadece isim ve prompt dolu olan öğeleri kaydet
         if (name && prompt) {
             newPrompts.push({ name, prompt });
         }
     });
-    
+
     prompts = newPrompts;
 };
 
@@ -72,8 +72,8 @@ const updatePromptsFromDOM = () => {
  */
 const validateApiKey = async (apiKey, updateInputStyle = true) => {
     const apiKeyInput = document.getElementById('apiKey');
-    
-    // Boş anahtar kontrolü - boş API Key geçerli bir durumdur
+
+    // Boş API Key geçerli kabul edilir
     if (!apiKey || apiKey.trim() === '') {
         if (updateInputStyle) {
             apiKeyInput.classList.remove('valid', 'invalid');
@@ -82,10 +82,10 @@ const validateApiKey = async (apiKey, updateInputStyle = true) => {
     }
 
     try {
-        // Google'ın models listesi endpoint'ine test isteği
+        // Google models API'sine test isteği
         const modelsUrl = `https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`;
         const response = await fetch(modelsUrl);
-        
+
         if (!response.ok) {
             const errorData = await response.json();
             const errorMessage = errorData.error?.message || 'API Key geçersiz';
@@ -103,7 +103,7 @@ const validateApiKey = async (apiKey, updateInputStyle = true) => {
         }
         return { valid: true };
     } catch (error) {
-        // Ağ hatası veya diğer beklenmeyen hatalar
+        // Ağ veya beklenmeyen hatalar
         if (updateInputStyle) {
             apiKeyInput.classList.remove('valid');
             apiKeyInput.classList.add('invalid');
@@ -148,7 +148,7 @@ const saveOptions = async () => {
     status.style.display = 'block';
 
     const validation = await validateApiKey(apiKey, true);
-    
+
     if (!validation.valid) {
         status.textContent = `Hata: ${validation.error}`;
         status.className = 'status error';
@@ -162,7 +162,7 @@ const saveOptions = async () => {
 
     // DOM'dan güncel prompt listesini al
     updatePromptsFromDOM();
-    
+
     // API key değişti mi kontrol et
     const apiKeyChanged = apiKey !== previousApiKey;
 
@@ -184,7 +184,7 @@ const saveOptions = async () => {
 
         // State tutarlılığı için listeyi yeniden render et
         renderPrompts();
-        
+
         // API key değiştiyse tüm modellerin durumunu güncelleme - artık sadece buton ile yapılıyor
         // Model seçimine göre UI'daki butonları güncelle (eğer modeller kontrol edilmiyorsa)
         if (!isCheckingModels) {
@@ -196,8 +196,8 @@ const saveOptions = async () => {
                     const isSelected = m.id === selectedModel;
                     const useBtn = row.querySelector('.use-model-btn');
                     const selectedBtn = row.querySelector('.selected-model-btn');
-                    
-                    // Seçili model için "Bu modeli kullan" -> "Seçilen" dönüşümü
+
+                    // "Bu modeli kullan" → "Seçilen" dönüşümü
                     if (isSelected && useBtn) {
                         const newBtn = document.createElement('button');
                         newBtn.className = 'selected-model-btn';
@@ -207,7 +207,7 @@ const saveOptions = async () => {
                         newBtn.textContent = 'Seçilen';
                         useBtn.replaceWith(newBtn);
                     }
-                    // Diğer modeller için "Seçilen" -> "Bu modeli kullan" dönüşümü
+                    // "Seçilen" → "Bu modeli kullan" dönüşümü
                     else if (!isSelected && selectedBtn) {
                         const modelId = selectedBtn.getAttribute('data-model-id');
                         const newBtn = document.createElement('button');
@@ -215,24 +215,24 @@ const saveOptions = async () => {
                         newBtn.setAttribute('data-model-id', modelId);
                         newBtn.style.cssText = 'padding: 6px 12px; background-color: #81c14b; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: 500; transition: background-color 0.2s ease;';
                         newBtn.textContent = 'Bu modeli kullan';
-                        
+
                         newBtn.onclick = async () => {
                             await useModelInSettings(modelId);
                         };
-                        
+
                         newBtn.onmouseenter = () => {
                             newBtn.style.backgroundColor = '#6da53e';
                         };
                         newBtn.onmouseleave = () => {
                             newBtn.style.backgroundColor = '#81c14b';
                         };
-                        
+
                         selectedBtn.replaceWith(newBtn);
                     }
                 }
             });
         }
-        
+
         setupRefreshButton();
     });
 };
@@ -254,7 +254,7 @@ const restoreOptions = async () => {
         async (items) => {
             // API anahtarını input'a yükle
             document.getElementById('apiKey').value = items.geminiApiKey;
-            
+
             // Prompt listesini yükle (boşsa varsayılanları kullan)
             if (items.prompts && items.prompts.length > 0) {
                 prompts = items.prompts;
@@ -268,13 +268,13 @@ const restoreOptions = async () => {
             // UI bileşenlerini doldur
             await populateModelSelect(items.selectedModel);
             renderPrompts();
-            
+
             // Mevcut API anahtarını doğrula
             if (items.geminiApiKey) {
                 await validateApiKey(items.geminiApiKey, true);
                 // Tüm modellerin durumunu gösterme - artık sadece buton ile yapılıyor
             }
-            
+
             // Yenile butonunu ayarla
             setupRefreshButton();
         }
@@ -284,8 +284,6 @@ const restoreOptions = async () => {
 // =============================================================================
 // MODEL SEÇİMİ
 // =============================================================================
-
-// checkModelAvailability fonksiyonu artık constants.js'de tanımlı
 
 
 /**
@@ -303,7 +301,7 @@ const populateModelSelect = async (savedModelId) => {
 
     select.innerHTML = '';
 
-    // Her model için option elementi oluştur
+    // Model option'larını oluştur
     MODELS.forEach(model => {
         const option = document.createElement('option');
         option.value = model.id;
@@ -335,10 +333,10 @@ const populateModelSelect = async (savedModelId) => {
         `;
     };
 
-    // İlk yüklemede bilgiyi göster
+    // İlk yükleme
     updateInfo();
 
-    // Seçim değişikliklerini dinle
+    // Seçim değişikliği dinleyicisi
     select.addEventListener('change', updateInfo);
 };
 
@@ -351,35 +349,35 @@ let isCheckingModels = false; // API kontrolünün devam edip etmediğini takip 
 const updateAllModelsStatus = async () => {
     const statusDiv = document.getElementById('allModelsStatus');
     const statusList = document.getElementById('modelsStatusList');
-    
+
     if (!statusDiv || !statusList) return;
-    
+
     const apiKey = document.getElementById('apiKey').value;
-    
+
     if (!apiKey || !apiKey.trim()) {
         statusDiv.style.display = 'none';
         return;
     }
-    
+
     // Eğer kontrol zaten devam ediyorsa, yeni kontrol başlatma
     if (isCheckingModels) {
         return;
     }
-    
+
     isCheckingModels = true;
     statusDiv.style.display = 'block';
-    
+
     // Her model için ayrı bir DOM elementi oluştur (hepsi loading durumunda başlar)
     statusList.innerHTML = '';
     const modelSelect = document.getElementById('modelSelect');
     const selectedModelId = modelSelect ? modelSelect.value : null;
-    
+
     MODELS.forEach((model) => {
         const modelRowId = `model-status-${model.id}`;
         const modelRow = document.createElement('div');
         modelRow.id = modelRowId;
         modelRow.style.cssText = 'padding: 8px; margin-bottom: 5px; border-left: 3px solid #999; background: #f5f5f5; display: flex; align-items: center; justify-content: space-between;';
-        
+
         // Seçili model için loading durumunda bile "Seçilen" butonunu göster
         const isSelected = model.id === selectedModelId;
         const buttonHtml = isSelected
@@ -387,7 +385,7 @@ const updateAllModelsStatus = async () => {
                 Seçilen
             </button>`
             : '';
-        
+
         modelRow.innerHTML = `
             <div>
                 <strong>${model.name}</strong><br>
@@ -397,32 +395,32 @@ const updateAllModelsStatus = async () => {
         `;
         statusList.appendChild(modelRow);
     });
-    
+
     // Her modeli kontrol et ve sonucu anında göster
     const checkModelAndUpdateUI = async (model) => {
         const modelRowId = `model-status-${model.id}`;
         const modelRow = document.getElementById(modelRowId);
-        
+
         if (!modelRow) return;
-        
+
         try {
             // Kontrol et
             const availability = await checkModelAvailability(apiKey, model.id);
-            
+
             // Eğer kontrol iptal edildiyse (isCheckingModels false olduysa), güncelleme yapma
             if (!isCheckingModels) {
                 return;
             }
-            
+
             // Sonucu göster
             if (availability.available && !availability.quotaExceeded) {
                 // Seçili modeli kontrol et
                 const modelSelect = document.getElementById('modelSelect');
                 const isSelected = modelSelect && modelSelect.value === model.id;
-                
+
                 // Kullanılabilir - buton ekle
                 modelRow.style.cssText = 'padding: 8px; margin-bottom: 5px; border-left: 3px solid #5cb85c; background: #f5f5f5; display: flex; align-items: center; justify-content: space-between;';
-                
+
                 // Seçili model için "Seçilen" butonu, diğerleri için "Bu modeli kullan" butonu
                 const buttonHtml = isSelected
                     ? `<button class="selected-model-btn" data-model-id="${model.id}" disabled style="padding: 6px 12px; background-color: #6c757d; color: white; border: none; border-radius: 4px; font-size: 0.85em; font-weight: 500; cursor: not-allowed; opacity: 0.8;">
@@ -431,12 +429,12 @@ const updateAllModelsStatus = async () => {
                     : `<button class="use-model-btn" data-model-id="${model.id}" style="padding: 6px 12px; background-color: #81c14b; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: 500; transition: background-color 0.2s ease;">
                         Bu modeli kullan
                     </button>`;
-                
+
                 // Test cevabını göster (varsa)
-                const responseHtml = availability.response 
+                const responseHtml = availability.response
                     ? `<br><small style="color: #666; font-style: italic; display: block; margin-top: 4px; max-width: 500px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(availability.response)}">💬 ${escapeHtml(availability.response)}</small>`
                     : '';
-                
+
                 modelRow.innerHTML = `
                     <div>
                         <strong>${model.name}</strong><br>
@@ -445,14 +443,14 @@ const updateAllModelsStatus = async () => {
                     </div>
                     ${buttonHtml}
                 `;
-                
+
                 // Buton event listener ekle (sadece "Bu modeli kullan" butonu için)
                 const useBtn = modelRow.querySelector('.use-model-btn');
                 if (useBtn) {
                     useBtn.onclick = async () => {
                         await useModelInSettings(model.id);
                     };
-                    
+
                     // Hover efekti
                     useBtn.onmouseenter = () => {
                         useBtn.style.backgroundColor = '#6da53e';
@@ -485,7 +483,7 @@ const updateAllModelsStatus = async () => {
             if (!isCheckingModels) {
                 return;
             }
-            
+
             // Hata durumu
             modelRow.style.cssText = 'padding: 8px; margin-bottom: 5px; border-left: 3px solid #d9534f; background: #f5f5f5;';
             modelRow.innerHTML = `
@@ -496,11 +494,11 @@ const updateAllModelsStatus = async () => {
             `;
         }
     };
-    
+
     // Tüm modelleri paralel olarak kontrol et
     const checkPromises = MODELS.map(model => checkModelAndUpdateUI(model));
     await Promise.all(checkPromises);
-    
+
     // Kontrol tamamlandı
     isCheckingModels = false;
 };
@@ -524,10 +522,10 @@ const useModelInSettings = async (modelId) => {
     const apiKey = document.getElementById('apiKey').value;
     const modelSelect = document.getElementById('modelSelect');
     const status = document.getElementById('status');
-    
+
     // Model seçimini güncelle
     modelSelect.value = modelId;
-    
+
     // Model bilgisini güncelle
     const model = MODELS.find(m => m.id === modelId);
     if (model) {
@@ -542,16 +540,16 @@ const useModelInSettings = async (modelId) => {
             </div>
         `;
     }
-    
+
     // DOM'dan güncel prompt listesini al
     updatePromptsFromDOM();
-    
+
     const settings = {
         geminiApiKey: apiKey,
         selectedModel: modelId,
         prompts: prompts
     };
-    
+
     // Chrome storage'a kaydet
     chrome.storage.sync.set(settings, () => {
         status.textContent = `Model "${model?.name || modelId}" seçildi ve ayarlar kaydedildi.`;
@@ -562,7 +560,7 @@ const useModelInSettings = async (modelId) => {
             status.className = 'status';
             status.style.display = 'none';
         }, 3000);
-        
+
         // Tüm modellerin durumunu yeniden kontrol etme - zaten devam eden kontrol varsa onu bozmamak için
         // Sadece seçilen modelin satırını güncelle (eğer kontrol tamamlandıysa)
         if (!isCheckingModels) {
@@ -580,12 +578,12 @@ const useModelInSettings = async (modelId) => {
                         newBtn.setAttribute('data-model-id', modelId);
                         newBtn.style.cssText = 'padding: 6px 12px; background-color: #81c14b; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: 500; transition: background-color 0.2s ease;';
                         newBtn.textContent = 'Bu modeli kullan';
-                        
+
                         // Event listener ekle
                         newBtn.onclick = async () => {
                             await useModelInSettings(modelId);
                         };
-                        
+
                         // Hover efekti
                         newBtn.onmouseenter = () => {
                             newBtn.style.backgroundColor = '#6da53e';
@@ -593,12 +591,12 @@ const useModelInSettings = async (modelId) => {
                         newBtn.onmouseleave = () => {
                             newBtn.style.backgroundColor = '#81c14b';
                         };
-                        
+
                         selectedBtn.replaceWith(newBtn);
                     }
                 }
             });
-            
+
             // Sonra sadece seçilen modelde "Bu modeli kullan" butonunu "Seçilen" butonuna dönüştür
             const modelRowId = `model-status-${modelId}`;
             const modelRow = document.getElementById(modelRowId);
@@ -612,7 +610,7 @@ const useModelInSettings = async (modelId) => {
                     newBtn.disabled = true;
                     newBtn.style.cssText = 'padding: 6px 12px; background-color: #6c757d; color: white; border: none; border-radius: 4px; font-size: 0.85em; font-weight: 500; cursor: not-allowed; opacity: 0.8;';
                     newBtn.textContent = 'Seçilen';
-                    
+
                     useBtn.replaceWith(newBtn);
                 }
             }
@@ -638,14 +636,14 @@ const renderPrompts = () => {
         console.error('promptsList elementi bulunamadı');
         return;
     }
-    
+
     list.innerHTML = '';
 
     // prompts dizisi boşsa veya undefined ise, DEFAULT_PROMPTS'u kullan
-    const promptsToRender = (prompts && prompts.length > 0) 
-        ? prompts 
-        : (typeof DEFAULT_PROMPTS !== 'undefined' && DEFAULT_PROMPTS.length > 0) 
-            ? DEFAULT_PROMPTS 
+    const promptsToRender = (prompts && prompts.length > 0)
+        ? prompts
+        : (typeof DEFAULT_PROMPTS !== 'undefined' && DEFAULT_PROMPTS.length > 0)
+            ? DEFAULT_PROMPTS
             : [];
 
     promptsToRender.forEach((item, index) => {
@@ -669,10 +667,10 @@ const renderPrompts = () => {
         // Event listener'ları bağla
         div.querySelector('.save-item-btn').onclick = saveOptions;
         div.querySelector('.delete-btn').onclick = () => removePrompt(index);
-        
+
         list.appendChild(div);
     });
-    
+
     // prompts dizisini güncelle (eğer DEFAULT_PROMPTS kullanıldıysa)
     if ((!prompts || prompts.length === 0) && promptsToRender.length > 0 && typeof DEFAULT_PROMPTS !== 'undefined') {
         prompts = [...promptsToRender];

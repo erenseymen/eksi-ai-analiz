@@ -157,10 +157,10 @@ const createAnalysisButton = (h1Element, topicId = null, useCurrentPage = false)
         return;
     }
 
-    // Check if button already exists for this topic
+    // Bu başlık için buton zaten var mı kontrol et
     const existingBtnId = topicId ? `eksi-ai-main-btn-${topicId}` : 'eksi-ai-main-btn';
     if (document.getElementById(existingBtnId)) {
-        return; // Button already exists
+        return; // Buton zaten mevcut
     }
 
     const btn = document.createElement('button');
@@ -168,19 +168,19 @@ const createAnalysisButton = (h1Element, topicId = null, useCurrentPage = false)
     btn.className = 'eksi-ai-btn';
     btn.textContent = "Entry'leri Analiz Et";
 
-    // Use current page analysis for topic pages, otherwise use topic-specific analysis
+    // Başlık sayfalarında mevcut sayfa analizi, entry sayfalarında başlık-spesifik analiz kullan
     if (useCurrentPage) {
         btn.onclick = startAnalysis;
     } else {
         btn.onclick = () => startAnalysisForTopic(h1Element, topicId);
     }
 
-    // Find the parent container (usually a heading wrapper or topic section)
+    // Üst konteyneri bul (genellikle başlık sarmalayıcı)
     let parentContainer = h1Element.parentElement;
 
-    // Try to find a more appropriate container
+    // Daha uygun konteyner ara
     while (parentContainer && parentContainer !== document.body) {
-        // Look for common container patterns
+        // Yaygın konteyner kalıplarını ara
         if (parentContainer.id === 'topic' ||
             parentContainer.classList.contains('topic') ||
             parentContainer.tagName === 'MAIN' ||
@@ -191,20 +191,20 @@ const createAnalysisButton = (h1Element, topicId = null, useCurrentPage = false)
         parentContainer = parentContainer.parentElement;
     }
 
-    // Insert button after h1
+    // Butonu h1'den sonra ekle
     if (h1Element.nextSibling) {
         h1Element.parentNode.insertBefore(btn, h1Element.nextSibling);
     } else {
         h1Element.parentNode.appendChild(btn);
     }
 
-    // Create container for results/actions
+    // Sonuçlar ve aksiyonlar için konteyner oluştur
     const container = document.createElement('div');
     container.id = topicId ? `eksi-ai-container-${topicId}` : 'eksi-ai-container';
     container.className = 'eksi-ai-container';
     container.style.display = 'none';
 
-    // Apply theme
+    // Tema uygula
     if (detectTheme()) {
         container.classList.add('eksi-ai-dark');
     }
@@ -227,17 +227,17 @@ const createAnalysisButton = (h1Element, topicId = null, useCurrentPage = false)
  * @param {string} topicId - Başlık ID'si (UI elementleri için)
  */
 const startAnalysisForTopic = async (h1Element, topicId) => {
-    // Check if there's a focusto href on the heading (set by initEntryPage for /entry/ID URLs)
-    // This takes priority over the regular topic link
+    // Heading'de focusto href var mı kontrol et (/entry/ID URL'leri için initEntryPage tarafından ayarlanır)
+    // Bu, normal topic linkinden önceliklidir
     let topicUrl = h1Element.getAttribute('data-focusto-href');
 
     if (!topicUrl) {
-        // Check for stored topic URL (set by initEntryPage)
+        // Saklanmış topic URL'sini kontrol et (initEntryPage tarafından ayarlanır)
         topicUrl = h1Element.getAttribute('data-topic-href');
     }
 
     if (!topicUrl) {
-        // Extract topic URL from h1 link
+        // h1 linkinden topic URL'sini çıkar
         const topicLink = h1Element.querySelector('a');
         if (!topicLink || !topicLink.href) {
             console.error('Topic link not found');
@@ -256,12 +256,12 @@ const startAnalysisForTopic = async (h1Element, topicId) => {
         return;
     }
 
-    // Reset stop flag and clear response cache for new analysis
+    // Durdurma bayrağını sıfırla ve yeni analiz için önbellek temizle
     shouldStopScraping = false;
     responseCache.clear();
     lastCustomPrompt = null;
 
-    // Change button to "Stop" button
+    // Butonu "Durdur" butonuna dönüştür
     btn.textContent = "Durdur";
     btn.onclick = stopScraping;
     btn.disabled = false;
@@ -270,10 +270,10 @@ const startAnalysisForTopic = async (h1Element, topicId) => {
     container.innerHTML = '<span class="eksi-ai-loading">Entry\'ler toplanıyor... Lütfen bekleyin.</span>';
 
     try {
-        // Navigate to topic page and scrape entries
+        // Topic sayfasına git ve entry'leri topla
         await scrapeEntriesFromUrl(topicUrl);
 
-        // Render actions if we have entries (even if stopped early)
+        // Entry varsa (erken durdurulsa bile) aksiyonları göster
         if (allEntries.length > 0) {
             await renderActions(container, shouldStopScraping);
             // Gizle/Göster butonunu ekle
@@ -285,7 +285,7 @@ const startAnalysisForTopic = async (h1Element, topicId) => {
         console.error(err);
         container.innerHTML = `<div class="eksi-ai-warning">Hata oluştu: ${escapeHtml(err.message)}</div>`;
     } finally {
-        // Restore original button
+        // Orijinal butonu geri yükle
         btn.disabled = false;
         btn.textContent = "Entry'leri Analiz Et";
         btn.onclick = () => startAnalysisForTopic(h1Element, topicId);
@@ -347,7 +347,7 @@ const fetchEntryById = async (entryId) => {
         const parser = new DOMParser();
         const doc = parser.parseFromString(text, 'text/html');
 
-        // Find the entry item
+        // Entry elementini bul
         const entryItem = doc.querySelector(`li[data-id="${entryId}"]`) ||
             doc.querySelector('#entry-item-list > li');
 
@@ -386,7 +386,7 @@ const fetchEntryById = async (entryId) => {
  * @param {HTMLElement|null} [statusSpan=null] - İlerleme durumunu gösterecek element
  */
 const fetchAllReferencedEntries = async (statusSpan = null) => {
-    // Collect all unique referenced entry IDs
+    // Benzersiz referans entry ID'lerini topla
     const existingIds = new Set(allEntries.map(e => e.id));
     const referencedIds = new Set();
 
@@ -407,7 +407,7 @@ const fetchAllReferencedEntries = async (statusSpan = null) => {
     const idsToFetch = Array.from(referencedIds);
     const fetchedEntries = new Map();
 
-    // Fetch each referenced entry
+    // Her referans entry'yi getir
     for (let i = 0; i < idsToFetch.length; i++) {
         if (shouldStopScraping) {
             break;
@@ -429,7 +429,7 @@ const fetchAllReferencedEntries = async (statusSpan = null) => {
         }
     }
 
-    // Also include entries from allEntries that are referenced
+    // allEntries'den referans edilen entry'leri de ekle
     allEntries.forEach(entry => {
         if (!fetchedEntries.has(entry.id)) {
             fetchedEntries.set(entry.id, {
@@ -441,14 +441,14 @@ const fetchAllReferencedEntries = async (statusSpan = null) => {
         }
     });
 
-    // Update allEntries with full referenced entry objects
+    // allEntries'i tam referans entry objeleriyle güncelle
     allEntries.forEach(entry => {
         if (entry.referenced_entry_ids && entry.referenced_entry_ids.length > 0) {
             entry.referenced_entries = entry.referenced_entry_ids
                 .map(id => fetchedEntries.get(id) || { id, error: 'Entry bulunamadı' })
                 .filter(e => e !== null);
 
-            // Remove the temporary IDs field
+            // Geçici ID alanını kaldır
             delete entry.referenced_entry_ids;
         }
     });
@@ -471,38 +471,38 @@ const fetchAllReferencedEntries = async (statusSpan = null) => {
 const extractContentWithFullUrls = (contentElement) => {
     if (!contentElement) return '';
 
-    // Clone the element to avoid modifying the DOM
+    // DOM'u değiştirmemek için elementi klonla
     const clone = contentElement.cloneNode(true);
 
-    // Find all links and replace their text with actual href if the text appears to be a truncated URL
+    // Tüm linkleri bul ve kısaltılmış URL metinlerini gerçek href ile değiştir
     const links = clone.querySelectorAll('a');
     links.forEach(link => {
         const href = link.getAttribute('href');
         const text = link.innerText.trim();
         const title = link.getAttribute('title');
 
-        // Check if this looks like a URL link (text starts with http or contains ...)
+        // URL linki gibi görünüyor mu ve href tam URL mi kontrol et
         // and if the href is a full URL (starts with http)
         if (href && href.startsWith('http')) {
-            // If text contains ellipsis (…) or looks like a truncated URL, replace with full href
+            // Metin ellipsis içeriyorsa veya kısaltılmış URL gibi görünüyorsa, tam href ile değiştir
             if (text.includes('…') || text.includes('...') ||
                 (text.startsWith('http') && text !== href)) {
-                // Add space before and after the URL for better readability
+                // URL'nin önce ve sonra okunabilirlik için boşluk ekle
                 link.innerText = ' ' + href + ' ';
             }
         }
 
-        // Handle hidden references in title attribute (like "* " links with "(bkz: swh)" titles)
-        // These are typically inside <sup class="ab"> elements
+        // Title attribute'taki gizli referansları işle ("* " linkleri "(bkz: swh)" title'larıyla)
+        // Genellikle <sup class="ab"> elementleri içindedir
         if (title && text === '*') {
-            // Replace the asterisk with the asterisk + title content
-            // title is typically "(bkz: term)" format
+            // Yıldızı yıldız + title içeriğiyle değiştir
+            // title genellikle "(bkz: terim)" formatındadır
             link.innerText = '* ' + title;
         }
     });
 
-    // Replace <br> tags with newline characters to preserve line breaks
-    // This must be done before getting innerText, as innerText collapses <br> into spaces
+    // Satır sonlarını korumak için <br> etiketlerini yeni satır karakterleriyle değiştir
+    // Bu, innerText almadan önce yapılmalı çünkü innerText <br>'i boşluğa dönüştürür
     clone.querySelectorAll('br').forEach(br => {
         br.replaceWith('\n');
     });
@@ -522,18 +522,18 @@ const extractContentWithFullUrls = (contentElement) => {
  */
 const extractEntriesFromDoc = (doc, focustoEntryId = null) => {
     const entries = [];
-    let foundFocusEntry = !focustoEntryId; // If no focusto, include all entries
+    let foundFocusEntry = !focustoEntryId; // focusto yoksa tüm entry'leri dahil et
 
     const entryItems = doc.querySelectorAll('#entry-item-list > li');
     entryItems.forEach(item => {
         const id = item.getAttribute('data-id');
 
-        // If we have a focusto entry ID, skip entries until we find it
+        // focusto entry ID'si varsa, bulana kadar entry'leri atla
         if (focustoEntryId && !foundFocusEntry) {
             if (id === focustoEntryId) {
                 foundFocusEntry = true;
             } else {
-                return; // Skip this entry
+                return; // Bu entry'yi atla
             }
         }
 
@@ -550,7 +550,7 @@ const extractEntriesFromDoc = (doc, focustoEntryId = null) => {
                 content
             };
 
-            // Extract referenced entry IDs from content (will be populated with full entries later)
+            // İçerikten referans entry ID'lerini çıkar (daha sonra tam entry'lerle doldurulacak)
             const referencedEntryIds = extractReferencedEntryIds(content);
             if (referencedEntryIds.length > 0) {
                 entry.referenced_entry_ids = referencedEntryIds;
@@ -596,30 +596,30 @@ const scrapeEntriesFromUrl = async (url) => {
     const currentPageParam = existingParams.get('p');
     let startPage = currentPageParam ? parseInt(currentPageParam) : 1;
 
-    // Remove 'p' parameter if it exists (we'll add it in the loop)
+    // Varsa 'p' parametresini kaldır (döngüde ekleyeceğiz)
     existingParams.delete('p');
 
-    // Build URL for first page fetch with preserved query parameters (without p)
-    // Keep focusto parameter as the server uses it to determine which page to show
+    // Korunan query parametreleriyle ilk sayfa URL'sini oluştur ('p' olmadan)
+    // focusto parametresini koru çünkü sunucu hangi sayfayı göstereceğine karar vermek için kullanır
     const firstPageParams = new URLSearchParams(existingParams);
     const firstPageUrl = firstPageParams.toString()
         ? `${baseUrl}?${firstPageParams.toString()}`
         : baseUrl;
 
-    // Fetch the topic page (first page or focusto page)
+    // Topic sayfasını getir (ilk sayfa veya focusto sayfası)
     const response = await fetch(firstPageUrl);
     const text = await response.text();
     const parser = new DOMParser();
     const doc = parser.parseFromString(text, 'text/html');
 
-    // Extract topic title
+    // Başlık adını çıkar
     topicTitle = doc.querySelector('h1')?.innerText || doc.querySelector('#topic h1')?.innerText || "Basliksiz";
 
-    // Extract topic ID from URL
+    // URL'den başlık ID'sini çıkar
     const urlMatch = url.match(/--(\d+)/);
     topicId = urlMatch ? urlMatch[1] : '';
 
-    // Determine total pages
+    // Toplam sayfa sayısını belirle
     const pager = doc.querySelector('.pager');
     let totalPages = 1;
     if (pager) {
@@ -627,8 +627,8 @@ const scrapeEntriesFromUrl = async (url) => {
         totalPages = parseInt(lastPageLink) || 1;
     }
 
-    // If we have focusto, the server redirects to the page containing that entry
-    // We need to detect which page we're on
+    // focusto varsa, sunucu o entry'yi içeren sayfaya yönlendirir
+    // Hangi sayfada olduğumuzu tespit etmemiz gerekiyor
     if (focustoEntryId) {
         const currentPageFromPager = pager?.getAttribute('data-currentpage');
         if (currentPageFromPager) {
@@ -638,12 +638,12 @@ const scrapeEntriesFromUrl = async (url) => {
 
     const statusSpan = document.querySelector('.eksi-ai-loading');
 
-    // Remove focusto from params for subsequent page fetches (we only need it for the first page)
+    // Sonraki sayfa getirmeleri için focusto'yu parametrelerden kaldır (sadece ilk sayfa için gerekli)
     existingParams.delete('focusto');
 
-    // If we're starting from a specific page (not page 1), fetch that page
+    // Belirli bir sayfadan başlıyorsak (sayfa 1 değil), o sayfayı getir
     if (startPage > 1 && !focustoEntryId) {
-        // Build URL for the starting page
+        // Başlangıç sayfası için URL oluştur
         const startPageParams = new URLSearchParams(existingParams);
         startPageParams.set('p', startPage.toString());
         const startPageUrl = `${baseUrl}?${startPageParams.toString()}`;
@@ -657,19 +657,19 @@ const scrapeEntriesFromUrl = async (url) => {
         const { entries } = extractEntriesFromDoc(startPageDoc);
         allEntries.push(...entries);
     } else {
-        // Process first page entries from fetched document (with focusto filtering if applicable)
+        // İlk sayfa entry'lerini getirilen dokümandan işle (varsa focusto filtrelemesiyle)
         const { entries, foundFocusEntry } = extractEntriesFromDoc(doc, focustoEntryId);
         allEntries.push(...entries);
 
-        // If focusto entry was not found on this page, something went wrong
+        // focusto entry bu sayfada bulunamadı, bir sorun var
         if (focustoEntryId && !foundFocusEntry) {
             console.warn(`focusto entry ${focustoEntryId} not found on page ${startPage}`);
         }
     }
 
-    // Process remaining pages (starting from startPage + 1)
+    // Kalan sayfaları işle (startPage + 1'den başlayarak)
     for (let i = startPage + 1; i <= totalPages; i++) {
-        // Check if user requested to stop
+        // Kullanıcı durdurma istedi mi kontrol et
         if (shouldStopScraping) {
             if (statusSpan) statusSpan.textContent = `İşlem durduruldu. ${allEntries.length} entry toplandı.`;
             break;
@@ -677,7 +677,7 @@ const scrapeEntriesFromUrl = async (url) => {
 
         if (statusSpan) statusSpan.textContent = `Sayfa ${i}/${totalPages} taranıyor...`;
 
-        // Build URL with preserved query parameters + page number (no focusto needed for subsequent pages)
+        // Korunan query parametreleri + sayfa numarasıyla URL oluştur
         const params = new URLSearchParams(existingParams);
         params.set('p', i.toString());
         const pageUrl = `${baseUrl}?${params.toString()}`;
@@ -689,8 +689,7 @@ const scrapeEntriesFromUrl = async (url) => {
         const { entries } = extractEntriesFromDoc(pageDoc);
         allEntries.push(...entries);
 
-        // Be nice to the server
-        // Sunucuya yük bindirmemek için bekleme (rate limiting)
+        // Rate limiting - sunucuya nazik davran
         await new Promise(r => setTimeout(r, 500));
     }
 
@@ -1223,8 +1222,7 @@ const scrapeEntries = async () => {
         const { entries } = extractEntriesFromDoc(doc);
         allEntries.push(...entries);
 
-        // Be nice to the server
-        // Rate limiting - sunucuya nazik davran
+        // Rate limiting
         await new Promise(r => setTimeout(r, 500));
     }
 
@@ -1407,7 +1405,7 @@ const downloadJson = () => {
     downloadAnchorNode.setAttribute("href", dataStr);
     const filename = sanitizeFilename(topicTitle) || 'entries';
     downloadAnchorNode.setAttribute("download", `${filename}.json`);
-    document.body.appendChild(downloadAnchorNode); // required for firefox
+    document.body.appendChild(downloadAnchorNode); // Firefox için gerekli
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
 };
