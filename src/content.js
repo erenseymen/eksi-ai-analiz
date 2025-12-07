@@ -1698,8 +1698,6 @@ const callGeminiApi = async (apiKey, modelId, prompt, signal) => {
             const endTime = performance.now();
             const responseTime = endTime - startTime;
 
-            console.log(`Gemini API Response Time: ${responseTime.toFixed(2)}ms (${apiVersion}/${modelId})`);
-
             return { text: data.candidates[0].content.parts[0].text, responseTime };
         } else {
             const errorData = await response.json();
@@ -1715,23 +1713,6 @@ const callGeminiApi = async (apiKey, modelId, prompt, signal) => {
         throw new Error(err.message || 'Model bulunamadı. Lütfen model adını ve API versiyonunu kontrol edin.');
     }
 };
-
-/**
- * Mevcut modelden bir alt seviye modeli bulur.
- * 
- * @param {string} currentModelId - Mevcut model ID'si
- * @returns {Object|null} Alt seviye model objesi veya bulunamazsa null
- */
-const getLowerModel = (currentModelId) => {
-    const currentIndex = MODELS.findIndex(m => m.id === currentModelId);
-    if (currentIndex === -1 || currentIndex >= MODELS.length - 1) {
-        return null; // Model bulunamadı veya zaten en düşük model
-    }
-    // Bir sonraki modeli döndür (daha düşük seviye)
-    return MODELS[currentIndex + 1];
-};
-
-// checkModelAvailability fonksiyonu artık constants.js'de tanımlı
 
 /**
  * Tüm modelleri kontrol ederek quota'sı yeterli olan ilk modeli bulur.
