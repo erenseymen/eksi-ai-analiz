@@ -173,9 +173,7 @@ const saveOptions = async () => {
         // State tutarlılığı için listeyi yeniden render et
         renderPrompts();
         
-        // Cache'i temizle ve tüm modellerin durumunu güncelle
-        modelAvailabilityCache.clear();
-        lastAvailabilityCheck = 0;
+        // Tüm modellerin durumunu güncelle
         await updateAllModelsStatus();
         setupRefreshButton();
     });
@@ -211,6 +209,8 @@ const restoreOptions = async () => {
             // Mevcut API anahtarını doğrula
             if (items.geminiApiKey) {
                 await validateApiKey(items.geminiApiKey, true);
+                // Tüm modellerin durumunu göster
+                await updateAllModelsStatus();
             }
             
             // Yenile butonunu ayarla
@@ -314,41 +314,6 @@ const checkModelAvailability = async (apiKey, modelId, checkQuota = true) => {
     }
 };
 
-/**
- * Tüm modellerin availability durumunu kontrol eder ve cache'ler.
- * 
- * @param {string} apiKey - Gemini API anahtarı
- * @returns {Promise<Map<string, {available: boolean, error?: string}>>} Model availability durumları
- */
-let modelAvailabilityCache = new Map();
-let lastAvailabilityCheck = 0;
-const AVAILABILITY_CACHE_DURATION = 60000; // 1 dakika
-
-const checkAllModelsAvailability = async (apiKey) => {
-    const now = Date.now();
-    
-    // Cache kontrolü
-    if (now - lastAvailabilityCheck < AVAILABILITY_CACHE_DURATION && modelAvailabilityCache.size > 0) {
-        return modelAvailabilityCache;
-    }
-
-    // Tüm modelleri kontrol et
-    const availabilityMap = new Map();
-    
-    // Paralel olarak tüm modelleri kontrol et
-    const checkPromises = MODELS.map(async (model) => {
-        const result = await checkModelAvailability(apiKey, model.id);
-        availabilityMap.set(model.id, result);
-    });
-    
-    await Promise.all(checkPromises);
-    
-    // Cache'i güncelle
-    modelAvailabilityCache = availabilityMap;
-    lastAvailabilityCheck = now;
-    
-    return availabilityMap;
-};
 
 /**
  * Model seçim dropdown'ını MODELS listesiyle doldurur.
@@ -406,6 +371,7 @@ const populateModelSelect = async (savedModelId) => {
 
 /**
  * Tüm modellerin availability durumunu gösterir.
+ * Her model için ayrı DOM elementi oluşturur ve sonuçlar hazır oldukça anında günceller.
  */
 const updateAllModelsStatus = async () => {
     const statusDiv = document.getElementById('allModelsStatus');
@@ -421,50 +387,74 @@ const updateAllModelsStatus = async () => {
     }
     
     statusDiv.style.display = 'block';
-    statusList.innerHTML = '<div style="color: #666;">Kontrol ediliyor...</div>';
     
-    // Tüm modelleri kontrol et
-    const availabilityMap = await checkAllModelsAvailability(apiKey);
-    
-    // Durumları göster
-    let statusHtml = '';
-    MODELS.forEach(model => {
-        const availability = availabilityMap.get(model.id);
-        if (!availability) {
-            statusHtml += `<div style="padding: 8px; margin-bottom: 5px; border-left: 3px solid #999; background: #f5f5f5;">
-                <strong>${model.name}</strong><br>
-                <small style="color: #999;">Kontrol edilemedi</small>
-            </div>`;
-        } else if (availability.available) {
-            if (availability.quotaExceeded) {
-                statusHtml += `<div style="padding: 8px; margin-bottom: 5px; border-left: 3px solid #f0ad4e; background: #f5f5f5;">
-                    <strong>${model.name}</strong><br>
-                    <small style="color: #f0ad4e;"><strong>⚠️ Quota limiti aşıldı</strong>${availability.error ? ` - ${availability.error}` : ''}</small>
-                </div>`;
-            } else {
-                statusHtml += `<div style="padding: 8px; margin-bottom: 5px; border-left: 3px solid #5cb85c; background: #f5f5f5;">
-                    <strong>${model.name}</strong><br>
-                    <small style="color: #5cb85c;"><strong>✅ Kullanılabilir</strong></small>
-                </div>`;
-            }
-        } else {
-            statusHtml += `<div style="padding: 8px; margin-bottom: 5px; border-left: 3px solid #d9534f; background: #f5f5f5;">
-                <strong>${model.name}</strong><br>
-                <small style="color: #d9534f;"><strong>❌ Kullanılamıyor</strong>${availability.error ? ` - ${availability.error}` : ''}</small>
-            </div>`;
-        }
+    // Her model için ayrı bir DOM elementi oluştur (hepsi loading durumunda başlar)
+    statusList.innerHTML = '';
+    MODELS.forEach((model) => {
+        const modelRowId = `model-status-${model.id}`;
+        const modelRow = document.createElement('div');
+        modelRow.id = modelRowId;
+        modelRow.style.cssText = 'padding: 8px; margin-bottom: 5px; border-left: 3px solid #999; background: #f5f5f5;';
+        modelRow.innerHTML = `
+            <strong>${model.name}</strong><br>
+            <small style="color: #666;">⏳ Kontrol ediliyor...</small>
+        `;
+        statusList.appendChild(modelRow);
     });
     
-    statusList.innerHTML = statusHtml;
+    // Her modeli kontrol et ve sonucu anında göster
+    const checkModelAndUpdateUI = async (model) => {
+        const modelRowId = `model-status-${model.id}`;
+        const modelRow = document.getElementById(modelRowId);
+        
+        if (!modelRow) return;
+        
+        try {
+            // Kontrol et
+            const availability = await checkModelAvailability(apiKey, model.id);
+            
+            // Sonucu göster
+            if (availability.available && !availability.quotaExceeded) {
+                // Kullanılabilir
+                modelRow.style.cssText = 'padding: 8px; margin-bottom: 5px; border-left: 3px solid #5cb85c; background: #f5f5f5;';
+                modelRow.innerHTML = `
+                    <strong>${model.name}</strong><br>
+                    <small style="color: #5cb85c;"><strong>✅ Kullanılabilir</strong></small>
+                `;
+            } else if (availability.quotaExceeded) {
+                // Quota aşıldı
+                modelRow.style.cssText = 'padding: 8px; margin-bottom: 5px; border-left: 3px solid #f0ad4e; background: #f5f5f5;';
+                modelRow.innerHTML = `
+                    <strong>${model.name}</strong><br>
+                    <small style="color: #f0ad4e;"><strong>⚠️ Quota limiti aşıldı</strong>${availability.error ? ` - ${availability.error}` : ''}</small>
+                `;
+            } else {
+                // Kullanılamıyor
+                modelRow.style.cssText = 'padding: 8px; margin-bottom: 5px; border-left: 3px solid #d9534f; background: #f5f5f5;';
+                modelRow.innerHTML = `
+                    <strong>${model.name}</strong><br>
+                    <small style="color: #d9534f;"><strong>❌ Kullanılamıyor</strong>${availability.error ? ` - ${escapeHtml(availability.error)}` : ''}</small>
+                `;
+            }
+        } catch (error) {
+            // Hata durumu
+            modelRow.style.cssText = 'padding: 8px; margin-bottom: 5px; border-left: 3px solid #d9534f; background: #f5f5f5;';
+            modelRow.innerHTML = `
+                <strong>${model.name}</strong><br>
+                <small style="color: #d9534f;"><strong>❌ Hata:</strong> ${escapeHtml(error.message)}</small>
+            `;
+        }
+    };
+    
+    // Tüm modelleri paralel olarak kontrol et
+    const checkPromises = MODELS.map(model => checkModelAndUpdateUI(model));
+    await Promise.all(checkPromises);
 };
 
 /**
  * Yenile butonuna tıklandığında tüm modellerin durumunu yeniden kontrol eder.
  */
 const refreshAllModelsStatus = async () => {
-    // Cache'i temizle
-    modelAvailabilityCache.clear();
-    lastAvailabilityCheck = 0;
     await updateAllModelsStatus();
 };
 
@@ -602,12 +592,6 @@ const resetPrompts = () => {
 document.addEventListener('DOMContentLoaded', () => {
     restoreOptions();
     displaySystemPrompt();
-    
-    // Test butonuna event listener ekle
-    const testBtn = document.getElementById('testModelsBtn');
-    if (testBtn) {
-        testBtn.addEventListener('click', testAllModels);
-    }
 });
 
 /**
@@ -678,10 +662,18 @@ document.getElementById('apiKey').addEventListener('keydown', (e) => {
 document.getElementById('apiKey').addEventListener('blur', async (e) => {
     const apiKey = e.target.value.trim();
     if (apiKey) {
-        await validateApiKey(apiKey, true);
+        const validation = await validateApiKey(apiKey, true);
+        // API key geçerliyse tüm modellerin durumunu göster
+        if (validation.valid) {
+            await updateAllModelsStatus();
+        }
     } else {
-        // Boş input'ta doğrulama sınıflarını kaldır
+        // Boş input'ta doğrulama sınıflarını kaldır ve modeller durumunu gizle
         e.target.classList.remove('valid', 'invalid');
+        const statusDiv = document.getElementById('allModelsStatus');
+        if (statusDiv) {
+            statusDiv.style.display = 'none';
+        }
     }
 });
 
@@ -702,94 +694,3 @@ const setupRefreshButton = () => {
     }
 };
 
-/**
- * Seçili modelin availability durumunu kontrol eder ve modelInfo'yu günceller.
- */
-const testSelectedModel = async () => {
-    const select = document.getElementById('modelSelect');
-    const infoDiv = document.getElementById('modelInfo');
-    const selectedId = select.value;
-    const model = MODELS.find(m => m.id === selectedId);
-    if (!model) return;
-
-    const apiKey = document.getElementById('apiKey').value;
-    
-    if (!apiKey || !apiKey.trim()) {
-        infoDiv.innerHTML = `
-            <strong>${model.name}</strong><br>
-            ${model.description}<br>
-            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ccc;">
-                <small><strong>Maliyet:</strong> ${model.cost}</small><br>
-                <small><strong>Yanıt Süresi:</strong> ${model.responseTime}</small><br>
-                <small><strong>Bağlam Penceresi:</strong> ${new Intl.NumberFormat('tr-TR').format(model.contextWindow)} token (yaklaşık 10.000 entry)</small><br>
-                <small style="color: #999;"><strong>API Durumu:</strong> API Key gerekli</small>
-            </div>
-        `;
-        return;
-    }
-
-    // Loading durumu
-    infoDiv.innerHTML = `
-        <strong>${model.name}</strong><br>
-        ${model.description}<br>
-        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ccc;">
-            <small><strong>Maliyet:</strong> ${model.cost}</small><br>
-            <small><strong>Yanıt Süresi:</strong> ${model.responseTime}</small><br>
-            <small><strong>Bağlam Penceresi:</strong> ${new Intl.NumberFormat('tr-TR').format(model.contextWindow)} token (yaklaşık 10.000 entry)</small><br>
-            <small style="color: #666;">API durumu kontrol ediliyor...</small>
-        </div>
-    `;
-
-    // Availability kontrolü yap
-    const availability = await checkModelAvailability(apiKey, selectedId);
-    
-    let availabilityHtml = '';
-    if (availability.available) {
-        if (availability.quotaExceeded) {
-            availabilityHtml = `<small style="color: #f0ad4e;"><strong>API Durumu:</strong> ⚠️ Quota limiti aşıldı (model mevcut ama kullanılamıyor)</small>`;
-        } else {
-            availabilityHtml = `<small style="color: #5cb85c;"><strong>API Durumu:</strong> ✅ Kullanılabilir</small>`;
-        }
-    } else {
-        availabilityHtml = `<small style="color: #d9534f;"><strong>API Durumu:</strong> ❌ Kullanılamıyor${availability.error ? ` (${availability.error})` : ''}</small>`;
-    }
-
-    infoDiv.innerHTML = `
-        <strong>${model.name}</strong><br>
-        ${model.description}<br>
-        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ccc;">
-            <small><strong>Maliyet:</strong> ${model.cost}</small><br>
-            <small><strong>Yanıt Süresi:</strong> ${model.responseTime}</small><br>
-            <small><strong>Bağlam Penceresi:</strong> ${new Intl.NumberFormat('tr-TR').format(model.contextWindow)} token (yaklaşık 10.000 entry)</small><br>
-            ${availabilityHtml}
-        </div>
-    `;
-};
-
-/**
- * Modelleri test et butonuna tıklandığında tüm modelleri test eder.
- */
-const testAllModels = async () => {
-    const testBtn = document.getElementById('testModelsBtn');
-    const originalText = testBtn.textContent;
-    
-    // Butonu devre dışı bırak ve loading durumu göster
-    testBtn.disabled = true;
-    testBtn.textContent = '⏳ Test ediliyor...';
-    
-    // Cache'i temizle
-    modelAvailabilityCache.clear();
-    lastAvailabilityCheck = 0;
-    
-    // Tüm modelleri test et
-    await updateAllModelsStatus();
-    
-    // Butonu tekrar etkinleştir
-    testBtn.disabled = false;
-    testBtn.textContent = originalText;
-};
-
-/**
- * Test butonuna event listener ekle.
- */
-document.getElementById('testModelsBtn').addEventListener('click', testAllModels);
