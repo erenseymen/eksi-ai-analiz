@@ -1554,7 +1554,7 @@ ${userPrompt}`;
                           `Hata detayı: ${err.message}`;
             resultArea.textContent = "Hata: " + errorMessage;
         } else if (errorMessage.includes('quota') || errorMessage.includes('Quota exceeded')) {
-            showQuotaErrorWithRetry(resultArea, errorMessage, userPrompt, showPromptHeader, clickedButton);
+            showQuotaErrorWithRetry(resultArea, errorMessage, userPrompt, showPromptHeader, clickedButton, modelId);
         } else {
             // Check if error is due to abort
             if (err.name === 'AbortError' || errorMessage.includes('aborted')) {
@@ -1670,15 +1670,16 @@ const getLowerModel = (currentModelId) => {
  * @param {string} userPrompt - Tekrar denemek için kullanılacak prompt
  * @param {boolean} showPromptHeader - Özel prompt başlığı gösterilsin mi
  * @param {HTMLElement|null} clickedButton - Seçili buton referansı
+ * @param {string|null} currentModelId - Mevcut model ID'si (opsiyonel, verilmezse settings'den alınır)
  */
-const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, showPromptHeader, clickedButton) => {
+const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, showPromptHeader, clickedButton, currentModelId = null) => {
     const settings = await getSettings();
-    const currentModelId = settings.selectedModel || 'gemini-2.5-flash';
-    let lowerModel = getLowerModel(currentModelId);
+    const modelId = currentModelId || settings.selectedModel || 'gemini-2.5-flash';
+    let lowerModel = getLowerModel(modelId);
     
     // Özel durum: gemini-2.5-flash-lite kullanılıyorsa ve alt model yoksa,
     // gemini-2.5-flash ile denemeyi öner
-    if (!lowerModel && currentModelId === 'gemini-2.5-flash-lite') {
+    if (!lowerModel && modelId === 'gemini-2.5-flash-lite') {
         lowerModel = MODELS.find(m => m.id === 'gemini-2.5-flash');
     }
     
@@ -1699,7 +1700,7 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
     let modalContent = `
         <h3 class="eksi-ai-modal-title">API Kota Limiti Aşıldı</h3>
         <div class="eksi-ai-quota-modal-message">
-            <p>Mevcut model (<strong>${currentModelId}</strong>) için API kota limiti aşıldı.</p>
+            <p>Mevcut model (<strong>${modelId}</strong>) için API kota limiti aşıldı.</p>
     `;
     
     if (lowerModel) {
@@ -1853,12 +1854,18 @@ ${userPrompt}`;
                 addResultActionButtons(resultArea, response, userPrompt, showPromptHeader, clickedButton);
                 
             } catch (retryErr) {
+                let retryErrorMessage = retryErr.message;
+                
                 // Check if error is due to abort
-                if (retryErr.name === 'AbortError' || retryErr.message.includes('aborted')) {
+                if (retryErr.name === 'AbortError' || retryErrorMessage.includes('aborted')) {
                     resultArea.innerHTML = '<div class="eksi-ai-warning">İstek iptal edildi.</div>';
+                } else if (retryErrorMessage.includes('quota') || retryErrorMessage.includes('Quota exceeded')) {
+                    // If retry also fails with quota error, handle it recursively
+                    // This allows the retry mechanism to work as if it's the first time
+                    await showQuotaErrorWithRetry(resultArea, retryErrorMessage, userPrompt, showPromptHeader, clickedButton, lowerModel.id);
                 } else {
-                    // If retry also fails, show the error
-                    resultArea.innerHTML = `<div class="eksi-ai-warning">Hata: ${escapeHtml(retryErr.message)}</div>`;
+                    // If retry fails with a different error, show the error
+                    resultArea.innerHTML = `<div class="eksi-ai-warning">Hata: ${escapeHtml(retryErrorMessage)}</div>`;
                 }
             }
         };
