@@ -1,118 +1,16 @@
 /**
  * @fileoverview Ekşi Sözlük AI Analiz - Sabit Değerler, Yapılandırma ve API Yardımcı Fonksiyonları
  * 
- * Bu dosya eklentinin tüm sabit değerlerini ve ortak API fonksiyonlarını içerir:
- * - SYSTEM_PROMPT: Gemini API'ye gönderilen sistem promptu
- * - DEFAULT_PROMPTS: Varsayılan analiz butonları ve promptları
+ * Bu dosya eklentinin sabit değerlerini ve ortak API fonksiyonlarını içerir:
  * - MODELS: Desteklenen Gemini model listesi
  * - escapeHtml: XSS koruması için yardımcı fonksiyon
  * - checkModelAvailability: Model availability ve quota kontrolü için ortak fonksiyon
  * 
- * Bu dosya manifest.json'da content.js, options.js ve model-select.js'den
- * önce yüklenir, böylece tüm sabitler ve ortak fonksiyonlar bu dosyalarda kullanılabilir.
- */
-
-// =============================================================================
-// SİSTEM PROMPTU
-// =============================================================================
-
-/**
- * Gemini API'ye gönderilen sistem promptu.
- * Model davranışını, çıktı formatını ve entry referans stilini belirler.
+ * Prompt tanımları için bkz: prompts.js
  * 
- * @constant {string}
+ * Bu dosya manifest.json'da prompts.js'den sonra, content.js, options.js ve 
+ * model-select.js'den önce yüklenir.
  */
-const SYSTEM_PROMPT = `Sen Ekşi Sözlük entry'lerini analiz eden bir yapay zeka asistanısın.
-
-## Veri Formatı
-Sana verilen entry'ler JSON formatındadır. Her entry şu alanları içerir:
-- id: Entry'nin benzersiz kimliği
-- author: Entry'yi yazan insan (yazar)
-- date: Entry'nin yazılma zamanı
-- content: Entry içeriği
-- referenced_entries: (varsa) Entry içinde referans verilen diğer entry'lerin içerikleri
-
-## Markdown Entry Linkleri
-Cevabında entry'lere referans verebilirsin (alıntı yapabilirsin). Link formatı:
-- URL formatı: https://eksisozluk.com/entry/{entry_id}
-- entry_id değerini JSON verisindeki "id" alanından al
-- Markdown link formatı: [açıklayıcı metin](https://eksisozluk.com/entry/{entry_id})
-- "açıklayıcı metin" cevabında yer alan bir metin olmalıdır. "açıklayıcı metin" entry'nin içeriği ile alakalı olmalıdır.
-- Örnek: [bu entry](https://eksisozluk.com/entry/000000001)`;
-
-// =============================================================================
-// VARSAYILAN PROMPTLAR
-// =============================================================================
-
-/**
- * Varsayılan analiz butonları ve promptları.
- * Kullanıcı ayarlarında özelleştirilebilir, sıfırlandığında bu değerlere döner.
- * 
- * Her prompt objesi şu alanları içerir:
- * - name: Buton üzerinde görüntülenen metin
- * - prompt: Gemini API'ye gönderilen prompt metni
- * 
- * @constant {Array<{name: string, prompt: string}>}
- */
-const DEFAULT_PROMPTS = [
-    {
-        name: "Özet",
-        prompt: `Bu entry'leri analiz ederek kapsamlı bir özet hazırla.
-
-## Görev:
-- Ana konuları ve tartışma başlıklarını belirle
-- Farklı görüşler ve fikir ayrılıklarını dengeli bir şekilde sun
-- Mizahi, ironik veya dikkat çekici entry'leri vurgula
-- Özgün ve derinlemesine görüşleri öne çıkar
-- Entry'lerin kronolojik veya tematik akışını göz önünde bulundur
-
-## Format ve Dil:
-- Markdown formatında yaz (başlıklar, listeler, vurgular kullan)
-- Bilgi verici, tarafsız ve profesyonel bir dil kullan
-- Akıcı ve okunabilir bir metin oluştur
-- Gereksiz spekülasyon veya çıkarımdan kaçın
-- Entry'lerden bol bol alıntı yap
-
-## Çıktı:
-- Yanıtın sadece özet metni olsun, ek açıklama veya meta bilgi içermesin.`
-    },
-    {
-        name: "Blog",
-        prompt: `Bu entry'lere dayalı, kapsamlı ve okunabilir bir blog yazısı yaz.
-
-## Görev
-Entry'lerdeki farklı görüşleri, deneyimleri, mizahı ve eleştirileri sentezleyerek, konuyu derinlemesine ele alan bir blog yazısı oluştur.
-
-## Yazı Üslubu ve Stil
-- Akıcı, samimi ve erişilebilir bir dil kullan
-- Analitik ve düşündürücü ol, ancak akademik bir üsluptan kaçın
-- Farklı perspektifleri dengeli bir şekilde sun
-- Gerektiğinde örnekler, anekdotlar ve ilginç detaylar ekle
-- Spekülasyondan kaçın, yalnızca entry'lerdeki bilgileri kullan
-
-## İçerik Yapısı
-1. Giriş: Konuyu kısa bir özetle tanıt ve entry'lerden çıkan ana temaları belirt
-2. Gelişme: Farklı bakış açılarını, görüşleri ve deneyimleri kategorize ederek sun
-3. Sonuç: Genel gözlemler ve öne çıkan noktaları özetle
-
-## Alıntı Formatı
-Her alıntı şu formatta olsun:
-> Entry içeriği
-> - yazar - [tarih](https://eksisozluk.com/entry/entry_id)
-
-**Not:** Entry içeriğini kısaltabilirsin.
-
-## Çıktı Formatı
-- Yanıt YALNIZCA blog yazısı olsun (Markdown formatında)
-- Başlık, alt başlıklar ve paragrafları uygun şekilde formatla
-- Entry'lerden bol bol alıntı yap, farklı görüşleri yansıt
-- Her alıntıda yazar, tarih ve link bilgilerini mutlaka ekle`
-    },
-    {
-        name: "Şiir",
-        prompt: `Şiir yaz`
-    }
-];
 
 // =============================================================================
 // GEMİNİ MODEL LİSTESİ
@@ -196,14 +94,14 @@ const MODELS = [
  */
 const escapeHtml = (str) => {
     if (!str) return '';
-    
+
     // Tarayıcı ortamında DOM API kullan (daha güvenli ve hızlı)
     if (typeof document !== 'undefined') {
         const div = document.createElement('div');
         div.textContent = str;
         return div.innerHTML;
     }
-    
+
     // Node.js veya diğer ortamlarda manuel escape
     return str
         .replace(/&/g, '&amp;')
@@ -211,43 +109,6 @@ const escapeHtml = (str) => {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
-};
-
-// =============================================================================
-// TEST PROMPT'LARI
-// =============================================================================
-
-/**
- * Model availability kontrolü için kullanılan eğlenceli test prompt'ları.
- * Her prompt eklentiyi tanıtır ve eğlenceli bir soru/istek içerir.
- * 
- * @constant {Array<string>}
- */
-const TEST_PROMPTS = [
-    `Merhaba! Ben Ekşi Sözlük AI Analiz tarayıcı eklentisiyim. Ekşi Sözlük entry'lerini toplayıp Gemini AI ile analiz ediyorum. Kullanıcılar için özet, blog yazısı ve özel prompt'larla analiz yapabiliyorum. Şimdi bir test yapıyorum - bana kısa bir şaka yapabilir misin?`,
-    
-    `Selam! Ekşi Sözlük AI Analiz eklentisiyim. Ekşi Sözlük başlıklarındaki entry'leri toplayıp Gemini AI ile analiz ederek özet ve blog yazıları oluşturuyorum. Ayrıca kullanıcılar özel prompt'lar da yazabiliyor. Test için buradayım - bana 3 emoji ile bir hikaye anlatabilir misin?`,
-    
-    `Hey! Ben bir tarayıcı eklentisiyim ve Ekşi Sözlük entry'lerini yapay zeka ile analiz ediyorum. Gemini AI kullanarak entry'lerden özet, blog yazısı ve daha fazlasını oluşturuyorum. Şu anda model kontrolü yapıyorum - en sevdiğin programlama dilini ve nedenini kısaca söyleyebilir misin?`,
-    
-    `Merhaba Gemini! Ekşi Sözlük AI Analiz eklentisiyim. Ekşi Sözlük'teki entry'leri toplayıp seninle analiz ediyorum. Kullanıcılar için özet, blog ve özel prompt desteği sunuyorum. Test için buradayım - bana kısa bir haiku yazabilir misin? (5-7-5 hece)`,
-    
-    `Selam! Ben Ekşi Sözlük entry'lerini analiz eden bir tarayıcı eklentisiyim. Gemini AI ile çalışarak entry'lerden özet ve blog yazıları oluşturuyorum. Özel prompt desteğim de var. Şimdi bir test yapıyorum - bana bir tarayıcı eklentisi hakkında kısa bir şiir yazabilir misin?`,
-    
-    `Hey Gemini! Ekşi Sözlük AI Analiz eklentisiyim. Ekşi Sözlük başlıklarındaki entry'leri toplayıp seninle analiz ediyorum. Özet, blog ve özel prompt'lar ile kullanıcılara yardımcı oluyorum. Test için buradayım - bana yapay zeka hakkında komik bir one-liner söyleyebilir misin?`,
-    
-    `Merhaba! Ben Ekşi Sözlük entry'lerini analiz eden bir tarayıcı eklentisiyim. Gemini AI kullanarak entry'lerden özet, blog yazısı ve daha fazlasını oluşturuyorum. Kullanıcılar özel prompt'lar da yazabiliyor. Şu anda model kontrolü yapıyorum - bana "eklenti" kelimesiyle ilgili kısa bir kelime oyunu yapabilir misin?`,
-    
-    `Selam Gemini! Ekşi Sözlük AI Analiz eklentisiyim. Ekşi Sözlük'teki entry'leri toplayıp seninle analiz ediyorum. Özet, blog ve özel prompt desteği sunuyorum. Test için buradayım - bana bir AI asistanı ve bir tarayıcı eklentisinin sohbetini kısa bir diyalog olarak yazabilir misin?`
-];
-
-/**
- * Rastgele bir test prompt'u seçer.
- * 
- * @returns {string} Rastgele seçilmiş test prompt'u
- */
-const getRandomTestPrompt = () => {
-    return TEST_PROMPTS[Math.floor(Math.random() * TEST_PROMPTS.length)];
 };
 
 // =============================================================================
@@ -283,11 +144,11 @@ const checkModelAvailability = async (apiKey, modelId, checkQuota = true) => {
         // Model bazlı API versiyonu belirleme (constants.js'den al)
         const model = MODELS.find(m => m.id === modelId);
         const apiVersion = model?.apiVersion || 'v1';
-        
+
         // Model listesinden kontrol et
         const modelsUrl = `https://generativelanguage.googleapis.com/${apiVersion}/models?key=${apiKey}`;
         const modelsResponse = await fetch(modelsUrl);
-        
+
         if (!modelsResponse.ok) {
             const errorData = await modelsResponse.json().catch(() => ({}));
             const errorMsg = errorData.error?.message || 'Model listesi alınamadı';
@@ -300,7 +161,7 @@ const checkModelAvailability = async (apiKey, modelId, checkQuota = true) => {
             const modelName = m.name.replace('models/', '');
             return modelName === modelId;
         });
-        
+
         if (!modelExists) {
             return { available: false, error: 'Model bulunamadı veya erişilemiyor' };
         }
@@ -330,23 +191,23 @@ const checkModelAvailability = async (apiKey, modelId, checkQuota = true) => {
                     // Quota yeterli, cevabı al
                     const testData = await testResponse.json();
                     const responseText = testData.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                    
-                    return { 
-                        available: true, 
+
+                    return {
+                        available: true,
                         quotaExceeded: false,
                         response: responseText.trim()
                     };
                 } else {
                     const errorData = await testResponse.json().catch(() => ({}));
                     const errorMsg = errorData.error?.message || 'Test isteği başarısız';
-                    
+
                     // Quota/rate limit hatalarını kontrol et
-                    if (errorMsg.includes('quota') || errorMsg.includes('Quota exceeded') || 
+                    if (errorMsg.includes('quota') || errorMsg.includes('Quota exceeded') ||
                         errorMsg.includes('rate limit') || errorMsg.includes('Rate limit') ||
                         errorMsg.includes('RESOURCE_EXHAUSTED') || errorMsg.includes('429')) {
                         return { available: true, quotaExceeded: true, error: 'Quota limiti aşıldı' };
                     }
-                    
+
                     // Diğer hatalar
                     return { available: true, quotaExceeded: false, error: errorMsg };
                 }

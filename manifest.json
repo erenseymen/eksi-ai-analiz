@@ -22,6 +22,7 @@
                 "https://eksisozluk.com/*"
             ],
             "js": [
+                "src/prompts.js",
                 "src/constants.js",
                 "src/content.js"
             ],
