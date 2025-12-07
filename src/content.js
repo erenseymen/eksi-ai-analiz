@@ -1674,7 +1674,13 @@ const getLowerModel = (currentModelId) => {
 const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, showPromptHeader, clickedButton) => {
     const settings = await getSettings();
     const currentModelId = settings.selectedModel || 'gemini-2.5-flash';
-    const lowerModel = getLowerModel(currentModelId);
+    let lowerModel = getLowerModel(currentModelId);
+    
+    // Özel durum: gemini-2.5-flash-lite kullanılıyorsa ve alt model yoksa,
+    // gemini-2.5-flash ile denemeyi öner
+    if (!lowerModel && currentModelId === 'gemini-2.5-flash-lite') {
+        lowerModel = MODELS.find(m => m.id === 'gemini-2.5-flash');
+    }
     
     // Create modal overlay
     const overlay = document.createElement('div');
