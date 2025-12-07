@@ -1768,6 +1768,17 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
         }
     };
     
+    // Close on Escape key (yalnızca bu modal açıkken)
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            closeModal();
+            document.removeEventListener('keydown', handleEscape, true);
+        }
+    };
+    document.addEventListener('keydown', handleEscape, true);
+    
     // Retry button - only if lower model is available
     if (retryBtn && lowerModel) {
         retryBtn.onclick = async () => {
@@ -1871,7 +1882,7 @@ ${userPrompt}`;
  * Özel prompt giriş modalını açar.
  * 
  * Kullanıcının kendi promptunu yazabileceği bir modal pencere gösterir.
- * Ctrl+Enter ile gönderme destekler.
+ * Ctrl+Enter ile gönderme, Escape ile kapatma destekler (yalnızca modal açıkken).
  * 
  * @param {HTMLElement|null} [customButton=null] - Modal kapandığında seçili görünecek buton
  * @param {string|null} [prefillPrompt=null] - Textarea'yı önceden dolduracak prompt metni
@@ -1944,6 +1955,7 @@ const openCustomPromptModal = (customButton = null, prefillPrompt = null, mainBu
     // Close modal function
     const closeModal = () => {
         overlay.remove();
+        document.removeEventListener('keydown', handleEscape, true);
     };
 
     // Cancel button
@@ -1955,6 +1967,16 @@ const openCustomPromptModal = (customButton = null, prefillPrompt = null, mainBu
             closeModal();
         }
     };
+
+    // Close on Escape key (yalnızca bu modal açıkken)
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            closeModal();
+        }
+    };
+    document.addEventListener('keydown', handleEscape, true);
 
     // Submit button
     submitBtn.onclick = () => {
