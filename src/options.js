@@ -161,7 +161,7 @@ const saveOptions = async () => {
     };
 
     // Chrome storage'a kaydet
-    chrome.storage.sync.set(settings, () => {
+    chrome.storage.sync.set(settings, async () => {
         status.textContent = 'Ayarlar kaydedildi.';
         status.className = 'status success';
         setTimeout(() => {
@@ -172,6 +172,12 @@ const saveOptions = async () => {
 
         // State tutarlılığı için listeyi yeniden render et
         renderPrompts();
+        
+        // Cache'i temizle ve tüm modellerin durumunu güncelle
+        modelAvailabilityCache.clear();
+        lastAvailabilityCheck = 0;
+        await updateAllModelsStatus();
+        setupRefreshButton();
     });
 };
 
@@ -199,13 +205,18 @@ const restoreOptions = async () => {
                 : DEFAULT_PROMPTS;
 
             // UI bileşenlerini doldur
-            populateModelSelect(items.selectedModel);
+            await populateModelSelect(items.selectedModel);
             renderPrompts();
             
             // Mevcut API anahtarını doğrula
             if (items.geminiApiKey) {
                 await validateApiKey(items.geminiApiKey, true);
+                // Tüm modellerin durumunu göster
+                await updateAllModelsStatus();
             }
+            
+            // Yenile butonunu ayarla
+            setupRefreshButton();
         }
     );
 };
@@ -215,14 +226,95 @@ const restoreOptions = async () => {
 // =============================================================================
 
 /**
+ * Model availability durumunu kontrol eder.
+ * 
+ * Model listesinden kontrol eder. Test isteği yapmaz çünkü quota kullanır.
+ * Gerçek kullanım sırasında zaten hata mesajları alınacaktır.
+ * 
+ * @param {string} apiKey - Gemini API anahtarı
+ * @param {string} modelId - Kontrol edilecek model ID'si
+ * @returns {Promise<{available: boolean, error?: string}>} Model availability durumu
+ */
+const checkModelAvailability = async (apiKey, modelId) => {
+    if (!apiKey || !apiKey.trim()) {
+        return { available: false, error: 'API Key bulunamadı' };
+    }
+
+    try {
+        // Model listesinden kontrol et
+        const modelsUrl = `https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`;
+        const modelsResponse = await fetch(modelsUrl);
+        
+        if (!modelsResponse.ok) {
+            const errorData = await modelsResponse.json().catch(() => ({}));
+            const errorMsg = errorData.error?.message || 'Model listesi alınamadı';
+            return { available: false, error: errorMsg };
+        }
+
+        const modelsData = await modelsResponse.json();
+        const modelExists = modelsData.models?.some(m => {
+            // Model name formatı: "models/gemini-2.5-pro" veya sadece "gemini-2.5-pro"
+            const modelName = m.name.replace('models/', '');
+            return modelName === modelId;
+        });
+        
+        if (!modelExists) {
+            return { available: false, error: 'Model bulunamadı veya erişilemiyor' };
+        }
+
+        // Model mevcut
+        return { available: true };
+    } catch (error) {
+        return { available: false, error: error.message };
+    }
+};
+
+/**
+ * Tüm modellerin availability durumunu kontrol eder ve cache'ler.
+ * 
+ * @param {string} apiKey - Gemini API anahtarı
+ * @returns {Promise<Map<string, {available: boolean, error?: string}>>} Model availability durumları
+ */
+let modelAvailabilityCache = new Map();
+let lastAvailabilityCheck = 0;
+const AVAILABILITY_CACHE_DURATION = 60000; // 1 dakika
+
+const checkAllModelsAvailability = async (apiKey) => {
+    const now = Date.now();
+    
+    // Cache kontrolü
+    if (now - lastAvailabilityCheck < AVAILABILITY_CACHE_DURATION && modelAvailabilityCache.size > 0) {
+        return modelAvailabilityCache;
+    }
+
+    // Tüm modelleri kontrol et
+    const availabilityMap = new Map();
+    
+    // Paralel olarak tüm modelleri kontrol et
+    const checkPromises = MODELS.map(async (model) => {
+        const result = await checkModelAvailability(apiKey, model.id);
+        availabilityMap.set(model.id, result);
+    });
+    
+    await Promise.all(checkPromises);
+    
+    // Cache'i güncelle
+    modelAvailabilityCache = availabilityMap;
+    lastAvailabilityCheck = now;
+    
+    return availabilityMap;
+};
+
+/**
  * Model seçim dropdown'ını MODELS listesiyle doldurur.
  * 
  * Seçim değiştiğinde model bilgilerini (açıklama, maliyet, yanıt süresi)
  * günceller. Sayfa yüklendiğinde kaydedilmiş modeli seçili olarak işaretler.
+ * Model availability durumunu da gösterir.
  * 
  * @param {string} savedModelId - Önceden kaydedilmiş model ID'si
  */
-const populateModelSelect = (savedModelId) => {
+const populateModelSelect = async (savedModelId) => {
     const select = document.getElementById('modelSelect');
     const infoDiv = document.getElementById('modelInfo');
 
@@ -242,28 +334,126 @@ const populateModelSelect = (savedModelId) => {
     /**
      * Model bilgi alanını günceller.
      * Seçili modelin detaylarını info div'inde gösterir.
+     * Model availability durumunu da gösterir.
      */
-    const updateInfo = () => {
+    const updateInfo = async () => {
         const selectedId = select.value;
         const model = MODELS.find(m => m.id === selectedId);
-        if (model) {
+        if (!model) return;
+
+        const apiKey = document.getElementById('apiKey').value;
+        
+        // Availability durumunu göster
+        let availabilityHtml = '';
+        if (apiKey && apiKey.trim()) {
+            // Loading durumu
             infoDiv.innerHTML = `
                 <strong>${model.name}</strong><br>
                 ${model.description}<br>
                 <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ccc;">
                     <small><strong>Maliyet:</strong> ${model.cost}</small><br>
                     <small><strong>Yanıt Süresi:</strong> ${model.responseTime}</small><br>
-                    <small><strong>Bağlam Penceresi:</strong> ${new Intl.NumberFormat('tr-TR').format(model.contextWindow)} token (yaklaşık 10.000 entry)</small>
+                    <small><strong>Bağlam Penceresi:</strong> ${new Intl.NumberFormat('tr-TR').format(model.contextWindow)} token (yaklaşık 10.000 entry)</small><br>
+                    <small style="color: #666;">API durumu kontrol ediliyor...</small>
                 </div>
             `;
+
+            // Availability kontrolü yap
+            const availability = await checkModelAvailability(apiKey, selectedId);
+            
+            if (availability.available) {
+                availabilityHtml = `<small style="color: #5cb85c;"><strong>API Durumu:</strong> ✅ Kullanılabilir</small>`;
+            } else {
+                availabilityHtml = `<small style="color: #d9534f;"><strong>API Durumu:</strong> ❌ Kullanılamıyor${availability.error ? ` (${availability.error})` : ''}</small>`;
+            }
+        } else {
+            availabilityHtml = `<small style="color: #999;"><strong>API Durumu:</strong> API Key gerekli</small>`;
         }
+
+        infoDiv.innerHTML = `
+            <strong>${model.name}</strong><br>
+            ${model.description}<br>
+            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ccc;">
+                <small><strong>Maliyet:</strong> ${model.cost}</small><br>
+                <small><strong>Yanıt Süresi:</strong> ${model.responseTime}</small><br>
+                <small><strong>Bağlam Penceresi:</strong> ${new Intl.NumberFormat('tr-TR').format(model.contextWindow)} token (yaklaşık 10.000 entry)</small><br>
+                ${availabilityHtml}
+            </div>
+        `;
     };
 
     // İlk yüklemede bilgiyi göster
-    updateInfo();
+    await updateInfo();
 
     // Seçim değişikliklerini dinle
     select.addEventListener('change', updateInfo);
+    
+    // API Key değiştiğinde availability'yi yeniden kontrol et
+    const apiKeyInput = document.getElementById('apiKey');
+    apiKeyInput.addEventListener('blur', async () => {
+        // Cache'i temizle
+        modelAvailabilityCache.clear();
+        lastAvailabilityCheck = 0;
+        await updateInfo();
+        await updateAllModelsStatus();
+    });
+};
+
+/**
+ * Tüm modellerin availability durumunu gösterir.
+ */
+const updateAllModelsStatus = async () => {
+    const statusDiv = document.getElementById('allModelsStatus');
+    const statusList = document.getElementById('modelsStatusList');
+    
+    if (!statusDiv || !statusList) return;
+    
+    const apiKey = document.getElementById('apiKey').value;
+    
+    if (!apiKey || !apiKey.trim()) {
+        statusDiv.style.display = 'none';
+        return;
+    }
+    
+    statusDiv.style.display = 'block';
+    statusList.innerHTML = '<div style="color: #666;">Kontrol ediliyor...</div>';
+    
+    // Tüm modelleri kontrol et
+    const availabilityMap = await checkAllModelsAvailability(apiKey);
+    
+    // Durumları göster
+    let statusHtml = '';
+    MODELS.forEach(model => {
+        const availability = availabilityMap.get(model.id);
+        if (!availability) {
+            statusHtml += `<div style="padding: 8px; margin-bottom: 5px; border-left: 3px solid #999; background: #f5f5f5;">
+                <strong>${model.name}</strong><br>
+                <small style="color: #999;">Kontrol edilemedi</small>
+            </div>`;
+        } else if (availability.available) {
+            statusHtml += `<div style="padding: 8px; margin-bottom: 5px; border-left: 3px solid #5cb85c; background: #f5f5f5;">
+                <strong>${model.name}</strong><br>
+                <small style="color: #5cb85c;"><strong>✅ Kullanılabilir</strong></small>
+            </div>`;
+        } else {
+            statusHtml += `<div style="padding: 8px; margin-bottom: 5px; border-left: 3px solid #d9534f; background: #f5f5f5;">
+                <strong>${model.name}</strong><br>
+                <small style="color: #d9534f;"><strong>❌ Kullanılamıyor</strong>${availability.error ? ` - ${availability.error}` : ''}</small>
+            </div>`;
+        }
+    });
+    
+    statusList.innerHTML = statusHtml;
+};
+
+/**
+ * Yenile butonuna tıklandığında tüm modellerin durumunu yeniden kontrol eder.
+ */
+const refreshAllModelsStatus = async () => {
+    // Cache'i temizle
+    modelAvailabilityCache.clear();
+    lastAvailabilityCheck = 0;
+    await updateAllModelsStatus();
 };
 
 // =============================================================================
@@ -481,3 +671,15 @@ document.getElementById('apiKey').addEventListener('blur', async (e) => {
  * Sistem promptu kopyalama butonuna tıklandığında panoya kopyala.
  */
 document.getElementById('copySystemPromptBtn').addEventListener('click', copySystemPrompt);
+
+/**
+ * Tüm modellerin durumunu yenile butonuna tıklandığında durumu yeniden kontrol et.
+ */
+const setupRefreshButton = () => {
+    const refreshBtn = document.getElementById('refreshModelsStatus');
+    if (refreshBtn) {
+        // Önceki listener'ı kaldır (varsa)
+        refreshBtn.replaceWith(refreshBtn.cloneNode(true));
+        document.getElementById('refreshModelsStatus').addEventListener('click', refreshAllModelsStatus);
+    }
+};
