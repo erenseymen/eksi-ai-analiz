@@ -185,10 +185,7 @@ const saveOptions = async () => {
         // State tutarlılığı için listeyi yeniden render et
         renderPrompts();
         
-        // API key değiştiyse tüm modellerin durumunu güncelle
-        if (apiKeyChanged && apiKey && apiKey.trim()) {
-            await updateAllModelsStatus();
-        }
+        // API key değiştiyse tüm modellerin durumunu güncelleme - artık sadece buton ile yapılıyor
         // API key değişmediyse, sadece model seçimine göre UI'daki butonları güncelle
         else if (!isCheckingModels) {
             // Seçilen modelin satırını güncelle
@@ -270,8 +267,7 @@ const restoreOptions = async () => {
             // Mevcut API anahtarını doğrula
             if (items.geminiApiKey) {
                 await validateApiKey(items.geminiApiKey, true);
-                // Tüm modellerin durumunu göster
-                await updateAllModelsStatus();
+                // Tüm modellerin durumunu gösterme - artık sadece buton ile yapılıyor
             }
             
             // Yenile butonunu ayarla
@@ -818,10 +814,8 @@ document.getElementById('apiKey').addEventListener('blur', async (e) => {
     const apiKey = e.target.value.trim();
     if (apiKey) {
         const validation = await validateApiKey(apiKey, true);
-        // API key geçerliyse tüm modellerin durumunu göster
-        if (validation.valid) {
-            await updateAllModelsStatus();
-        }
+        // API key doğrulaması yapıldı, ancak modellerin durumunu otomatik gösterme
+        // Kullanıcı "Yenile" butonuna basarak manuel olarak kontrol edebilir
     } else {
         // Boş input'ta doğrulama sınıflarını kaldır ve modeller durumunu gizle
         e.target.classList.remove('valid', 'invalid');
