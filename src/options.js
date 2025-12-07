@@ -256,9 +256,14 @@ const restoreOptions = async () => {
             document.getElementById('apiKey').value = items.geminiApiKey;
             
             // Prompt listesini yükle (boşsa varsayılanları kullan)
-            prompts = (items.prompts && items.prompts.length > 0) 
-                ? items.prompts 
-                : DEFAULT_PROMPTS;
+            if (items.prompts && items.prompts.length > 0) {
+                prompts = items.prompts;
+            } else if (typeof DEFAULT_PROMPTS !== 'undefined' && DEFAULT_PROMPTS.length > 0) {
+                prompts = DEFAULT_PROMPTS;
+            } else {
+                // DEFAULT_PROMPTS henüz yüklenmemişse, boş dizi kullan
+                prompts = [];
+            }
 
             // UI bileşenlerini doldur
             await populateModelSelect(items.selectedModel);
@@ -623,9 +628,21 @@ const useModelInSettings = async (modelId) => {
  */
 const renderPrompts = () => {
     const list = document.getElementById('promptsList');
+    if (!list) {
+        console.error('promptsList elementi bulunamadı');
+        return;
+    }
+    
     list.innerHTML = '';
 
-    prompts.forEach((item, index) => {
+    // prompts dizisi boşsa veya undefined ise, DEFAULT_PROMPTS'u kullan
+    const promptsToRender = (prompts && prompts.length > 0) 
+        ? prompts 
+        : (typeof DEFAULT_PROMPTS !== 'undefined' && DEFAULT_PROMPTS.length > 0) 
+            ? DEFAULT_PROMPTS 
+            : [];
+
+    promptsToRender.forEach((item, index) => {
         const div = document.createElement('div');
         div.className = 'prompt-item';
 
@@ -649,6 +666,11 @@ const renderPrompts = () => {
         
         list.appendChild(div);
     });
+    
+    // prompts dizisini güncelle (eğer DEFAULT_PROMPTS kullanıldıysa)
+    if ((!prompts || prompts.length === 0) && promptsToRender.length > 0 && typeof DEFAULT_PROMPTS !== 'undefined') {
+        prompts = [...promptsToRender];
+    }
 };
 
 /**
