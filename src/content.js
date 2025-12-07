@@ -2074,7 +2074,9 @@ ${userPrompt}`;
     if (compareBtn && modelResults.size > 0) {
         compareBtn.style.display = 'block';
         compareBtn.onclick = () => {
-            showCompareResultsModal(modelResults, overlay);
+            // Ana modal'ın Escape handler'ını geçici olarak kaldır
+            document.removeEventListener('keydown', handleEscape, true);
+            showCompareResultsModal(modelResults, overlay, handleEscape);
         };
     }
 };
@@ -2084,8 +2086,9 @@ ${userPrompt}`;
  * 
  * @param {Map<string, string>} modelResults - Model ID'leri ve cevapları
  * @param {HTMLElement} parentOverlay - Ana modal overlay (kapatılacak)
+ * @param {Function} parentEscapeHandler - Ana modal'ın Escape handler'ı (tekrar eklemek için)
  */
-const showCompareResultsModal = (modelResults, parentOverlay) => {
+const showCompareResultsModal = (modelResults, parentOverlay, parentEscapeHandler) => {
     // Ana modal'ı gizle (kaldırma, sadece gizle)
     parentOverlay.style.display = 'none';
     
@@ -2148,6 +2151,10 @@ const showCompareResultsModal = (modelResults, parentOverlay) => {
         overlay.remove();
         // Ana modal'ı tekrar göster
         parentOverlay.style.display = '';
+        // Ana modal'ın Escape handler'ını tekrar ekle
+        if (parentEscapeHandler) {
+            document.addEventListener('keydown', parentEscapeHandler, true);
+        }
     };
     
     const closeBtn = document.getElementById('eksi-ai-compare-modal-close');
