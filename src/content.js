@@ -1988,8 +1988,27 @@ ${userPrompt}`;
                 // Buton event listener ekle
                 const useBtn = modelRow.querySelector('.eksi-ai-use-model-btn');
                 useBtn.onclick = async () => {
+                    // Escape listener'ını kaldır (modal kapatılmadan önce)
+                    document.removeEventListener('keydown', handleEscape, true);
+                    
                     // Modal'ı kapat
                     overlay.remove();
+                    
+                    // Mark clicked button as selected (if available)
+                    if (clickedButton) {
+                        // Find container from clickedButton
+                        const container = clickedButton.closest('#eksi-ai-container, #eksi-ai-entry-container');
+                        // Find actions container within the same container as the button
+                        const actionsContainer = container 
+                            ? container.querySelector('.eksi-ai-actions')
+                            : clickedButton.closest('.eksi-ai-actions');
+                        if (actionsContainer) {
+                            actionsContainer.querySelectorAll('.eksi-ai-btn').forEach(btn => {
+                                btn.classList.remove('eksi-ai-btn-selected');
+                            });
+                        }
+                        clickedButton.classList.add('eksi-ai-btn-selected');
+                    }
                     
                     // Sonucu göster
                     resultArea.style.display = 'block';
