@@ -1713,18 +1713,26 @@ const getLowerModel = (currentModelId) => {
 /**
  * Model availability ve quota durumunu kontrol eder.
  * 
+ * Önce model listesinden kontrol eder, sonra küçük bir test isteği yaparak
+ * quota durumunu kontrol eder.
+ * 
  * @param {string} apiKey - Gemini API anahtarı
  * @param {string} modelId - Kontrol edilecek model ID'si
+ * @param {boolean} [checkQuota=true] - Quota kontrolü yapılsın mı (opsiyonel)
  * @returns {Promise<{available: boolean, quotaExceeded?: boolean, error?: string}>} Model availability durumu
  */
-const checkModelAvailability = async (apiKey, modelId) => {
+const checkModelAvailability = async (apiKey, modelId, checkQuota = true) => {
     if (!apiKey || !apiKey.trim()) {
         return { available: false, error: 'API Key bulunamadı' };
     }
 
     try {
+        // Model bazlı API versiyonu belirleme (constants.js'den al)
+        const model = MODELS.find(m => m.id === modelId);
+        const apiVersion = model?.apiVersion || 'v1';
+        
         // Model listesinden kontrol et
-        const modelsUrl = `https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`;
+        const modelsUrl = `https://generativelanguage.googleapis.com/${apiVersion}/models?key=${apiKey}`;
         const modelsResponse = await fetch(modelsUrl);
         
         if (!modelsResponse.ok) {
@@ -1735,6 +1743,7 @@ const checkModelAvailability = async (apiKey, modelId) => {
 
         const modelsData = await modelsResponse.json();
         const modelExists = modelsData.models?.some(m => {
+            // Model name formatı: "models/gemini-2.5-pro" veya sadece "gemini-2.5-pro"
             const modelName = m.name.replace('models/', '');
             return modelName === modelId;
         });
@@ -1744,41 +1753,49 @@ const checkModelAvailability = async (apiKey, modelId) => {
         }
 
         // Model mevcut, quota kontrolü yap
-        try {
-            // Küçük bir test isteği yaparak quota durumunu kontrol et
-            const testUrl = `https://generativelanguage.googleapis.com/v1/models/${modelId}:generateContent?key=${apiKey}`;
-            const testResponse = await fetch(testUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [{
-                            text: 'test'
+        if (checkQuota) {
+            try {
+                // Küçük bir test isteği yaparak quota durumunu kontrol et
+                const testUrl = `https://generativelanguage.googleapis.com/${apiVersion}/models/${modelId}:generateContent?key=${apiKey}`;
+                const testResponse = await fetch(testUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: 'test'
+                            }]
                         }]
-                    }]
-                })
-            });
+                    })
+                });
 
-            if (testResponse.ok) {
-                return { available: true, quotaExceeded: false };
-            } else {
-                const errorData = await testResponse.json().catch(() => ({}));
-                const errorMsg = errorData.error?.message || 'Test isteği başarısız';
-                
-                // Quota/rate limit hatalarını kontrol et
-                if (errorMsg.includes('quota') || errorMsg.includes('Quota exceeded') || 
-                    errorMsg.includes('rate limit') || errorMsg.includes('Rate limit') ||
-                    errorMsg.includes('RESOURCE_EXHAUSTED') || errorMsg.includes('429')) {
-                    return { available: true, quotaExceeded: true, error: 'Quota limiti aşıldı' };
+                if (testResponse.ok) {
+                    // Quota yeterli
+                    return { available: true, quotaExceeded: false };
+                } else {
+                    const errorData = await testResponse.json().catch(() => ({}));
+                    const errorMsg = errorData.error?.message || 'Test isteği başarısız';
+                    
+                    // Quota/rate limit hatalarını kontrol et
+                    if (errorMsg.includes('quota') || errorMsg.includes('Quota exceeded') || 
+                        errorMsg.includes('rate limit') || errorMsg.includes('Rate limit') ||
+                        errorMsg.includes('RESOURCE_EXHAUSTED') || errorMsg.includes('429')) {
+                        return { available: true, quotaExceeded: true, error: 'Quota limiti aşıldı' };
+                    }
+                    
+                    // Diğer hatalar
+                    return { available: true, quotaExceeded: false, error: errorMsg };
                 }
-                
-                return { available: true, quotaExceeded: false, error: errorMsg };
+            } catch (testError) {
+                // Test isteği hatası, ama model mevcut
+                return { available: true, quotaExceeded: false, error: testError.message };
             }
-        } catch (testError) {
-            return { available: true, quotaExceeded: false, error: testError.message };
         }
+
+        // Quota kontrolü yapılmadı, sadece model mevcut
+        return { available: true, quotaExceeded: false };
     } catch (error) {
         return { available: false, error: error.message };
     }
