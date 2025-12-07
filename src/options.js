@@ -226,16 +226,17 @@ const restoreOptions = async () => {
 // =============================================================================
 
 /**
- * Model availability durumunu kontrol eder.
+ * Model availability ve quota durumunu kontrol eder.
  * 
- * Model listesinden kontrol eder. Test isteği yapmaz çünkü quota kullanır.
- * Gerçek kullanım sırasında zaten hata mesajları alınacaktır.
+ * Önce model listesinden kontrol eder, sonra küçük bir test isteği yaparak
+ * quota durumunu kontrol eder.
  * 
  * @param {string} apiKey - Gemini API anahtarı
  * @param {string} modelId - Kontrol edilecek model ID'si
- * @returns {Promise<{available: boolean, error?: string}>} Model availability durumu
+ * @param {boolean} [checkQuota=true] - Quota kontrolü yapılsın mı (opsiyonel)
+ * @returns {Promise<{available: boolean, quotaExceeded?: boolean, error?: string}>} Model availability durumu
  */
-const checkModelAvailability = async (apiKey, modelId) => {
+const checkModelAvailability = async (apiKey, modelId, checkQuota = true) => {
     if (!apiKey || !apiKey.trim()) {
         return { available: false, error: 'API Key bulunamadı' };
     }
@@ -262,8 +263,50 @@ const checkModelAvailability = async (apiKey, modelId) => {
             return { available: false, error: 'Model bulunamadı veya erişilemiyor' };
         }
 
-        // Model mevcut
-        return { available: true };
+        // Model mevcut, quota kontrolü yap
+        if (checkQuota) {
+            try {
+                // Küçük bir test isteği yaparak quota durumunu kontrol et
+                const testUrl = `https://generativelanguage.googleapis.com/v1/models/${modelId}:generateContent?key=${apiKey}`;
+                const testResponse = await fetch(testUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: 'test'
+                            }]
+                        }]
+                    })
+                });
+
+                if (testResponse.ok) {
+                    // Quota yeterli
+                    return { available: true, quotaExceeded: false };
+                } else {
+                    const errorData = await testResponse.json().catch(() => ({}));
+                    const errorMsg = errorData.error?.message || 'Test isteği başarısız';
+                    
+                    // Quota/rate limit hatalarını kontrol et
+                    if (errorMsg.includes('quota') || errorMsg.includes('Quota exceeded') || 
+                        errorMsg.includes('rate limit') || errorMsg.includes('Rate limit') ||
+                        errorMsg.includes('RESOURCE_EXHAUSTED') || errorMsg.includes('429')) {
+                        return { available: true, quotaExceeded: true, error: 'Quota limiti aşıldı' };
+                    }
+                    
+                    // Diğer hatalar
+                    return { available: true, quotaExceeded: false, error: errorMsg };
+                }
+            } catch (testError) {
+                // Test isteği hatası, ama model mevcut
+                return { available: true, quotaExceeded: false, error: testError.message };
+            }
+        }
+
+        // Quota kontrolü yapılmadı, sadece model mevcut
+        return { available: true, quotaExceeded: false };
     } catch (error) {
         return { available: false, error: error.message };
     }
@@ -362,7 +405,11 @@ const populateModelSelect = async (savedModelId) => {
             const availability = await checkModelAvailability(apiKey, selectedId);
             
             if (availability.available) {
-                availabilityHtml = `<small style="color: #5cb85c;"><strong>API Durumu:</strong> ✅ Kullanılabilir</small>`;
+                if (availability.quotaExceeded) {
+                    availabilityHtml = `<small style="color: #f0ad4e;"><strong>API Durumu:</strong> ⚠️ Quota limiti aşıldı (model mevcut ama kullanılamıyor)</small>`;
+                } else {
+                    availabilityHtml = `<small style="color: #5cb85c;"><strong>API Durumu:</strong> ✅ Kullanılabilir</small>`;
+                }
             } else {
                 availabilityHtml = `<small style="color: #d9534f;"><strong>API Durumu:</strong> ❌ Kullanılamıyor${availability.error ? ` (${availability.error})` : ''}</small>`;
             }
@@ -431,10 +478,17 @@ const updateAllModelsStatus = async () => {
                 <small style="color: #999;">Kontrol edilemedi</small>
             </div>`;
         } else if (availability.available) {
-            statusHtml += `<div style="padding: 8px; margin-bottom: 5px; border-left: 3px solid #5cb85c; background: #f5f5f5;">
-                <strong>${model.name}</strong><br>
-                <small style="color: #5cb85c;"><strong>✅ Kullanılabilir</strong></small>
-            </div>`;
+            if (availability.quotaExceeded) {
+                statusHtml += `<div style="padding: 8px; margin-bottom: 5px; border-left: 3px solid #f0ad4e; background: #f5f5f5;">
+                    <strong>${model.name}</strong><br>
+                    <small style="color: #f0ad4e;"><strong>⚠️ Quota limiti aşıldı</strong>${availability.error ? ` - ${availability.error}` : ''}</small>
+                </div>`;
+            } else {
+                statusHtml += `<div style="padding: 8px; margin-bottom: 5px; border-left: 3px solid #5cb85c; background: #f5f5f5;">
+                    <strong>${model.name}</strong><br>
+                    <small style="color: #5cb85c;"><strong>✅ Kullanılabilir</strong></small>
+                </div>`;
+            }
         } else {
             statusHtml += `<div style="padding: 8px; margin-bottom: 5px; border-left: 3px solid #d9534f; background: #f5f5f5;">
                 <strong>${model.name}</strong><br>
