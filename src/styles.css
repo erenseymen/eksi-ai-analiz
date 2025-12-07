@@ -349,7 +349,7 @@
 
 /**
  * Kota Aşım Hatası Bileşenleri
- * Rate limit aşıldığında geri sayım sayacıyla gösterilir.
+ * Rate limit aşıldığında düşük model ile yeniden deneme butonu gösterilir.
  */
 .eksi-ai-quota-error {
     padding: 15px;
@@ -360,21 +360,43 @@
 }
 
 .eksi-ai-quota-error-text {
-    margin-bottom: 10px;
-    font-weight: 500;
+    margin-bottom: 8px;
+    font-weight: 600;
     line-height: 1.5;
+    font-size: 15px;
 }
 
-.eksi-ai-quota-countdown {
-    font-size: 16px;
-    font-weight: bold;
-    color: var(--eksi-ai-warning-text);
+.eksi-ai-quota-error-details {
+    font-size: 13px;
+    opacity: 0.85;
+    margin-bottom: 15px;
+}
+
+.eksi-ai-quota-retry-container {
+    margin-top: 12px;
+}
+
+.eksi-ai-quota-retry-container .eksi-ai-btn {
+    margin: 0;
+}
+
+.eksi-ai-quota-no-model {
+    font-size: 13px;
     margin-top: 10px;
-    padding: 10px;
-    background-color: rgba(0, 0, 0, 0.1);
+    opacity: 0.85;
+    font-style: italic;
+}
+
+/** Model notu - düşük model ile yanıtlandığında gösterilir */
+.eksi-ai-model-note {
+    display: inline-block;
+    padding: 6px 12px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    color: var(--eksi-ai-info-text);
+    background-color: var(--eksi-ai-info-bg);
+    border: 1px solid var(--eksi-ai-info-border);
     border-radius: 4px;
-    text-align: center;
-    font-family: 'Courier New', monospace;
 }
 
 /* =============================================================================

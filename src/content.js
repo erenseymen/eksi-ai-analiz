@@ -1497,21 +1497,7 @@ ${userPrompt}`;
                           `Hata detayı: ${err.message}`;
             resultArea.textContent = "Hata: " + errorMessage;
         } else if (errorMessage.includes('quota') || errorMessage.includes('Quota exceeded')) {
-            // Parse retry time from error message (can be in different formats)
-            // Look for patterns like "Please retry in 56.404982995s" or "retry in Xs"
-            const retryMatch = errorMessage.match(/retry in ([\d.]+)\s*s/i) || 
-                              errorMessage.match(/retry.*?([\d.]+)\s*second/i) ||
-                              errorMessage.match(/([\d.]+)\s*s\s*$/m);
-            if (retryMatch) {
-                const retrySeconds = parseFloat(retryMatch[1]);
-                if (!isNaN(retrySeconds) && retrySeconds > 0) {
-                    showQuotaErrorWithCountdown(resultArea, errorMessage, retrySeconds);
-                } else {
-                    resultArea.textContent = "Hata: " + errorMessage;
-                }
-            } else {
-                resultArea.textContent = "Hata: " + errorMessage;
-            }
+            showQuotaErrorWithRetry(resultArea, errorMessage, userPrompt, showPromptHeader, clickedButton);
         } else {
             // Check if error is due to abort
             if (err.name === 'AbortError' || errorMessage.includes('aborted')) {
@@ -1602,54 +1588,132 @@ const callGeminiApi = async (apiKey, modelId, prompt, signal) => {
 };
 
 /**
- * Kota aşım hatasını geri sayım sayacıyla gösterir.
+ * Mevcut modelden bir alt seviye modeli bulur.
  * 
- * Gemini API rate limit aşıldığında kullanıcıya beklemesi gereken
- * süreyi gösteren bir sayaç görüntüler.
+ * @param {string} currentModelId - Mevcut model ID'si
+ * @returns {Object|null} Alt seviye model objesi veya bulunamazsa null
+ */
+const getLowerModel = (currentModelId) => {
+    const currentIndex = MODELS.findIndex(m => m.id === currentModelId);
+    if (currentIndex === -1 || currentIndex >= MODELS.length - 1) {
+        return null; // Model bulunamadı veya zaten en düşük model
+    }
+    // Bir sonraki modeli döndür (daha düşük seviye)
+    return MODELS[currentIndex + 1];
+};
+
+/**
+ * Kota aşım hatasını düşük model ile yeniden deneme butonu ile gösterir.
+ * 
+ * Gemini API rate limit aşıldığında kullanıcıya daha düşük bir modelle
+ * tekrar deneme seçeneği sunar.
  * 
  * @param {HTMLElement} resultArea - Hata mesajının gösterileceği element
  * @param {string} errorMessage - API'den gelen hata mesajı
- * @param {number} retrySeconds - Beklenecek süre (saniye)
+ * @param {string} userPrompt - Tekrar denemek için kullanılacak prompt
+ * @param {boolean} showPromptHeader - Özel prompt başlığı gösterilsin mi
+ * @param {HTMLElement|null} clickedButton - Seçili buton referansı
  */
-const showQuotaErrorWithCountdown = (resultArea, errorMessage, retrySeconds) => {
+const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, showPromptHeader, clickedButton) => {
     resultArea.style.display = 'block';
     
-    // Create countdown container
-    const countdownContainer = document.createElement('div');
-    countdownContainer.className = 'eksi-ai-quota-error';
+    const settings = await getSettings();
+    const currentModelId = settings.selectedModel || 'gemini-2.5-flash';
+    const lowerModel = getLowerModel(currentModelId);
+    
+    // Create error container
+    const errorContainer = document.createElement('div');
+    errorContainer.className = 'eksi-ai-quota-error';
     
     const errorText = document.createElement('div');
     errorText.className = 'eksi-ai-quota-error-text';
-    errorText.textContent = errorMessage.split('\n')[0]; // First line of error
+    errorText.textContent = 'API kota limiti aşıldı.';
     
-    const countdownText = document.createElement('div');
-    countdownText.className = 'eksi-ai-quota-countdown';
+    const errorDetails = document.createElement('div');
+    errorDetails.className = 'eksi-ai-quota-error-details';
+    errorDetails.textContent = `Mevcut model: ${currentModelId}`;
     
-    countdownContainer.appendChild(errorText);
-    countdownContainer.appendChild(countdownText);
+    errorContainer.appendChild(errorText);
+    errorContainer.appendChild(errorDetails);
+    
+    // Add retry button if there's a lower model available
+    if (lowerModel) {
+        const retryContainer = document.createElement('div');
+        retryContainer.className = 'eksi-ai-quota-retry-container';
+        
+        const retryBtn = document.createElement('button');
+        retryBtn.className = 'eksi-ai-btn';
+        retryBtn.innerHTML = `
+            <span>${lowerModel.name.replace(/^[^\s]+\s*/, '')} ile dene</span>
+        `;
+        retryBtn.onclick = async () => {
+            // Temporarily change the model for this request
+            retryBtn.disabled = true;
+            retryBtn.textContent = 'Deneniyor...';
+            
+            // Save original model, set lower model temporarily
+            const originalModel = settings.selectedModel;
+            
+            // Clear the cache for this prompt
+            responseCache.delete(userPrompt);
+            
+            // Call Gemini with the lower model
+            try {
+                resultArea.innerHTML = '<span class="eksi-ai-loading">Gemini düşünüyor...</span>';
+                
+                const apiKey = settings.geminiApiKey;
+                const limitedEntries = allEntries;
+                const entriesJson = JSON.stringify(limitedEntries);
+                
+                const finalPrompt = `Başlık: "${topicTitle}"
+
+Aşağıda Ekşi Sözlük entry'leri JSON formatında verilmiştir:
+${entriesJson}
+
+${userPrompt}`;
+                
+                const response = await callGeminiApi(apiKey, lowerModel.id, finalPrompt, new AbortController().signal);
+                
+                // Cache the successful response
+                responseCache.set(userPrompt, { response, timestamp: Date.now() });
+                
+                // Build result HTML
+                let resultHTML = '';
+                
+                if (showPromptHeader && userPrompt) {
+                    resultHTML += `<div class="eksi-ai-custom-prompt-header">
+                        <span class="eksi-ai-custom-prompt-label">Özel Prompt:</span>
+                        <span class="eksi-ai-custom-prompt-text">${escapeHtml(userPrompt).replace(/\n/g, '<br>')}</span>
+                    </div>`;
+                }
+                
+                // Add a note about the model used
+                resultHTML += `<div class="eksi-ai-model-note">📝 ${lowerModel.id} modeli ile yanıtlandı</div>`;
+                
+                resultHTML += parseMarkdown(response);
+                resultArea.innerHTML = resultHTML;
+                resultArea.classList.add('eksi-ai-markdown');
+                
+                // Add action buttons for the result
+                addResultActionButtons(resultArea, response, userPrompt, showPromptHeader, clickedButton);
+                
+            } catch (retryErr) {
+                // If retry also fails, show the error
+                resultArea.innerHTML = `<div class="eksi-ai-warning">Hata: ${escapeHtml(retryErr.message)}</div>`;
+            }
+        };
+        
+        retryContainer.appendChild(retryBtn);
+        errorContainer.appendChild(retryContainer);
+    } else {
+        const noModelText = document.createElement('div');
+        noModelText.className = 'eksi-ai-quota-no-model';
+        noModelText.textContent = 'Zaten en düşük model kullanılıyor. Lütfen daha sonra tekrar deneyin.';
+        errorContainer.appendChild(noModelText);
+    }
     
     resultArea.innerHTML = '';
-    resultArea.appendChild(countdownContainer);
-    
-    // Start countdown
-    let remainingSeconds = Math.ceil(retrySeconds);
-    const updateCountdown = () => {
-        if (remainingSeconds > 0) {
-            const minutes = Math.floor(remainingSeconds / 60);
-            const seconds = remainingSeconds % 60;
-            const timeString = minutes > 0 
-                ? `${minutes}:${seconds.toString().padStart(2, '0')}`
-                : `${seconds} saniye`;
-            countdownText.textContent = `Lütfen ${timeString} sonra tekrar deneyin...`;
-            remainingSeconds--;
-            setTimeout(updateCountdown, 1000);
-        } else {
-            countdownText.textContent = 'Tekrar deneyebilirsiniz!';
-            countdownText.style.color = 'var(--eksi-ai-btn-bg)';
-        }
-    };
-    
-    updateCountdown();
+    resultArea.appendChild(errorContainer);
 };
 
 // =============================================================================
