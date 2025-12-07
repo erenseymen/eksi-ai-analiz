@@ -129,8 +129,9 @@ Her alıntı şu formatta olsun:
  * - contextWindow: Maksimum token kapasitesi
  * - responseTime: Tahmini yanıt süresi
  * - isFree: Free tier'da kullanılabilirlik durumu
+ * - apiVersion: Kullanılacak API versiyonu (v1 veya v1beta)
  * 
- * @constant {Array<{id: string, name: string, description: string, cost: string, contextWindow: number, responseTime: string, isFree: boolean}>}
+ * @constant {Array<{id: string, name: string, description: string, cost: string, contextWindow: number, responseTime: string, isFree: boolean, apiVersion: string}>}
  */
 const MODELS = [
     {
@@ -140,7 +141,8 @@ const MODELS = [
         cost: '💰 Ücretli (Free tier\'da kullanılamaz)',
         contextWindow: 1048576,
         responseTime: '~30-40 saniye',
-        isFree: false
+        isFree: false,
+        apiVersion: 'v1beta'
     },
     {
         id: 'gemini-2.5-pro',
@@ -149,7 +151,8 @@ const MODELS = [
         cost: '✅ Ücretsiz (Rate limit dahilinde)',
         contextWindow: 1048576,
         responseTime: '~30 saniye',
-        isFree: true
+        isFree: true,
+        apiVersion: 'v1'
     },
     {
         id: 'gemini-2.5-flash',
@@ -158,7 +161,8 @@ const MODELS = [
         cost: '✅ Ücretsiz (Rate limit dahilinde)',
         contextWindow: 1048576,
         responseTime: '~20 saniye',
-        isFree: true
+        isFree: true,
+        apiVersion: 'v1'
     },
     {
         id: 'gemini-2.5-flash-lite',
@@ -167,7 +171,8 @@ const MODELS = [
         cost: '✅ Ücretsiz (En düşük maliyet)',
         contextWindow: 1048576,
         responseTime: '~10 saniye',
-        isFree: true
+        isFree: true,
+        apiVersion: 'v1'
     }
 ];
 
