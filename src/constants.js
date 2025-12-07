@@ -32,7 +32,7 @@ Sana verilen entry'ler JSON formatındadır. Her entry şu alanları içerir:
 - referenced_entries: (varsa) Entry içinde referans verilen diğer entry'lerin içerikleri
 
 ## Markdown Entry Linkleri
-Cevabında entry'lere referans (alıntı) verebilirsin. Link formatı:
+Cevabında entry'lere referans verebilirsin (alıntı yapabilirsin). Link formatı:
 - URL formatı: https://eksisozluk.com/entry/{entry_id}
 - entry_id değerini JSON verisindeki "id" alanından al
 - Markdown link formatı: [açıklayıcı metin](https://eksisozluk.com/entry/{entry_id})
