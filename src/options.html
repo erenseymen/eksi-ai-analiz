@@ -178,21 +178,26 @@
         <input type="text" id="apiKey" placeholder="API Key'inizi buraya yapıştırın">
 
         <label for="modelSelect">Model Seçimi</label>
-        <select id="modelSelect" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px;">
+        <select id="modelSelect"
+            style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px;">
             <!-- Options will be populated by JS -->
         </select>
-        <div id="modelInfo" style="background: #e9ecef; padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 0.9em;">
+        <div id="modelInfo"
+            style="background: #e9ecef; padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 0.9em;">
             <!-- Model info will be displayed here -->
         </div>
 
         <div style="margin-bottom: 15px;">
-            <button id="refreshModelsStatus" style="padding: 8px 15px; font-size: 0.9em; background-color: #81c14b; color: white; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 10px;">
+            <button id="refreshModelsStatus"
+                style="padding: 8px 15px; font-size: 0.9em; background-color: #81c14b; color: white; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 10px;">
                 🔄 Modellerin API Durumunu Kontrol Et
             </button>
         </div>
-        
-        <div id="allModelsStatus" style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin-bottom: 15px; border: 1px solid #dee2e6; display: none;">
-            <h3 style="margin-top: 0; margin-bottom: 10px; font-size: 1.1em; color: #333;">Tüm Modellerin API Durumu</h3>
+
+        <div id="allModelsStatus"
+            style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin-bottom: 15px; border: 1px solid #dee2e6; display: none;">
+            <h3 style="margin-top: 0; margin-bottom: 10px; font-size: 1.1em; color: #333;">Tüm Modellerin API Durumu
+            </h3>
             <div id="modelsStatusList" style="font-size: 0.9em;">
                 <!-- Model statuses will be displayed here -->
             </div>
@@ -232,10 +237,11 @@
         <h2>Sistem Promptu</h2>
         <p style="font-size: 14px; color: #666; margin-bottom: 15px;">
             Bu prompt tüm analizlerde AI'a gönderilen temel yönergedir. Değiştirilemez.
-            <br>Özelleştirmek isterseniz 
-            <a href="https://github.com/erenseymen/eksi-ai-analiz/blob/master/src/constants.js" target="_blank"><code>constants.js</code></a> dosyasını düzenleyebilirsiniz.
+            <br>Özelleştirmek isterseniz
+            <a href="https://github.com/erenseymen/eksi-ai-analiz/blob/master/src/prompts.js"
+                target="_blank"><code>prompts.js</code></a> dosyasını düzenleyebilirsiniz.
         </p>
-        
+
         <div style="position: relative;">
             <pre id="systemPromptDisplay" style="
                 background: #f8f9fa;
@@ -269,6 +275,7 @@
         </div>
 
     </div>
+    <script src="prompts.js"></script>
     <script src="constants.js"></script>
     <script src="options.js"></script>
 </body>
