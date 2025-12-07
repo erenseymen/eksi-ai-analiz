@@ -1380,6 +1380,11 @@ const runGemini = async (userPrompt, showPromptHeader = false, clickedButton = n
             </div>`;
         }
         
+        // Show model note if available
+        if (cachedData.modelId) {
+            resultHTML += `<div class="eksi-ai-model-note">📝 ${cachedData.modelId}</div>`;
+        }
+        
         resultHTML += parseMarkdown(cachedData.response);
         resultArea.innerHTML = resultHTML;
         resultArea.classList.add('eksi-ai-markdown');
@@ -1452,8 +1457,8 @@ ${userPrompt}`;
     try {
         const response = await callGeminiApi(apiKey, modelId, finalPrompt, abortController.signal);
         
-        // Cache the successful response
-        responseCache.set(cacheKey, { response, timestamp: Date.now() });
+        // Cache the successful response with model info
+        responseCache.set(cacheKey, { response, modelId, timestamp: Date.now() });
         
         // Mark button as cached
         if (clickedButton) {
@@ -1476,6 +1481,9 @@ ${userPrompt}`;
                 <span class="eksi-ai-custom-prompt-text">${escapeHtml(userPrompt).replace(/\n/g, '<br>')}</span>
             </div>`;
         }
+        
+        // Show model note
+        resultHTML += `<div class="eksi-ai-model-note">📝 ${modelId}</div>`;
         
         resultHTML += parseMarkdown(response);
         resultArea.innerHTML = resultHTML;
@@ -1674,8 +1682,8 @@ ${userPrompt}`;
                 
                 const response = await callGeminiApi(apiKey, lowerModel.id, finalPrompt, new AbortController().signal);
                 
-                // Cache the successful response
-                responseCache.set(userPrompt, { response, timestamp: Date.now() });
+                // Cache the successful response with model info
+                responseCache.set(userPrompt, { response, modelId: lowerModel.id, timestamp: Date.now() });
                 
                 // Build result HTML
                 let resultHTML = '';
@@ -1688,7 +1696,7 @@ ${userPrompt}`;
                 }
                 
                 // Add a note about the model used
-                resultHTML += `<div class="eksi-ai-model-note">📝 ${lowerModel.id} modeli ile yanıtlandı</div>`;
+                resultHTML += `<div class="eksi-ai-model-note">📝 ${lowerModel.id}</div>`;
                 
                 resultHTML += parseMarkdown(response);
                 resultArea.innerHTML = resultHTML;

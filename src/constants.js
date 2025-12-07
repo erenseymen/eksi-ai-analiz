@@ -32,7 +32,7 @@ Sana verilen entry'ler JSON formatındadır. Her entry şu alanları içerir:
 - referenced_entries: (varsa) Entry içinde referans verilen diğer entry'lerin içerikleri
 
 ## Markdown Entry Linkleri
-Cevabında entry'lere referans verebilirsin. Link formatı:
+Cevabında entry'lere referans (alıntı) verebilirsin. Link formatı:
 - URL formatı: https://eksisozluk.com/entry/{entry_id}
 - entry_id değerini JSON verisindeki "id" alanından al
 - Markdown link formatı: [açıklayıcı metin](https://eksisozluk.com/entry/{entry_id})
@@ -70,7 +70,7 @@ const DEFAULT_PROMPTS = [
 - Bilgi verici, tarafsız ve profesyonel bir dil kullan
 - Akıcı ve okunabilir bir metin oluştur
 - Gereksiz spekülasyon veya çıkarımdan kaçın
-- Entry'lerden kısa ve anlamlı alıntılar ekle (tırnak işareti ile)
+- Entry'lerden bol bol alıntı yap, farklı görüşleri yansıt
 
 ## Çıktı:
 - Yanıtın sadece özet metni olsun, ek açıklama veya meta bilgi içermesin.`
