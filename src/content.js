@@ -1665,10 +1665,37 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
             // Clear the cache for this prompt
             responseCache.delete(userPrompt);
             
+            // Create AbortController for cancellation
+            const abortController = new AbortController();
+            
+            // Create loading message with stop button
+            const loadingContainer = document.createElement('div');
+            loadingContainer.style.display = 'flex';
+            loadingContainer.style.alignItems = 'center';
+            loadingContainer.style.gap = '10px';
+            
+            const loadingText = document.createElement('span');
+            loadingText.textContent = "Gemini düşünüyor...";
+            
+            const stopButton = document.createElement('button');
+            stopButton.textContent = "Durdur";
+            stopButton.className = 'eksi-ai-btn';
+            stopButton.style.padding = '5px 12px';
+            stopButton.style.fontSize = '12px';
+            stopButton.style.margin = '0';
+            stopButton.onclick = () => {
+                abortController.abort();
+                loadingText.textContent = "İstek iptal ediliyor...";
+                stopButton.disabled = true;
+            };
+            
+            loadingContainer.appendChild(loadingText);
+            loadingContainer.appendChild(stopButton);
+            resultArea.innerHTML = '';
+            resultArea.appendChild(loadingContainer);
+            
             // Call Gemini with the lower model
             try {
-                resultArea.innerHTML = '<span class="eksi-ai-loading">Gemini düşünüyor...</span>';
-                
                 const apiKey = settings.geminiApiKey;
                 const limitedEntries = allEntries;
                 const entriesJson = JSON.stringify(limitedEntries);
@@ -1680,7 +1707,7 @@ ${entriesJson}
 
 ${userPrompt}`;
                 
-                const response = await callGeminiApi(apiKey, lowerModel.id, finalPrompt, new AbortController().signal);
+                const response = await callGeminiApi(apiKey, lowerModel.id, finalPrompt, abortController.signal);
                 
                 // Cache the successful response with model info
                 responseCache.set(userPrompt, { response, modelId: lowerModel.id, timestamp: Date.now() });
@@ -1706,8 +1733,17 @@ ${userPrompt}`;
                 addResultActionButtons(resultArea, response, userPrompt, showPromptHeader, clickedButton);
                 
             } catch (retryErr) {
-                // If retry also fails, show the error
-                resultArea.innerHTML = `<div class="eksi-ai-warning">Hata: ${escapeHtml(retryErr.message)}</div>`;
+                // Check if error is due to abort
+                if (retryErr.name === 'AbortError' || retryErr.message.includes('aborted')) {
+                    resultArea.innerHTML = '<div class="eksi-ai-warning">İstek iptal edildi.</div>';
+                } else {
+                    // If retry also fails, show the error
+                    resultArea.innerHTML = `<div class="eksi-ai-warning">Hata: ${escapeHtml(retryErr.message)}</div>`;
+                }
+            } finally {
+                // Re-enable retry button
+                retryBtn.disabled = false;
+                retryBtn.innerHTML = `<span>${lowerModel.name.replace(/^[^\s]+\s*/, '')} ile dene</span>`;
             }
         };
         
