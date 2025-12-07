@@ -1768,15 +1768,6 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
         }
     };
     
-    // Close on Escape key
-    const handleEscape = (e) => {
-        if (e.key === 'Escape') {
-            closeModal();
-            document.removeEventListener('keydown', handleEscape);
-        }
-    };
-    document.addEventListener('keydown', handleEscape);
-    
     // Retry button - only if lower model is available
     if (retryBtn && lowerModel) {
         retryBtn.onclick = async () => {
@@ -1880,7 +1871,7 @@ ${userPrompt}`;
  * Özel prompt giriş modalını açar.
  * 
  * Kullanıcının kendi promptunu yazabileceği bir modal pencere gösterir.
- * Ctrl+Enter ile gönderme, Escape ile kapatma destekler.
+ * Ctrl+Enter ile gönderme destekler.
  * 
  * @param {HTMLElement|null} [customButton=null] - Modal kapandığında seçili görünecek buton
  * @param {string|null} [prefillPrompt=null] - Textarea'yı önceden dolduracak prompt metni
@@ -1964,15 +1955,6 @@ const openCustomPromptModal = (customButton = null, prefillPrompt = null, mainBu
             closeModal();
         }
     };
-
-    // Close on Escape key
-    const handleEscape = (e) => {
-        if (e.key === 'Escape') {
-            closeModal();
-            document.removeEventListener('keydown', handleEscape);
-        }
-    };
-    document.addEventListener('keydown', handleEscape);
 
     // Submit button
     submitBtn.onclick = () => {
