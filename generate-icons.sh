@@ -8,7 +8,7 @@ SOURCE_ICON="icons/icon.png"
 OUTPUT_DIR="icons"
 
 # Icon sizes to generate (add or remove sizes as needed)
-SIZES=(16 32 48 64 128)
+SIZES=(16 48 128)
 
 # Check if ImageMagick is installed
 if ! command -v convert &> /dev/null; then
