@@ -221,6 +221,39 @@
     gap: 10px;
 }
 
+/** Buton grubu - ana buton ve "ve" butonunu bir arada tutar */
+.eksi-ai-button-group {
+    display: inline-flex;
+    align-items: stretch;
+    margin-right: 10px;
+}
+
+/** "ve" butonu - ana butona yapışık ama ayırt edilebilir */
+.eksi-ai-btn-ve {
+    background-color: var(--eksi-ai-secondary-bg) !important;
+    color: var(--eksi-ai-btn-text) !important;
+    border: none;
+    padding: 8px 10px;
+    border-radius: 0 4px 4px 0;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: background-color 0.2s;
+    margin-left: -1px;
+    margin-right: 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.eksi-ai-btn-ve:hover {
+    background-color: var(--eksi-ai-secondary-hover) !important;
+}
+
+/** Ana butonun sağ border-radius'unu kaldır (ve butonu ile birleşmesi için) */
+.eksi-ai-button-group .eksi-ai-btn {
+    border-radius: 4px 0 0 4px;
+    margin-right: 0;
+}
+
 /** Uyarı mesajı kutusu (hata durumları için) */
 .eksi-ai-warning {
     color: var(--eksi-ai-warning-text);

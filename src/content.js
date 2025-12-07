@@ -1245,9 +1245,14 @@ const renderActions = async (container, wasStopped = false) => {
         <button id="btn-download" class="eksi-ai-btn secondary">JSON İndir</button>
     `;
 
-    // Add dynamic buttons from settings
+    // Add dynamic buttons from settings with "ve" buttons
     settings.prompts.forEach((item, index) => {
-        buttonsHtml += `<button id="btn-prompt-${index}" class="eksi-ai-btn" data-index="${index}">${item.name}</button>`;
+        buttonsHtml += `
+            <div class="eksi-ai-button-group">
+                <button id="btn-prompt-${index}" class="eksi-ai-btn" data-index="${index}">${item.name}</button>
+                <button id="btn-prompt-ve-${index}" class="eksi-ai-btn-ve" data-index="${index}" title="Prompt'u düzenle">ve</button>
+            </div>
+        `;
     });
 
     buttonsHtml += `<button id="btn-custom-manual" class="eksi-ai-btn">Özel Prompt</button>`;
@@ -1266,7 +1271,25 @@ const renderActions = async (container, wasStopped = false) => {
     // Add listeners for dynamic buttons
     settings.prompts.forEach((item, index) => {
         const btn = document.getElementById(`btn-prompt-${index}`);
-        btn.onclick = () => runGemini(item.prompt, false, btn);
+        
+        // Ana butona basıldığında, eğer "ve" butonundan gelen cached result varsa onu göster
+        btn.onclick = () => {
+            // "ve" butonundan gelen cached result'ı kontrol et
+            // Cache key'i, ana prompt + "ve" butonundan gelen özel prompt kombinasyonu olabilir
+            // Ancak daha basit bir yaklaşım: ana butonun data attribute'unda saklanan "ve" prompt'unu kontrol et
+            const vePrompt = btn.getAttribute('data-ve-prompt');
+            if (vePrompt && responseCache.has(vePrompt)) {
+                // "ve" butonundan gelen cached result'ı göster
+                runGemini(vePrompt, true, btn);
+            } else {
+                // Normal prompt'u çalıştır
+                runGemini(item.prompt, false, btn);
+            }
+        };
+        
+        // Add listener for "ve" button
+        const veBtn = document.getElementById(`btn-prompt-ve-${index}`);
+        veBtn.onclick = () => openCustomPromptModal(null, item.prompt, btn);
     });
 
     document.getElementById('btn-custom-manual').onclick = () => {
@@ -1345,8 +1368,9 @@ const downloadJson = () => {
  * @param {string} userPrompt - Kullanıcının promptu
  * @param {boolean} [showPromptHeader=false] - Özel prompt başlığı gösterilsin mi
  * @param {HTMLElement|null} [clickedButton=null] - Tıklanan buton (seçili görünüm için)
+ * @param {HTMLElement|null} [mainButton=null] - "ve" butonundan geldiğinde ilgili ana buton (ok işareti için)
  */
-const runGemini = async (userPrompt, showPromptHeader = false, clickedButton = null) => {
+const runGemini = async (userPrompt, showPromptHeader = false, clickedButton = null, mainButton = null) => {
     const resultArea = document.getElementById('ai-result');
     const warningArea = document.getElementById('ai-warning');
     
@@ -1463,6 +1487,11 @@ ${userPrompt}`;
         // Mark button as cached
         if (clickedButton) {
             clickedButton.classList.add('eksi-ai-btn-cached');
+        }
+        
+        // Eğer "ve" butonundan geldiyse, ana butonun cached işaretini ekle
+        if (mainButton) {
+            mainButton.classList.add('eksi-ai-btn-cached');
         }
         
         // Check if button is still selected (user might have clicked another button while waiting)
@@ -1821,8 +1850,10 @@ ${userPrompt}`;
  * Ctrl+Enter ile gönderme, Escape ile kapatma destekler.
  * 
  * @param {HTMLElement|null} [customButton=null] - Modal kapandığında seçili görünecek buton
+ * @param {string|null} [prefillPrompt=null] - Textarea'yı önceden dolduracak prompt metni
+ * @param {HTMLElement|null} [mainButton=null] - "ve" butonundan geldiğinde ilgili ana buton referansı
  */
-const openCustomPromptModal = (customButton = null) => {
+const openCustomPromptModal = (customButton = null, prefillPrompt = null, mainButton = null) => {
     // Create modal overlay
     const overlay = document.createElement('div');
     overlay.id = 'eksi-ai-modal-overlay';
@@ -1863,8 +1894,10 @@ const openCustomPromptModal = (customButton = null) => {
     const cancelBtn = document.getElementById('eksi-ai-modal-cancel');
     const submitBtn = document.getElementById('eksi-ai-modal-submit');
 
-    // Pre-fill with last custom prompt if exists
-    if (lastCustomPrompt) {
+    // Pre-fill with provided prompt, or last custom prompt if exists
+    if (prefillPrompt) {
+        textarea.value = prefillPrompt;
+    } else if (lastCustomPrompt) {
         textarea.value = lastCustomPrompt;
     }
 
@@ -1902,8 +1935,17 @@ const openCustomPromptModal = (customButton = null) => {
     submitBtn.onclick = () => {
         const userPrompt = textarea.value.trim();
         if (userPrompt) {
-            lastCustomPrompt = userPrompt; // Store the custom prompt for caching
-            runGemini(userPrompt, true, customButton); // true = show custom prompt header, customButton = mark as selected
+            // Eğer "ve" butonundan geldiyse, ana buton referansını da geçir
+            if (mainButton) {
+                // Ana butonun data attribute'una "ve" prompt'unu kaydet
+                mainButton.setAttribute('data-ve-prompt', userPrompt);
+                // "ve" butonundan gelen prompt'ları lastCustomPrompt'a kaydetme
+                runGemini(userPrompt, true, customButton, mainButton); // mainButton = ok işareti için
+            } else {
+                // Sadece "Özel Prompt" butonundan gelen prompt'ları kaydet
+                lastCustomPrompt = userPrompt; // Store the custom prompt for caching
+                runGemini(userPrompt, true, customButton); // true = show custom prompt header, customButton = mark as selected
+            }
             closeModal();
         } else {
             textarea.style.borderColor = '#d9534f';
