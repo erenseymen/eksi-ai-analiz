@@ -284,6 +284,8 @@ const populateModelSelect = async (savedModelId) => {
  * Tüm modellerin availability durumunu gösterir.
  * Her model için ayrı DOM elementi oluşturur ve sonuçlar hazır oldukça anında günceller.
  */
+let isCheckingModels = false; // API kontrolünün devam edip etmediğini takip et
+
 const updateAllModelsStatus = async () => {
     const statusDiv = document.getElementById('allModelsStatus');
     const statusList = document.getElementById('modelsStatusList');
@@ -297,6 +299,12 @@ const updateAllModelsStatus = async () => {
         return;
     }
     
+    // Eğer kontrol zaten devam ediyorsa, yeni kontrol başlatma
+    if (isCheckingModels) {
+        return;
+    }
+    
+    isCheckingModels = true;
     statusDiv.style.display = 'block';
     
     // Her model için ayrı bir DOM elementi oluştur (hepsi loading durumunda başlar)
@@ -325,6 +333,11 @@ const updateAllModelsStatus = async () => {
         try {
             // Kontrol et
             const availability = await checkModelAvailability(apiKey, model.id);
+            
+            // Eğer kontrol iptal edildiyse (isCheckingModels false olduysa), güncelleme yapma
+            if (!isCheckingModels) {
+                return;
+            }
             
             // Sonucu göster
             if (availability.available && !availability.quotaExceeded) {
@@ -373,6 +386,11 @@ const updateAllModelsStatus = async () => {
                 `;
             }
         } catch (error) {
+            // Eğer kontrol iptal edildiyse, güncelleme yapma
+            if (!isCheckingModels) {
+                return;
+            }
+            
             // Hata durumu
             modelRow.style.cssText = 'padding: 8px; margin-bottom: 5px; border-left: 3px solid #d9534f; background: #f5f5f5;';
             modelRow.innerHTML = `
@@ -387,12 +405,17 @@ const updateAllModelsStatus = async () => {
     // Tüm modelleri paralel olarak kontrol et
     const checkPromises = MODELS.map(model => checkModelAndUpdateUI(model));
     await Promise.all(checkPromises);
+    
+    // Kontrol tamamlandı
+    isCheckingModels = false;
 };
 
 /**
  * Yenile butonuna tıklandığında tüm modellerin durumunu yeniden kontrol eder.
  */
 const refreshAllModelsStatus = async () => {
+    // Önceki kontrolü iptal et
+    isCheckingModels = false;
     await updateAllModelsStatus();
 };
 
@@ -435,7 +458,7 @@ const useModelInSettings = async (modelId) => {
     };
     
     // Chrome storage'a kaydet
-    chrome.storage.sync.set(settings, async () => {
+    chrome.storage.sync.set(settings, () => {
         status.textContent = `Model "${model?.name || modelId}" seçildi ve ayarlar kaydedildi.`;
         status.className = 'status success';
         status.style.display = 'block';
@@ -445,8 +468,20 @@ const useModelInSettings = async (modelId) => {
             status.style.display = 'none';
         }, 3000);
         
-        // Tüm modellerin durumunu güncelle (butonların görünümünü güncellemek için)
-        await updateAllModelsStatus();
+        // Tüm modellerin durumunu yeniden kontrol etme - zaten devam eden kontrol varsa onu bozmamak için
+        // Sadece seçilen modelin satırını güncelle (eğer kontrol tamamlandıysa)
+        if (!isCheckingModels) {
+            // Kontrol tamamlandıysa, sadece seçilen modelin satırını güncelle
+            const modelRowId = `model-status-${modelId}`;
+            const modelRow = document.getElementById(modelRowId);
+            if (modelRow) {
+                // Seçilen modeli vurgula (isteğe bağlı)
+                const currentModel = modelRow.querySelector('strong');
+                if (currentModel) {
+                    currentModel.textContent = `${model?.name || modelId} (Seçili)`;
+                }
+            }
+        }
     });
 };
 
