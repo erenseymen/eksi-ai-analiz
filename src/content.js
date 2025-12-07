@@ -1912,38 +1912,63 @@ ${userPrompt}`;
                 // Sonucu sakla
                 modelResults.set(model.id, response);
 
-                // Başarılı - hover ile tooltip göster ve buton ekle
+                // Başarılı - status göster
                 const statusDiv = document.createElement('div');
                 statusDiv.className = 'eksi-ai-model-check-status available';
-                statusDiv.style.cssText = 'cursor: help; position: relative;';
                 statusDiv.textContent = '✅ Başarılı';
 
-                // Custom tooltip oluştur
+                modelRow.innerHTML = `
+                    <div class="eksi-ai-model-check-info">
+                        <div class="eksi-ai-model-check-name">${model.name}</div>
+                    </div>
+                    <div class="eksi-ai-use-model-btn-wrapper" style="position: relative;">
+                        <button class="eksi-ai-use-model-btn" 
+                                data-model-id="${model.id}"
+                                style="padding: 8px 16px; background-color: #81c14b; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; font-weight: 500; transition: background-color 0.2s ease;">
+                            Bu sonucu göster
+                        </button>
+                    </div>
+                `;
+
+                // Status div'i ekle
+                const infoDiv = modelRow.querySelector('.eksi-ai-model-check-info');
+                infoDiv.appendChild(statusDiv);
+
+                // Buton wrapper'ına tooltip ekle
+                const btnWrapper = modelRow.querySelector('.eksi-ai-use-model-btn-wrapper');
+
+                // Custom tooltip oluştur (kısaltılmış response için)
                 const tooltip = document.createElement('div');
-                tooltip.className = 'eksi-ai-response-tooltip';
+                tooltip.className = 'eksi-ai-response-tooltip eksi-ai-markdown';
+
+                // Response'u kısalt (ilk 300 karakter)
+                const maxLength = 300;
+                const truncatedResponse = response.length > maxLength
+                    ? response.substring(0, maxLength).trim() + '...'
+                    : response;
+
                 tooltip.style.cssText = `
                     position: absolute;
                     bottom: 100%;
-                    left: 50%;
-                    transform: translateX(-50%);
+                    right: 0;
                     margin-bottom: 8px;
-                    padding: 12px;
+                    padding: 12px 14px;
                     background: #333;
                     color: white;
-                    border-radius: 6px;
-                    font-size: 0.85em;
-                    max-width: 500px;
-                    max-height: 300px;
-                    overflow-y: auto;
-                    white-space: pre-wrap;
-                    word-wrap: break-word;
-                    z-index: 1000;
+                    border-radius: 8px;
+                    font-size: 0.8em;
+                    width: 500px;
+                    max-height: 180px;
+                    overflow: hidden;
+                    z-index: 100000;
                     opacity: 0;
                     pointer-events: none;
                     transition: opacity 0.2s;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+                    text-align: left;
                 `;
-                tooltip.textContent = response;
+                // Markdown olarak render et
+                tooltip.innerHTML = parseMarkdown(truncatedResponse);
 
                 // Tooltip ok (arrow) ekle
                 const arrow = document.createElement('div');
@@ -1959,34 +1984,18 @@ ${userPrompt}`;
                     border-top: 8px solid #333;
                 `;
                 tooltip.appendChild(arrow);
+                btnWrapper.appendChild(tooltip);
 
-                statusDiv.appendChild(tooltip);
-
-                // Hover event'leri
-                statusDiv.addEventListener('mouseenter', () => {
+                // Buton üzerinde hover event'leri
+                const useBtn = modelRow.querySelector('.eksi-ai-use-model-btn');
+                useBtn.addEventListener('mouseenter', () => {
                     tooltip.style.opacity = '1';
                 });
-                statusDiv.addEventListener('mouseleave', () => {
+                useBtn.addEventListener('mouseleave', () => {
                     tooltip.style.opacity = '0';
                 });
 
-                modelRow.innerHTML = `
-                    <div class="eksi-ai-model-check-info">
-                        <div class="eksi-ai-model-check-name">${model.name}</div>
-                    </div>
-                    <button class="eksi-ai-use-model-btn" 
-                            data-model-id="${model.id}"
-                            style="padding: 8px 16px; background-color: #81c14b; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; font-weight: 500; transition: background-color 0.2s ease;">
-                        Bu sonucu göster
-                    </button>
-                `;
-
-                // Status div'i ekle
-                const infoDiv = modelRow.querySelector('.eksi-ai-model-check-info');
-                infoDiv.appendChild(statusDiv);
-
                 // Buton event listener ekle
-                const useBtn = modelRow.querySelector('.eksi-ai-use-model-btn');
                 useBtn.onclick = async () => {
                     // Escape listener'ını kaldır (modal kapatılmadan önce)
                     document.removeEventListener('keydown', handleEscape, true);
