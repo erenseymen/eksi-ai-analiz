@@ -939,6 +939,8 @@ const startSingleEntryAnalysis = async () => {
         // Render actions if we have entries
         if (allEntries.length > 0) {
             await renderActions(container, shouldStopScraping);
+            // Gizle/Göster butonunu ekle
+            addToggleVisibilityButton('eksi-ai-entry-btn', 'eksi-ai-entry-container');
         } else {
             container.innerHTML = '<div class="eksi-ai-warning">Entry toplanamadı.</div>';
         }
