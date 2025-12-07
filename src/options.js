@@ -396,8 +396,10 @@ const updateAllModelsStatus = async () => {
         modelRow.id = modelRowId;
         modelRow.style.cssText = 'padding: 8px; margin-bottom: 5px; border-left: 3px solid #999; background: #f5f5f5;';
         modelRow.innerHTML = `
-            <strong>${model.name}</strong><br>
-            <small style="color: #666;">⏳ Kontrol ediliyor...</small>
+            <div>
+                <strong>${model.name}</strong><br>
+                <small style="color: #666;">⏳ Kontrol ediliyor...</small>
+            </div>
         `;
         statusList.appendChild(modelRow);
     });
@@ -415,33 +417,58 @@ const updateAllModelsStatus = async () => {
             
             // Sonucu göster
             if (availability.available && !availability.quotaExceeded) {
-                // Kullanılabilir
-                modelRow.style.cssText = 'padding: 8px; margin-bottom: 5px; border-left: 3px solid #5cb85c; background: #f5f5f5;';
+                // Kullanılabilir - buton ekle
+                modelRow.style.cssText = 'padding: 8px; margin-bottom: 5px; border-left: 3px solid #5cb85c; background: #f5f5f5; display: flex; align-items: center; justify-content: space-between;';
                 modelRow.innerHTML = `
-                    <strong>${model.name}</strong><br>
-                    <small style="color: #5cb85c;"><strong>✅ Kullanılabilir</strong></small>
+                    <div>
+                        <strong>${model.name}</strong><br>
+                        <small style="color: #5cb85c;"><strong>✅ Kullanılabilir</strong></small>
+                    </div>
+                    <button class="use-model-btn" data-model-id="${model.id}" style="padding: 6px 12px; background-color: #81c14b; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85em; margin-left: 10px; font-weight: 500; transition: background-color 0.2s ease;">
+                        Bu modeli kullan
+                    </button>
                 `;
+                
+                // Buton event listener ekle
+                const useBtn = modelRow.querySelector('.use-model-btn');
+                useBtn.onclick = async () => {
+                    await useModelInSettings(model.id);
+                };
+                
+                // Hover efekti
+                useBtn.onmouseenter = () => {
+                    useBtn.style.backgroundColor = '#6da53e';
+                };
+                useBtn.onmouseleave = () => {
+                    useBtn.style.backgroundColor = '#81c14b';
+                };
             } else if (availability.quotaExceeded) {
                 // Quota aşıldı
                 modelRow.style.cssText = 'padding: 8px; margin-bottom: 5px; border-left: 3px solid #f0ad4e; background: #f5f5f5;';
                 modelRow.innerHTML = `
-                    <strong>${model.name}</strong><br>
-                    <small style="color: #f0ad4e;"><strong>⚠️ Quota limiti aşıldı</strong>${availability.error ? ` - ${availability.error}` : ''}</small>
+                    <div>
+                        <strong>${model.name}</strong><br>
+                        <small style="color: #f0ad4e;"><strong>⚠️ Quota limiti aşıldı</strong>${availability.error ? ` - ${availability.error}` : ''}</small>
+                    </div>
                 `;
             } else {
                 // Kullanılamıyor
                 modelRow.style.cssText = 'padding: 8px; margin-bottom: 5px; border-left: 3px solid #d9534f; background: #f5f5f5;';
                 modelRow.innerHTML = `
-                    <strong>${model.name}</strong><br>
-                    <small style="color: #d9534f;"><strong>❌ Kullanılamıyor</strong>${availability.error ? ` - ${escapeHtml(availability.error)}` : ''}</small>
+                    <div>
+                        <strong>${model.name}</strong><br>
+                        <small style="color: #d9534f;"><strong>❌ Kullanılamıyor</strong>${availability.error ? ` - ${escapeHtml(availability.error)}` : ''}</small>
+                    </div>
                 `;
             }
         } catch (error) {
             // Hata durumu
             modelRow.style.cssText = 'padding: 8px; margin-bottom: 5px; border-left: 3px solid #d9534f; background: #f5f5f5;';
             modelRow.innerHTML = `
-                <strong>${model.name}</strong><br>
-                <small style="color: #d9534f;"><strong>❌ Hata:</strong> ${escapeHtml(error.message)}</small>
+                <div>
+                    <strong>${model.name}</strong><br>
+                    <small style="color: #d9534f;"><strong>❌ Hata:</strong> ${escapeHtml(error.message)}</small>
+                </div>
             `;
         }
     };
@@ -456,6 +483,60 @@ const updateAllModelsStatus = async () => {
  */
 const refreshAllModelsStatus = async () => {
     await updateAllModelsStatus();
+};
+
+/**
+ * Ayar sayfasında "Bu modeli kullan" butonuna tıklandığında çağrılır.
+ * Seçilen modeli ayarlara kaydeder ve model seçim dropdown'ını günceller.
+ * 
+ * @param {string} modelId - Kullanılacak model ID'si
+ */
+const useModelInSettings = async (modelId) => {
+    const apiKey = document.getElementById('apiKey').value;
+    const modelSelect = document.getElementById('modelSelect');
+    const status = document.getElementById('status');
+    
+    // Model seçimini güncelle
+    modelSelect.value = modelId;
+    
+    // Model bilgisini güncelle
+    const model = MODELS.find(m => m.id === modelId);
+    if (model) {
+        const infoDiv = document.getElementById('modelInfo');
+        infoDiv.innerHTML = `
+            <strong>${model.name}</strong><br>
+            ${model.description}<br>
+            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ccc;">
+                <small><strong>Maliyet:</strong> ${model.cost}</small><br>
+                <small><strong>Yanıt Süresi:</strong> ${model.responseTime}</small><br>
+                <small><strong>Bağlam Penceresi:</strong> ${new Intl.NumberFormat('tr-TR').format(model.contextWindow)} token (yaklaşık 10.000 entry)</small>
+            </div>
+        `;
+    }
+    
+    // DOM'dan güncel prompt listesini al
+    updatePromptsFromDOM();
+    
+    const settings = {
+        geminiApiKey: apiKey,
+        selectedModel: modelId,
+        prompts: prompts
+    };
+    
+    // Chrome storage'a kaydet
+    chrome.storage.sync.set(settings, async () => {
+        status.textContent = `Model "${model?.name || modelId}" seçildi ve ayarlar kaydedildi.`;
+        status.className = 'status success';
+        status.style.display = 'block';
+        setTimeout(() => {
+            status.textContent = '';
+            status.className = 'status';
+            status.style.display = 'none';
+        }, 3000);
+        
+        // Tüm modellerin durumunu güncelle (butonların görünümünü güncellemek için)
+        await updateAllModelsStatus();
+    });
 };
 
 // =============================================================================
