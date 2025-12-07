@@ -1901,9 +1901,12 @@ const openCustomPromptModal = (customButton = null, prefillPrompt = null, mainBu
         const lineCount = prefillPrompt.split('\n').length;
         // Her satır için yaklaşık 22px + padding (12px üst + 12px alt = 24px) + border (2px)
         // Birkaç satır daha fazla yükseklik için +3 satır ekliyoruz
-        const calculatedHeight = Math.max(120, (lineCount + 3) * 22 + 26);
+        const minHeight = 120; // Minimum yükseklik
+        const maxHeight = 500; // Maksimum yükseklik
+        const calculatedHeight = Math.max(minHeight, Math.min(maxHeight, (lineCount + 3) * 22 + 26));
         textarea.style.height = `${calculatedHeight}px`;
-        textarea.style.minHeight = '120px'; // Minimum yükseklik korunmalı
+        textarea.style.minHeight = `${minHeight}px`; // Minimum yükseklik korunmalı
+        textarea.style.maxHeight = `${maxHeight}px`; // Maksimum yükseklik korunmalı
     } else if (lastCustomPrompt) {
         textarea.value = lastCustomPrompt;
     }
