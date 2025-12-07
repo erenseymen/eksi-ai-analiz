@@ -1821,7 +1821,12 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
     
     modalContent += `
         </div>
-        <div class="eksi-ai-modal-actions">
+        <div class="eksi-ai-modal-actions" style="display: flex; gap: 10px; justify-content: space-between; align-items: center;">
+            <button id="eksi-ai-compare-results-btn" 
+                    class="eksi-ai-modal-btn"
+                    style="padding: 8px 16px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; font-weight: 500; transition: background-color 0.2s ease; display: none;">
+                🔍 Cevapları Karşılaştır
+            </button>
             <button id="eksi-ai-quota-modal-cancel" 
                     class="eksi-ai-modal-btn eksi-ai-modal-cancel-btn">
                 kapat
@@ -1907,22 +1912,67 @@ ${userPrompt}`;
                 // Sonucu sakla
                 modelResults.set(model.id, response);
                 
-                // Sonucu kısalt (gösterim için)
-                const truncatedResponse = response.length > 150 
-                    ? response.substring(0, 150) + '...' 
-                    : response;
+                // Başarılı - hover ile tooltip göster ve buton ekle
+                const statusDiv = document.createElement('div');
+                statusDiv.className = 'eksi-ai-model-check-status available';
+                statusDiv.style.cssText = 'cursor: help; position: relative;';
+                statusDiv.textContent = '✅ Başarılı';
                 
-                // Başarılı - sonucu göster ve buton ekle
+                // Custom tooltip oluştur
+                const tooltip = document.createElement('div');
+                tooltip.className = 'eksi-ai-response-tooltip';
+                tooltip.style.cssText = `
+                    position: absolute;
+                    bottom: 100%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    margin-bottom: 8px;
+                    padding: 12px;
+                    background: #333;
+                    color: white;
+                    border-radius: 6px;
+                    font-size: 0.85em;
+                    max-width: 500px;
+                    max-height: 300px;
+                    overflow-y: auto;
+                    white-space: pre-wrap;
+                    word-wrap: break-word;
+                    z-index: 1000;
+                    opacity: 0;
+                    pointer-events: none;
+                    transition: opacity 0.2s;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                `;
+                tooltip.textContent = response;
+                
+                // Tooltip ok (arrow) ekle
+                const arrow = document.createElement('div');
+                arrow.style.cssText = `
+                    position: absolute;
+                    top: 100%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 0;
+                    height: 0;
+                    border-left: 8px solid transparent;
+                    border-right: 8px solid transparent;
+                    border-top: 8px solid #333;
+                `;
+                tooltip.appendChild(arrow);
+                
+                statusDiv.appendChild(tooltip);
+                
+                // Hover event'leri
+                statusDiv.addEventListener('mouseenter', () => {
+                    tooltip.style.opacity = '1';
+                });
+                statusDiv.addEventListener('mouseleave', () => {
+                    tooltip.style.opacity = '0';
+                });
+                
                 modelRow.innerHTML = `
                     <div class="eksi-ai-model-check-info">
                         <div class="eksi-ai-model-check-name">${model.name}</div>
-                        <div class="eksi-ai-model-check-status available">
-                            ✅ Başarılı
-                        </div>
-                        <div class="eksi-ai-model-check-response" style="margin-top: 6px; padding: 8px; background: #f0f8f0; border-left: 3px solid #5cb85c; border-radius: 4px; font-size: 0.85em; color: #333; max-width: 500px; max-height: 100px; overflow-y: auto;">
-                            <div style="font-weight: 600; margin-bottom: 4px; color: #5cb85c;">💬 Sonuç:</div>
-                            <div style="white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(truncatedResponse)}</div>
-                        </div>
                     </div>
                     <button class="eksi-ai-use-model-btn" 
                             data-model-id="${model.id}"
@@ -1930,6 +1980,10 @@ ${userPrompt}`;
                         Bu sonucu göster
                     </button>
                 `;
+                
+                // Status div'i ekle
+                const infoDiv = modelRow.querySelector('.eksi-ai-model-check-info');
+                infoDiv.appendChild(statusDiv);
                 
                 // Buton event listener ekle
                 const useBtn = modelRow.querySelector('.eksi-ai-use-model-btn');
@@ -2014,6 +2068,106 @@ ${userPrompt}`;
     // Tüm modelleri paralel olarak kontrol et
     const checkPromises = MODELS.map(model => checkModelAndUpdateUI(model));
     await Promise.all(checkPromises);
+    
+    // En az bir sonuç varsa "Cevapları Karşılaştır" butonunu göster
+    const compareBtn = document.getElementById('eksi-ai-compare-results-btn');
+    if (compareBtn && modelResults.size > 0) {
+        compareBtn.style.display = 'block';
+        compareBtn.onclick = () => {
+            showCompareResultsModal(modelResults, overlay);
+        };
+    }
+};
+
+/**
+ * Tüm modellerin cevaplarını yan yana karşılaştırma modal'ı gösterir.
+ * 
+ * @param {Map<string, string>} modelResults - Model ID'leri ve cevapları
+ * @param {HTMLElement} parentOverlay - Ana modal overlay (kapatılacak)
+ */
+const showCompareResultsModal = (modelResults, parentOverlay) => {
+    // Ana modal'ı kapat
+    parentOverlay.remove();
+    
+    // Yeni karşılaştırma modal'ı oluştur
+    const overlay = document.createElement('div');
+    overlay.id = 'eksi-ai-compare-modal-overlay';
+    overlay.className = 'eksi-ai-modal-overlay';
+    
+    // Apply theme to overlay/modal
+    if (detectTheme()) {
+        overlay.classList.add('eksi-ai-dark');
+    }
+    
+    const modal = document.createElement('div');
+    modal.className = 'eksi-ai-modal-content';
+    modal.style.maxWidth = '95vw';
+    modal.style.maxHeight = '90vh';
+    modal.style.display = 'flex';
+    modal.style.flexDirection = 'column';
+    
+    // Modal başlığı
+    let modalContent = `
+        <h3 class="eksi-ai-modal-title" style="margin-bottom: 20px;">Model Cevaplarını Karşılaştır</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; overflow-y: auto; flex: 1; padding: 10px;">
+    `;
+    
+    // Her model için bir sütun oluştur
+    MODELS.forEach(model => {
+        const response = modelResults.get(model.id);
+        if (response) {
+            modalContent += `
+                <div style="border: 1px solid #ddd; border-radius: 8px; padding: 15px; background: #f9f9f9; display: flex; flex-direction: column; max-height: 70vh; overflow-y: auto;">
+                    <div style="font-weight: 600; font-size: 1.1em; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px solid #5cb85c; color: #5cb85c;">
+                        ${model.name}
+                    </div>
+                    <div class="eksi-ai-markdown" style="flex: 1; overflow-y: auto;">
+                        ${parseMarkdown(response)}
+                    </div>
+                </div>
+            `;
+        }
+    });
+    
+    modalContent += `
+        </div>
+        <div class="eksi-ai-modal-actions" style="margin-top: 20px; display: flex; justify-content: flex-end;">
+            <button id="eksi-ai-compare-modal-close" 
+                    class="eksi-ai-modal-btn eksi-ai-modal-cancel-btn">
+                Kapat
+            </button>
+        </div>
+    `;
+    
+    modal.innerHTML = modalContent;
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    // Close modal function
+    const closeModal = () => {
+        overlay.remove();
+    };
+    
+    const closeBtn = document.getElementById('eksi-ai-compare-modal-close');
+    closeBtn.onclick = closeModal;
+    
+    // Close on overlay click
+    overlay.onclick = (e) => {
+        if (e.target === overlay) {
+            closeModal();
+        }
+    };
+    
+    // Close on Escape key
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            closeModal();
+            document.removeEventListener('keydown', handleEscape, true);
+        }
+    };
+    document.addEventListener('keydown', handleEscape, true);
 };
 
 /**
