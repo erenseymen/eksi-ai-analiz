@@ -1256,7 +1256,7 @@ const addToggleVisibilityButton = (mainBtnId, containerId) => {
     // Gizle/Göster butonunu oluştur
     const toggleBtn = document.createElement('button');
     toggleBtn.id = toggleBtnId;
-    toggleBtn.className = 'eksi-ai-btn eksi-ai-toggle-btn';
+    toggleBtn.className = 'eksi-ai-btn secondary eksi-ai-toggle-btn';
     toggleBtn.textContent = 'Gizle';
     
     // Buton tıklandığında container'ı gizle/göster
