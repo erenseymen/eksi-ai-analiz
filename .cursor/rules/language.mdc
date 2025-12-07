@@ -1,0 +1,18 @@
+---
+description: Genel dil ayarları
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# Dil Ayarları
+
+## Genel Tercihler
+
+- **Proje dili:** Türkçe
+- **Commit mesajı dili:** Türkçe
+- **Kod yorumları dili:** Türkçe
+- **Dokümantasyon dili:** Türkçe
+
+## Notlar
+
+Kod içindeki değişken ve fonksiyon isimleri İngilizce kalabilir, ancak kullanıcıya yönelik tüm metinler Türkçe olmalıdır.

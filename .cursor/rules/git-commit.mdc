@@ -11,6 +11,6 @@ Her yanıtın sonunda, eğer dosyalarda değişiklik yapıldıysa, bu değişikl
 ## Kurallar
 
 1. Kod veya dosya değişikliği yapıldıktan sonra, yanıtın sonunda `git add` ve `git commit` komutlarını çalıştır
-2. Commit mesajı İngilizce ve açıklayıcı olmalı
+2. Commit mesajı Türkçe ve açıklayıcı olmalı (bkz: language.mdc)
 3. Conventional commits formatını kullan (feat:, fix:, docs:, refactor:, chore: vb.)
 4. Sadece gerçek değişiklik yapıldığında commit et, sadece okuma veya analiz yapıldığında commit etme
