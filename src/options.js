@@ -133,6 +133,15 @@ const saveOptions = async () => {
     const selectedModel = modelSelect.value;
     const status = document.getElementById('status');
 
+    // Önceki API key'i al (karşılaştırma için)
+    let previousApiKey = '';
+    await new Promise((resolve) => {
+        chrome.storage.sync.get(['geminiApiKey'], (items) => {
+            previousApiKey = items.geminiApiKey || '';
+            resolve();
+        });
+    });
+
     // Kaydetme öncesi API anahtarı doğrulaması
     status.textContent = 'API Key doğrulanıyor...';
     status.className = 'status';
@@ -153,6 +162,9 @@ const saveOptions = async () => {
 
     // DOM'dan güncel prompt listesini al
     updatePromptsFromDOM();
+    
+    // API key değişti mi kontrol et
+    const apiKeyChanged = apiKey !== previousApiKey;
 
     const settings = {
         geminiApiKey: apiKey,
@@ -173,8 +185,57 @@ const saveOptions = async () => {
         // State tutarlılığı için listeyi yeniden render et
         renderPrompts();
         
-        // Tüm modellerin durumunu güncelle
-        await updateAllModelsStatus();
+        // API key değiştiyse tüm modellerin durumunu güncelle
+        if (apiKeyChanged && apiKey && apiKey.trim()) {
+            await updateAllModelsStatus();
+        }
+        // API key değişmediyse, sadece model seçimine göre UI'daki butonları güncelle
+        else if (!isCheckingModels) {
+            // Seçilen modelin satırını güncelle
+            MODELS.forEach(m => {
+                const rowId = `model-status-${m.id}`;
+                const row = document.getElementById(rowId);
+                if (row) {
+                    const isSelected = m.id === selectedModel;
+                    const useBtn = row.querySelector('.use-model-btn');
+                    const selectedBtn = row.querySelector('.selected-model-btn');
+                    
+                    // Seçili model için "Bu modeli kullan" -> "Seçilen" dönüşümü
+                    if (isSelected && useBtn) {
+                        const newBtn = document.createElement('button');
+                        newBtn.className = 'selected-model-btn';
+                        newBtn.setAttribute('data-model-id', m.id);
+                        newBtn.disabled = true;
+                        newBtn.style.cssText = 'padding: 6px 12px; background-color: #6c757d; color: white; border: none; border-radius: 4px; font-size: 0.85em; font-weight: 500; cursor: not-allowed; opacity: 0.8;';
+                        newBtn.textContent = 'Seçilen';
+                        useBtn.replaceWith(newBtn);
+                    }
+                    // Diğer modeller için "Seçilen" -> "Bu modeli kullan" dönüşümü
+                    else if (!isSelected && selectedBtn) {
+                        const modelId = selectedBtn.getAttribute('data-model-id');
+                        const newBtn = document.createElement('button');
+                        newBtn.className = 'use-model-btn';
+                        newBtn.setAttribute('data-model-id', modelId);
+                        newBtn.style.cssText = 'padding: 6px 12px; background-color: #81c14b; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: 500; transition: background-color 0.2s ease;';
+                        newBtn.textContent = 'Bu modeli kullan';
+                        
+                        newBtn.onclick = async () => {
+                            await useModelInSettings(modelId);
+                        };
+                        
+                        newBtn.onmouseenter = () => {
+                            newBtn.style.backgroundColor = '#6da53e';
+                        };
+                        newBtn.onmouseleave = () => {
+                            newBtn.style.backgroundColor = '#81c14b';
+                        };
+                        
+                        selectedBtn.replaceWith(newBtn);
+                    }
+                }
+            });
+        }
+        
         setupRefreshButton();
     });
 };
