@@ -348,14 +348,11 @@ const updateAllModelsStatus = async () => {
                 // Kullanılabilir - buton ekle
                 modelRow.style.cssText = 'padding: 8px; margin-bottom: 5px; border-left: 3px solid #5cb85c; background: #f5f5f5; display: flex; align-items: center; justify-content: space-between;';
                 
-                // Buton alanı HTML'i (seçili model için tag ekle)
-                const buttonAreaHtml = isSelected 
-                    ? `<div style="display: flex; align-items: center; gap: 8px;">
-                        <span class="selected-model-tag" style="padding: 4px 8px; background-color: #6c757d; color: white; border-radius: 4px; font-size: 0.75em; font-weight: 500; pointer-events: none; user-select: none;">Seçilen</span>
-                        <button class="use-model-btn" data-model-id="${model.id}" style="padding: 6px 12px; background-color: #81c14b; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: 500; transition: background-color 0.2s ease;">
-                            Bu modeli kullan
-                        </button>
-                    </div>`
+                // Seçili model için "Seçilen" butonu, diğerleri için "Bu modeli kullan" butonu
+                const buttonHtml = isSelected
+                    ? `<button class="selected-model-btn" data-model-id="${model.id}" disabled style="padding: 6px 12px; background-color: #6c757d; color: white; border: none; border-radius: 4px; font-size: 0.85em; font-weight: 500; cursor: not-allowed; opacity: 0.8;">
+                        Seçilen
+                    </button>`
                     : `<button class="use-model-btn" data-model-id="${model.id}" style="padding: 6px 12px; background-color: #81c14b; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: 500; transition: background-color 0.2s ease;">
                         Bu modeli kullan
                     </button>`;
@@ -365,10 +362,10 @@ const updateAllModelsStatus = async () => {
                         <strong>${model.name}</strong><br>
                         <small style="color: #5cb85c;"><strong>✅ Kullanılabilir</strong></small>
                     </div>
-                    ${buttonAreaHtml}
+                    ${buttonHtml}
                 `;
                 
-                // Buton event listener ekle
+                // Buton event listener ekle (sadece "Bu modeli kullan" butonu için)
                 const useBtn = modelRow.querySelector('.use-model-btn');
                 if (useBtn) {
                     useBtn.onclick = async () => {
@@ -488,47 +485,54 @@ const useModelInSettings = async (modelId) => {
         // Tüm modellerin durumunu yeniden kontrol etme - zaten devam eden kontrol varsa onu bozmamak için
         // Sadece seçilen modelin satırını güncelle (eğer kontrol tamamlandıysa)
         if (!isCheckingModels) {
-            // Önce tüm modellerdeki "Seçilen" tag'ini kaldır
+            // Önce tüm modellerdeki "Seçilen" butonunu "Bu modeli kullan" butonuna dönüştür
             MODELS.forEach(m => {
                 const rowId = `model-status-${m.id}`;
                 const row = document.getElementById(rowId);
                 if (row) {
-                    const selectedTag = row.querySelector('.selected-model-tag');
-                    if (selectedTag) {
-                        const buttonArea = selectedTag.parentElement;
-                        const useBtn = row.querySelector('.use-model-btn');
-                        if (useBtn && buttonArea && buttonArea.tagName === 'DIV') {
-                            // Tag'i kaldır ve butonu doğrudan row'a taşı
-                            selectedTag.remove();
-                            useBtn.style.marginLeft = '0';
-                            buttonArea.replaceWith(useBtn);
-                        }
+                    const selectedBtn = row.querySelector('.selected-model-btn');
+                    if (selectedBtn) {
+                        // "Seçilen" butonunu "Bu modeli kullan" butonuna dönüştür
+                        const modelId = selectedBtn.getAttribute('data-model-id');
+                        const newBtn = document.createElement('button');
+                        newBtn.className = 'use-model-btn';
+                        newBtn.setAttribute('data-model-id', modelId);
+                        newBtn.style.cssText = 'padding: 6px 12px; background-color: #81c14b; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: 500; transition: background-color 0.2s ease;';
+                        newBtn.textContent = 'Bu modeli kullan';
+                        
+                        // Event listener ekle
+                        newBtn.onclick = async () => {
+                            await useModelInSettings(modelId);
+                        };
+                        
+                        // Hover efekti
+                        newBtn.onmouseenter = () => {
+                            newBtn.style.backgroundColor = '#6da53e';
+                        };
+                        newBtn.onmouseleave = () => {
+                            newBtn.style.backgroundColor = '#81c14b';
+                        };
+                        
+                        selectedBtn.replaceWith(newBtn);
                     }
                 }
             });
             
-            // Sonra sadece seçilen modelde "Seçilen" tag'ini göster
+            // Sonra sadece seçilen modelde "Bu modeli kullan" butonunu "Seçilen" butonuna dönüştür
             const modelRowId = `model-status-${modelId}`;
             const modelRow = document.getElementById(modelRowId);
             if (modelRow) {
                 const useBtn = modelRow.querySelector('.use-model-btn');
                 if (useBtn) {
-                    // Eğer tag yoksa, butonun etrafına div ekle ve tag'i ekle
-                    const parent = useBtn.parentElement;
-                    if (!parent.querySelector('.selected-model-tag')) {
-                        const buttonArea = document.createElement('div');
-                        buttonArea.style.cssText = 'display: flex; align-items: center; gap: 8px;';
-                        
-                        const selectedTag = document.createElement('span');
-                        selectedTag.className = 'selected-model-tag';
-                        selectedTag.style.cssText = 'padding: 4px 8px; background-color: #6c757d; color: white; border-radius: 4px; font-size: 0.75em; font-weight: 500; pointer-events: none; user-select: none;';
-                        selectedTag.textContent = 'Seçilen';
-                        
-                        useBtn.style.marginLeft = '0';
-                        buttonArea.appendChild(selectedTag);
-                        buttonArea.appendChild(useBtn);
-                        parent.replaceChild(buttonArea, useBtn);
-                    }
+                    // "Bu modeli kullan" butonunu "Seçilen" butonuna dönüştür
+                    const newBtn = document.createElement('button');
+                    newBtn.className = 'selected-model-btn';
+                    newBtn.setAttribute('data-model-id', modelId);
+                    newBtn.disabled = true;
+                    newBtn.style.cssText = 'padding: 6px 12px; background-color: #6c757d; color: white; border: none; border-radius: 4px; font-size: 0.85em; font-weight: 500; cursor: not-allowed; opacity: 0.8;';
+                    newBtn.textContent = 'Seçilen';
+                    
+                    useBtn.replaceWith(newBtn);
                 }
             }
         }
