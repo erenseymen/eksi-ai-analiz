@@ -359,6 +359,7 @@
     display: flex;
     gap: 10px;
     justify-content: flex-end;
+    margin-top: 20px;
 }
 
 /** Modal buton temel stili */
@@ -462,6 +463,95 @@
     background-color: var(--eksi-ai-info-bg);
     border: 1px solid var(--eksi-ai-info-border);
     border-radius: 4px;
+}
+
+/**
+ * Quota Modal Model List Stilleri
+ * Her model için gösterilen satır stilleri
+ */
+#eksi-ai-models-check-list {
+    margin-top: 20px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.eksi-ai-model-check-row {
+    padding: 12px;
+    margin-bottom: 8px;
+    border: 1px solid var(--eksi-ai-border);
+    border-radius: 4px;
+    background: var(--eksi-ai-bg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background-color 0.2s ease;
+}
+
+.eksi-ai-model-check-row:hover {
+    background: var(--eksi-ai-input-bg);
+}
+
+.eksi-ai-model-check-info {
+    flex: 1;
+}
+
+.eksi-ai-model-check-name {
+    font-weight: 600;
+    color: var(--eksi-ai-text);
+    margin-bottom: 4px;
+}
+
+.eksi-ai-model-check-status {
+    font-size: 0.9em;
+    margin-top: 4px;
+}
+
+.eksi-ai-model-check-status.checking {
+    color: var(--eksi-ai-text);
+    opacity: 0.7;
+}
+
+.eksi-ai-model-check-status.available {
+    color: #5cb85c;
+}
+
+.eksi-ai-model-check-status.quota-exceeded {
+    color: #f0ad4e;
+}
+
+.eksi-ai-model-check-status.unavailable {
+    color: #d9534f;
+}
+
+.eksi-ai-use-model-btn {
+    padding: 8px 16px;
+    background-color: var(--eksi-ai-btn-bg);
+    color: var(--eksi-ai-btn-text);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    margin-left: 10px;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+
+.eksi-ai-use-model-btn:hover {
+    background-color: var(--eksi-ai-btn-hover);
+}
+
+.eksi-ai-checking-spinner {
+    display: inline-block;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* =============================================================================

@@ -1800,7 +1800,7 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
             <p>Mevcut model (<strong>${modelId}</strong>) için API kota limiti aşıldı.</p>
             <p>Diğer modeller kontrol ediliyor...</p>
         </div>
-        <div id="eksi-ai-models-check-list" style="margin-top: 20px; max-height: 400px; overflow-y: auto;">
+        <div id="eksi-ai-models-check-list">
     `;
     
     // Her model için bir satır oluştur
@@ -1811,10 +1811,10 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
         if (isCurrentModel) {
             // Mevcut model için direkt sonuç göster (quota aşıldı)
             modalContent += `
-                <div id="${modelRowId}" style="padding: 12px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 4px; background: #f5f5f5; display: flex; align-items: center; justify-content: space-between;">
-                    <div style="flex: 1;">
-                        <strong>${model.name}</strong>
-                        <div style="margin-top: 4px; font-size: 0.9em; color: #d9534f;">
+                <div id="${modelRowId}" class="eksi-ai-model-check-row">
+                    <div class="eksi-ai-model-check-info">
+                        <div class="eksi-ai-model-check-name">${model.name}</div>
+                        <div class="eksi-ai-model-check-status quota-exceeded">
                             ⚠️ Quota limiti aşıldı
                         </div>
                     </div>
@@ -1823,10 +1823,10 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
         } else {
             // Diğer modeller için loading durumu
             modalContent += `
-                <div id="${modelRowId}" style="padding: 12px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 4px; background: #f5f5f5; display: flex; align-items: center; justify-content: space-between;">
-                    <div style="flex: 1;">
-                        <strong>${model.name}</strong>
-                        <div style="margin-top: 4px; font-size: 0.9em; color: #666;">
+                <div id="${modelRowId}" class="eksi-ai-model-check-row">
+                    <div class="eksi-ai-model-check-info">
+                        <div class="eksi-ai-model-check-name">${model.name}</div>
+                        <div class="eksi-ai-model-check-status checking">
                             <span class="eksi-ai-checking-spinner">⏳</span> Kontrol ediliyor...
                         </div>
                     </div>
@@ -1837,10 +1837,9 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
     
     modalContent += `
         </div>
-        <div class="eksi-ai-modal-actions" style="margin-top: 20px;">
+        <div class="eksi-ai-modal-actions">
             <button id="eksi-ai-quota-modal-cancel" 
-                    class="eksi-ai-modal-btn eksi-ai-modal-cancel-btn"
-                    style="margin-left: auto;">
+                    class="eksi-ai-modal-btn eksi-ai-modal-cancel-btn">
                 kapat
             </button>
         </div>
@@ -1899,15 +1898,14 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
             if (availability.available && !availability.quotaExceeded) {
                 // Uygun model - buton ekle
                 modelRow.innerHTML = `
-                    <div style="flex: 1;">
-                        <strong>${model.name}</strong>
-                        <div style="margin-top: 4px; font-size: 0.9em; color: #5cb85c;">
+                    <div class="eksi-ai-model-check-info">
+                        <div class="eksi-ai-model-check-name">${model.name}</div>
+                        <div class="eksi-ai-model-check-status available">
                             ✅ Kullanılabilir
                         </div>
                     </div>
                     <button class="eksi-ai-use-model-btn" 
-                            data-model-id="${model.id}"
-                            style="padding: 8px 16px; background-color: #81c14b; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; margin-left: 10px;">
+                            data-model-id="${model.id}">
                         Bu modeli kullan
                     </button>
                 `;
@@ -1920,9 +1918,9 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
             } else if (availability.quotaExceeded) {
                 // Quota aşıldı
                 modelRow.innerHTML = `
-                    <div style="flex: 1;">
-                        <strong>${model.name}</strong>
-                        <div style="margin-top: 4px; font-size: 0.9em; color: #f0ad4e;">
+                    <div class="eksi-ai-model-check-info">
+                        <div class="eksi-ai-model-check-name">${model.name}</div>
+                        <div class="eksi-ai-model-check-status quota-exceeded">
                             ⚠️ Quota limiti aşıldı
                         </div>
                     </div>
@@ -1930,10 +1928,10 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
             } else {
                 // Kullanılamıyor
                 modelRow.innerHTML = `
-                    <div style="flex: 1;">
-                        <strong>${model.name}</strong>
-                        <div style="margin-top: 4px; font-size: 0.9em; color: #d9534f;">
-                            ❌ Kullanılamıyor${availability.error ? ` (${availability.error})` : ''}
+                    <div class="eksi-ai-model-check-info">
+                        <div class="eksi-ai-model-check-name">${model.name}</div>
+                        <div class="eksi-ai-model-check-status unavailable">
+                            ❌ Kullanılamıyor${availability.error ? ` (${escapeHtml(availability.error)})` : ''}
                         </div>
                     </div>
                 `;
@@ -1941,9 +1939,9 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
         } catch (error) {
             // Hata durumu
             modelRow.innerHTML = `
-                <div style="flex: 1;">
-                    <strong>${model.name}</strong>
-                    <div style="margin-top: 4px; font-size: 0.9em; color: #d9534f;">
+                <div class="eksi-ai-model-check-info">
+                    <div class="eksi-ai-model-check-name">${model.name}</div>
+                    <div class="eksi-ai-model-check-status unavailable">
                         ❌ Hata: ${escapeHtml(error.message)}
                     </div>
                 </div>
