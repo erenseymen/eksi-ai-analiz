@@ -77,6 +77,7 @@ const getSettings = async () => {
  * - entry-page: Tek entry sayfası (/entry/id)
  * - home-page: Ana sayfa (/)
  * - gundem-page: Gündem sayfası (/basliklar/gundem)
+ * - olay-page: Olay sayfası (/basliklar/olay)
  * - debe-page: DEBE sayfası (/debe)
  * - channel-page: Kanal sayfaları (/basliklar/kanal/*)
  * - author-page: Yazar profil sayfası (/biri/*)
@@ -100,6 +101,11 @@ const detectPageType = () => {
     // Gündem sayfası
     if (path === '/basliklar/gundem') {
         return 'gundem-page';
+    }
+    
+    // Olay sayfası
+    if (path === '/basliklar/olay') {
+        return 'olay-page';
     }
     
     // Debe sayfası
@@ -718,6 +724,7 @@ const init = () => {
             break;
         case 'home-page':
         case 'gundem-page':
+        case 'olay-page':
         case 'debe-page':
         case 'author-page':
         case 'channel-page':
