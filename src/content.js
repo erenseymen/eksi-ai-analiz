@@ -1488,7 +1488,8 @@ const runGemini = async (userPrompt, showPromptHeader = false, clickedButton = n
 
         // Show model note if available
         if (cachedData.modelId) {
-            resultHTML += `<div class="eksi-ai-model-note">📝 ${cachedData.modelId}</div>`;
+            const timeStr = cachedData.responseTime ? ` (${(cachedData.responseTime / 1000).toFixed(2)}s)` : '';
+            resultHTML += `<div class="eksi-ai-model-note">📝 ${cachedData.modelId}${timeStr}</div>`;
         }
 
         resultHTML += parseMarkdown(cachedData.response);
@@ -1561,10 +1562,10 @@ ${entriesJson}
 ${userPrompt}`;
 
     try {
-        const response = await callGeminiApi(apiKey, modelId, finalPrompt, abortController.signal);
+        const { text: response, responseTime } = await callGeminiApi(apiKey, modelId, finalPrompt, abortController.signal);
 
-        // Cache the successful response with model info
-        responseCache.set(cacheKey, { response, modelId, timestamp: Date.now() });
+        // Cache the successful response with model info and response time
+        responseCache.set(cacheKey, { response, modelId, responseTime, timestamp: Date.now() });
 
         // Mark button as cached
         if (clickedButton) {
@@ -1593,8 +1594,9 @@ ${userPrompt}`;
             </div>`;
         }
 
-        // Show model note
-        resultHTML += `<div class="eksi-ai-model-note">📝 ${modelId}</div>`;
+        // Show model note with response time
+        const timeStr = responseTime ? ` (${(responseTime / 1000).toFixed(2)}s)` : '';
+        resultHTML += `<div class="eksi-ai-model-note">📝 ${modelId}${timeStr}</div>`;
 
         resultHTML += parseMarkdown(response);
         resultArea.innerHTML = resultHTML;
@@ -1697,9 +1699,8 @@ const callGeminiApi = async (apiKey, modelId, prompt, signal) => {
             const responseTime = endTime - startTime;
 
             console.log(`Gemini API Response Time: ${responseTime.toFixed(2)}ms (${apiVersion}/${modelId})`);
-            window.geminiResponseTime = responseTime;
 
-            return data.candidates[0].content.parts[0].text;
+            return { text: data.candidates[0].content.parts[0].text, responseTime };
         } else {
             const errorData = await response.json();
             // Get full error message including details
@@ -1907,15 +1908,16 @@ ${userPrompt}`;
             // Model mevcut, gerçek prompt ile API çağrısı yap
             try {
                 const abortController = new AbortController();
-                const response = await callGeminiApi(apiKey, model.id, finalPrompt, abortController.signal);
+                const { text: response, responseTime } = await callGeminiApi(apiKey, model.id, finalPrompt, abortController.signal);
 
-                // Sonucu sakla
-                modelResults.set(model.id, response);
+                // Sonucu sakla (response time ile birlikte)
+                modelResults.set(model.id, { response, responseTime });
 
-                // Başarılı - status göster
+                // Başarılı - status göster (süre ile)
                 const statusDiv = document.createElement('div');
                 statusDiv.className = 'eksi-ai-model-check-status available';
-                statusDiv.textContent = '✅ Başarılı';
+                const timeStr = responseTime ? ` (${(responseTime / 1000).toFixed(2)}s)` : '';
+                statusDiv.textContent = `✅ Başarılı${timeStr}`;
 
                 // Response'u kısalt (ilk karakterler)
                 const maxLength = 80;
@@ -1956,8 +1958,8 @@ ${userPrompt}`;
                     // Modal'ı kapat
                     overlay.remove();
 
-                    // Response'u cache'e kaydet (tekrar erişim için)
-                    responseCache.set(userPrompt, { response, modelId: model.id, timestamp: Date.now() });
+                    // Response'u cache'e kaydet (tekrar erişim için, responseTime ile)
+                    responseCache.set(userPrompt, { response, modelId: model.id, responseTime, timestamp: Date.now() });
 
                     // Mark clicked button as selected and cached (if available)
                     if (clickedButton) {
@@ -1991,8 +1993,9 @@ ${userPrompt}`;
                         </div>`;
                     }
 
-                    // Add a note about the model used
-                    resultHTML += `<div class="eksi-ai-model-note">📝 ${model.id}</div>`;
+                    // Add a note about the model used with response time
+                    const modelTimeStr = responseTime ? ` (${(responseTime / 1000).toFixed(2)}s)` : '';
+                    resultHTML += `<div class="eksi-ai-model-note">📝 ${model.id}${modelTimeStr}</div>`;
 
                     resultHTML += parseMarkdown(response);
                     resultArea.innerHTML = resultHTML;
@@ -2103,12 +2106,14 @@ const showCompareResultsModal = (modelResults, parentOverlay, parentEscapeHandle
 
     // Her model için bir sütun oluştur
     MODELS.forEach(model => {
-        const response = modelResults.get(model.id);
-        if (response) {
+        const result = modelResults.get(model.id);
+        if (result) {
+            const { response, responseTime } = result;
+            const timeStr = responseTime ? ` (${(responseTime / 1000).toFixed(2)}s)` : '';
             modalContent += `
                 <div class="eksi-ai-compare-card">
                     <div class="eksi-ai-compare-card-header">
-                        ${model.name}
+                        ${model.name}${timeStr}
                     </div>
                     <div class="eksi-ai-markdown" style="flex: 1; overflow-y: auto;">
                         ${parseMarkdown(response)}
@@ -2227,10 +2232,10 @@ ${entriesJson}
 
 ${userPrompt}`;
 
-        const response = await callGeminiApi(apiKey, model.id, finalPrompt, abortController.signal);
+        const { text: response, responseTime } = await callGeminiApi(apiKey, model.id, finalPrompt, abortController.signal);
 
-        // Cache the successful response with model info
-        responseCache.set(userPrompt, { response, modelId: model.id, timestamp: Date.now() });
+        // Cache the successful response with model info and response time
+        responseCache.set(userPrompt, { response, modelId: model.id, responseTime, timestamp: Date.now() });
 
         // Build result HTML
         let resultHTML = '';
@@ -2242,8 +2247,9 @@ ${userPrompt}`;
             </div>`;
         }
 
-        // Add a note about the model used
-        resultHTML += `<div class="eksi-ai-model-note">📝 ${model.id}</div>`;
+        // Add a note about the model used with response time
+        const retryTimeStr = responseTime ? ` (${(responseTime / 1000).toFixed(2)}s)` : '';
+        resultHTML += `<div class="eksi-ai-model-note">📝 ${model.id}${retryTimeStr}</div>`;
 
         resultHTML += parseMarkdown(response);
         resultArea.innerHTML = resultHTML;
