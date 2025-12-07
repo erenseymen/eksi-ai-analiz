@@ -1820,41 +1820,26 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
         <h3 class="eksi-ai-modal-title">API Kota Limiti Aşıldı</h3>
         <div class="eksi-ai-quota-modal-message">
             <p>Mevcut model (<strong>${modelId}</strong>) için API kota limiti aşıldı.</p>
-            <p>Diğer modeller kontrol ediliyor...</p>
+            <p>Tüm modeller kontrol ediliyor...</p>
         </div>
         <div id="eksi-ai-models-check-list">
     `;
     
-    // Her model için bir satır oluştur
+    // Her model için bir satır oluştur (hepsi loading durumunda başlar)
     MODELS.forEach((model, index) => {
         const modelRowId = `eksi-ai-model-check-${model.id}`;
-        const isCurrentModel = model.id === modelId;
         
-        if (isCurrentModel) {
-            // Mevcut model için direkt sonuç göster (quota aşıldı)
-            modalContent += `
-                <div id="${modelRowId}" class="eksi-ai-model-check-row">
-                    <div class="eksi-ai-model-check-info">
-                        <div class="eksi-ai-model-check-name">${model.name}</div>
-                        <div class="eksi-ai-model-check-status quota-exceeded">
-                            ⚠️ Quota limiti aşıldı
-                        </div>
+        // Tüm modeller için loading durumu
+        modalContent += `
+            <div id="${modelRowId}" class="eksi-ai-model-check-row">
+                <div class="eksi-ai-model-check-info">
+                    <div class="eksi-ai-model-check-name">${model.name}${model.id === modelId ? ' <span style="opacity: 0.7; font-size: 0.85em;">(Mevcut)</span>' : ''}</div>
+                    <div class="eksi-ai-model-check-status checking">
+                        <span class="eksi-ai-checking-spinner">⏳</span> Kontrol ediliyor...
                     </div>
                 </div>
-            `;
-        } else {
-            // Diğer modeller için loading durumu
-            modalContent += `
-                <div id="${modelRowId}" class="eksi-ai-model-check-row">
-                    <div class="eksi-ai-model-check-info">
-                        <div class="eksi-ai-model-check-name">${model.name}</div>
-                        <div class="eksi-ai-model-check-status checking">
-                            <span class="eksi-ai-checking-spinner">⏳</span> Kontrol ediliyor...
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
+            </div>
+        `;
     });
     
     modalContent += `
@@ -1902,11 +1887,6 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
     
     // Her modeli kontrol et ve sonucu göster
     const checkModelAndUpdateUI = async (model) => {
-        // Mevcut modeli atla
-        if (model.id === modelId) {
-            return;
-        }
-        
         const modelRowId = `eksi-ai-model-check-${model.id}`;
         const modelRow = document.getElementById(modelRowId);
         
@@ -1971,8 +1951,8 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
         }
     };
     
-    // Tüm modelleri paralel olarak kontrol et (mevcut model hariç)
-    const checkPromises = MODELS.filter(m => m.id !== modelId).map(model => checkModelAndUpdateUI(model));
+    // Tüm modelleri paralel olarak kontrol et
+    const checkPromises = MODELS.map(model => checkModelAndUpdateUI(model));
     await Promise.all(checkPromises);
 };
 
