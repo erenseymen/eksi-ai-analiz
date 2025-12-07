@@ -1763,7 +1763,8 @@ const findAvailableModel = async (apiKey, excludeModelId = null) => {
  * Kota aşım hatasını modal pencere ile gösterir.
  * 
  * Gemini API rate limit aşıldığında tüm modelleri kontrol eder ve
- * quota'sı yeterli olan bir model bulursa kullanıcıya sunar.
+ * her model için progress gösterir. Quota'sı yeterli olan modeller için
+ * "Bu modeli kullan" butonu ekler.
  * 
  * @param {HTMLElement} resultArea - Hata mesajının gösterileceği element
  * @param {string} errorMessage - API'den gelen hata mesajı
@@ -1790,88 +1791,74 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
     // Create modal content
     const modal = document.createElement('div');
     modal.className = 'eksi-ai-modal-content';
+    modal.style.maxWidth = '600px';
     
-    // Loading durumu göster
-    modal.innerHTML = `
-        <h3 class="eksi-ai-modal-title">API Kota Limiti Aşıldı</h3>
-        <div class="eksi-ai-quota-modal-message">
-            <p>Mevcut model (<strong>${modelId}</strong>) için API kota limiti aşıldı.</p>
-            <p>Uygun model aranıyor...</p>
-        </div>
-    `;
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
-    
-    // Tüm modelleri kontrol et ve uygun bir model bul
-    const availableModel = await findAvailableModel(apiKey, modelId);
-    
-    // Modal içeriğini güncelle
+    // Modal başlığı ve açıklama
     let modalContent = `
         <h3 class="eksi-ai-modal-title">API Kota Limiti Aşıldı</h3>
         <div class="eksi-ai-quota-modal-message">
             <p>Mevcut model (<strong>${modelId}</strong>) için API kota limiti aşıldı.</p>
+            <p>Diğer modeller kontrol ediliyor...</p>
+        </div>
+        <div id="eksi-ai-models-check-list" style="margin-top: 20px; max-height: 400px; overflow-y: auto;">
     `;
     
-    if (availableModel) {
-        modalContent += `
-            <p>Uygun bir model bulundu: <strong>${availableModel.name}</strong></p>
-            <p>Bu model ile devam edeyim mi?</p>
-        `;
-    } else {
-        modalContent += `
-            <p><strong>Maalesef şu anda kullanılabilir bir model bulunamadı.</strong></p>
-            <p>Tüm modeller için quota limiti aşılmış görünüyor. Lütfen daha sonra tekrar deneyin.</p>
-        `;
-    }
+    // Her model için bir satır oluştur
+    MODELS.forEach((model, index) => {
+        const modelRowId = `eksi-ai-model-check-${model.id}`;
+        const isCurrentModel = model.id === modelId;
+        
+        if (isCurrentModel) {
+            // Mevcut model için direkt sonuç göster (quota aşıldı)
+            modalContent += `
+                <div id="${modelRowId}" style="padding: 12px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 4px; background: #f5f5f5; display: flex; align-items: center; justify-content: space-between;">
+                    <div style="flex: 1;">
+                        <strong>${model.name}</strong>
+                        <div style="margin-top: 4px; font-size: 0.9em; color: #d9534f;">
+                            ⚠️ Quota limiti aşıldı
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            // Diğer modeller için loading durumu
+            modalContent += `
+                <div id="${modelRowId}" style="padding: 12px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 4px; background: #f5f5f5; display: flex; align-items: center; justify-content: space-between;">
+                    <div style="flex: 1;">
+                        <strong>${model.name}</strong>
+                        <div style="margin-top: 4px; font-size: 0.9em; color: #666;">
+                            <span class="eksi-ai-checking-spinner">⏳</span> Kontrol ediliyor...
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    });
     
     modalContent += `
         </div>
-        <div class="eksi-ai-modal-actions">
-    `;
-    
-    if (availableModel) {
-        modalContent += `
-            <button id="eksi-ai-quota-modal-cancel" 
-                    class="eksi-ai-modal-btn eksi-ai-modal-cancel-btn">
-                vazgeç
-            </button>
-            <button id="eksi-ai-quota-modal-retry" 
-                    class="eksi-ai-modal-btn eksi-ai-modal-submit-btn">
-                ${availableModel.name.replace(/^[^\s]+\s*/, '')} ile dene
-            </button>
-        `;
-    } else {
-        modalContent += `
+        <div class="eksi-ai-modal-actions" style="margin-top: 20px;">
             <button id="eksi-ai-quota-modal-cancel" 
                     class="eksi-ai-modal-btn eksi-ai-modal-cancel-btn"
                     style="margin-left: auto;">
-                tamam
+                kapat
             </button>
-        `;
-    }
-    
-    modalContent += `
         </div>
     `;
     
     modal.innerHTML = modalContent;
-    
-    const cancelBtn = document.getElementById('eksi-ai-quota-modal-cancel');
-    const retryBtn = document.getElementById('eksi-ai-quota-modal-retry');
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
     
     // Close modal function
     const closeModal = () => {
         overlay.remove();
         // Show error message in result area
         resultArea.style.display = 'block';
-        if (availableModel) {
-            resultArea.innerHTML = '<div class="eksi-ai-warning">API kota limiti aşıldı. Lütfen daha sonra tekrar deneyin.</div>';
-        } else {
-            resultArea.innerHTML = '<div class="eksi-ai-warning">Tüm modeller için quota limiti aşıldı. Lütfen daha sonra tekrar deneyin.</div>';
-        }
+        resultArea.innerHTML = '<div class="eksi-ai-warning">API kota limiti aşıldı. Lütfen daha sonra tekrar deneyin.</div>';
     };
     
-    // Cancel button
+    const cancelBtn = document.getElementById('eksi-ai-quota-modal-cancel');
     cancelBtn.onclick = closeModal;
     
     // Close on overlay click (but not on modal click)
@@ -1881,7 +1868,7 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
         }
     };
     
-    // Close on Escape key (yalnızca bu modal açıkken)
+    // Close on Escape key
     const handleEscape = (e) => {
         if (e.key === 'Escape') {
             e.preventDefault();
@@ -1892,97 +1879,183 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
     };
     document.addEventListener('keydown', handleEscape, true);
     
-    // Retry button - only if available model is found
-    if (retryBtn && availableModel) {
-        retryBtn.onclick = async () => {
-            closeModal();
+    // Her modeli kontrol et ve sonucu göster
+    const checkModelAndUpdateUI = async (model) => {
+        // Mevcut modeli atla
+        if (model.id === modelId) {
+            return;
+        }
+        
+        const modelRowId = `eksi-ai-model-check-${model.id}`;
+        const modelRow = document.getElementById(modelRowId);
+        
+        if (!modelRow) return;
+        
+        try {
+            // Kontrol et
+            const availability = await checkModelAvailability(apiKey, model.id);
             
-            // Clear the cache for this prompt
-            responseCache.delete(userPrompt);
-            
-            // Create AbortController for cancellation
-            const abortController = new AbortController();
-            
-            // Create loading message with stop button
-            const loadingContainer = document.createElement('div');
-            loadingContainer.style.display = 'flex';
-            loadingContainer.style.alignItems = 'center';
-            loadingContainer.style.gap = '10px';
-            
-            const loadingText = document.createElement('span');
-            loadingText.textContent = "Gemini düşünüyor...";
-            
-            const stopButton = document.createElement('button');
-            stopButton.textContent = "Durdur";
-            stopButton.className = 'eksi-ai-btn';
-            stopButton.style.padding = '5px 12px';
-            stopButton.style.fontSize = '12px';
-            stopButton.style.margin = '0';
-            stopButton.onclick = () => {
-                abortController.abort();
-                loadingText.textContent = "İstek iptal ediliyor...";
-                stopButton.disabled = true;
-            };
-            
-            loadingContainer.appendChild(loadingText);
-            loadingContainer.appendChild(stopButton);
-            resultArea.style.display = 'block';
-            resultArea.innerHTML = '';
-            resultArea.appendChild(loadingContainer);
-            
-            // Call Gemini with the available model
-            try {
-                const limitedEntries = allEntries;
-                const entriesJson = JSON.stringify(limitedEntries);
+            // Sonucu göster
+            if (availability.available && !availability.quotaExceeded) {
+                // Uygun model - buton ekle
+                modelRow.innerHTML = `
+                    <div style="flex: 1;">
+                        <strong>${model.name}</strong>
+                        <div style="margin-top: 4px; font-size: 0.9em; color: #5cb85c;">
+                            ✅ Kullanılabilir
+                        </div>
+                    </div>
+                    <button class="eksi-ai-use-model-btn" 
+                            data-model-id="${model.id}"
+                            style="padding: 8px 16px; background-color: #81c14b; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; margin-left: 10px;">
+                        Bu modeli kullan
+                    </button>
+                `;
                 
-                const finalPrompt = `Başlık: "${topicTitle}"
+                // Buton event listener ekle
+                const useBtn = modelRow.querySelector('.eksi-ai-use-model-btn');
+                useBtn.onclick = async () => {
+                    await useModelForRetry(model, userPrompt, showPromptHeader, clickedButton, resultArea, overlay);
+                };
+            } else if (availability.quotaExceeded) {
+                // Quota aşıldı
+                modelRow.innerHTML = `
+                    <div style="flex: 1;">
+                        <strong>${model.name}</strong>
+                        <div style="margin-top: 4px; font-size: 0.9em; color: #f0ad4e;">
+                            ⚠️ Quota limiti aşıldı
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Kullanılamıyor
+                modelRow.innerHTML = `
+                    <div style="flex: 1;">
+                        <strong>${model.name}</strong>
+                        <div style="margin-top: 4px; font-size: 0.9em; color: #d9534f;">
+                            ❌ Kullanılamıyor${availability.error ? ` (${availability.error})` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            // Hata durumu
+            modelRow.innerHTML = `
+                <div style="flex: 1;">
+                    <strong>${model.name}</strong>
+                    <div style="margin-top: 4px; font-size: 0.9em; color: #d9534f;">
+                        ❌ Hata: ${escapeHtml(error.message)}
+                    </div>
+                </div>
+            `;
+        }
+    };
+    
+    // Tüm modelleri paralel olarak kontrol et (mevcut model hariç)
+    const checkPromises = MODELS.filter(m => m.id !== modelId).map(model => checkModelAndUpdateUI(model));
+    await Promise.all(checkPromises);
+};
+
+/**
+ * Seçilen model ile retry yapar.
+ * 
+ * @param {Object} model - Kullanılacak model objesi
+ * @param {string} userPrompt - Kullanıcı promptu
+ * @param {boolean} showPromptHeader - Özel prompt başlığı gösterilsin mi
+ * @param {HTMLElement|null} clickedButton - Seçili buton referansı
+ * @param {HTMLElement} resultArea - Sonuç alanı
+ * @param {HTMLElement} overlay - Modal overlay
+ */
+const useModelForRetry = async (model, userPrompt, showPromptHeader, clickedButton, resultArea, overlay) => {
+    const settings = await getSettings();
+    const apiKey = settings.geminiApiKey;
+    
+    // Modal'ı kapat
+    overlay.remove();
+    
+    // Clear the cache for this prompt
+    responseCache.delete(userPrompt);
+    
+    // Create AbortController for cancellation
+    const abortController = new AbortController();
+    
+    // Create loading message with stop button
+    const loadingContainer = document.createElement('div');
+    loadingContainer.style.display = 'flex';
+    loadingContainer.style.alignItems = 'center';
+    loadingContainer.style.gap = '10px';
+    
+    const loadingText = document.createElement('span');
+    loadingText.textContent = "Gemini düşünüyor...";
+    
+    const stopButton = document.createElement('button');
+    stopButton.textContent = "Durdur";
+    stopButton.className = 'eksi-ai-btn';
+    stopButton.style.padding = '5px 12px';
+    stopButton.style.fontSize = '12px';
+    stopButton.style.margin = '0';
+    stopButton.onclick = () => {
+        abortController.abort();
+        loadingText.textContent = "İstek iptal ediliyor...";
+        stopButton.disabled = true;
+    };
+    
+    loadingContainer.appendChild(loadingText);
+    loadingContainer.appendChild(stopButton);
+    resultArea.style.display = 'block';
+    resultArea.innerHTML = '';
+    resultArea.appendChild(loadingContainer);
+    
+    // Call Gemini with the selected model
+    try {
+        const limitedEntries = allEntries;
+        const entriesJson = JSON.stringify(limitedEntries);
+        
+        const finalPrompt = `Başlık: "${topicTitle}"
 
 Aşağıda Ekşi Sözlük entry'leri JSON formatında verilmiştir:
 ${entriesJson}
 
 ${userPrompt}`;
-                
-                const response = await callGeminiApi(apiKey, availableModel.id, finalPrompt, abortController.signal);
-                
-                // Cache the successful response with model info
-                responseCache.set(userPrompt, { response, modelId: availableModel.id, timestamp: Date.now() });
-                
-                // Build result HTML
-                let resultHTML = '';
-                
-                if (showPromptHeader && userPrompt) {
-                    resultHTML += `<div class="eksi-ai-custom-prompt-header">
-                        <span class="eksi-ai-custom-prompt-label">Özel Prompt:</span>
-                        <span class="eksi-ai-custom-prompt-text">${escapeHtml(userPrompt).replace(/\n/g, '<br>')}</span>
-                    </div>`;
-                }
-                
-                // Add a note about the model used
-                resultHTML += `<div class="eksi-ai-model-note">📝 ${availableModel.id}</div>`;
-                
-                resultHTML += parseMarkdown(response);
-                resultArea.innerHTML = resultHTML;
-                resultArea.classList.add('eksi-ai-markdown');
-                
-                // Add action buttons for the result
-                addResultActionButtons(resultArea, response, userPrompt, showPromptHeader, clickedButton);
-                
-            } catch (retryErr) {
-                let retryErrorMessage = retryErr.message;
-                
-                // Check if error is due to abort
-                if (retryErr.name === 'AbortError' || retryErrorMessage.includes('aborted')) {
-                    resultArea.innerHTML = '<div class="eksi-ai-warning">İstek iptal edildi.</div>';
-                } else if (retryErrorMessage.includes('quota') || retryErrorMessage.includes('Quota exceeded')) {
-                    // If retry also fails with quota error, handle it recursively
-                    // This allows the retry mechanism to work as if it's the first time
-                    await showQuotaErrorWithRetry(resultArea, retryErrorMessage, userPrompt, showPromptHeader, clickedButton, availableModel.id);
-                } else {
-                    // If retry fails with a different error, show the error
-                    resultArea.innerHTML = `<div class="eksi-ai-warning">Hata: ${escapeHtml(retryErrorMessage)}</div>`;
-                }
-            }
-        };
+        
+        const response = await callGeminiApi(apiKey, model.id, finalPrompt, abortController.signal);
+        
+        // Cache the successful response with model info
+        responseCache.set(userPrompt, { response, modelId: model.id, timestamp: Date.now() });
+        
+        // Build result HTML
+        let resultHTML = '';
+        
+        if (showPromptHeader && userPrompt) {
+            resultHTML += `<div class="eksi-ai-custom-prompt-header">
+                <span class="eksi-ai-custom-prompt-label">Özel Prompt:</span>
+                <span class="eksi-ai-custom-prompt-text">${escapeHtml(userPrompt).replace(/\n/g, '<br>')}</span>
+            </div>`;
+        }
+        
+        // Add a note about the model used
+        resultHTML += `<div class="eksi-ai-model-note">📝 ${model.id}</div>`;
+        
+        resultHTML += parseMarkdown(response);
+        resultArea.innerHTML = resultHTML;
+        resultArea.classList.add('eksi-ai-markdown');
+        
+        // Add action buttons for the result
+        addResultActionButtons(resultArea, response, userPrompt, showPromptHeader, clickedButton);
+        
+    } catch (retryErr) {
+        let retryErrorMessage = retryErr.message;
+        
+        // Check if error is due to abort
+        if (retryErr.name === 'AbortError' || retryErrorMessage.includes('aborted')) {
+            resultArea.innerHTML = '<div class="eksi-ai-warning">İstek iptal edildi.</div>';
+        } else if (retryErrorMessage.includes('quota') || retryErrorMessage.includes('Quota exceeded')) {
+            // If retry also fails with quota error, handle it recursively
+            await showQuotaErrorWithRetry(resultArea, retryErrorMessage, userPrompt, showPromptHeader, clickedButton, model.id);
+        } else {
+            // If retry fails with a different error, show the error
+            resultArea.innerHTML = `<div class="eksi-ai-warning">Hata: ${escapeHtml(retryErrorMessage)}</div>`;
+        }
     }
 };
 
