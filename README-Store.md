@@ -4,16 +4,14 @@ Ekşi Sözlük AI Analiz
 
 # Summary (Kısa Açıklama):
 
-Ekşi Sözlük başlıklarını Gemini AI ile özetleyin, analiz edin.
+Ekşi Sözlük başlıklarını analiz eden, özetleyen ve blog yazısı hazırlayan yapay zeka asistanı
 
 # Description (Tam Açıklama):
 
-✨ Özellikler:
-• Başlık özeti oluşturma
-• Blog yazısı hazırlama
-• Özel prompt desteği
-• JSON dışa aktarma
-
+Özellikler:
+🤖 Gemini AI ile özet ve blog yazısı oluşturma
+✏️ Özel prompt
+📥 Entry'leri JSON olarak indirme
 🎯 Ekşi Sözlük'ün çeşitli sayfalarında doğru entry'leri toplar.
 
 ℹ️ Google AI Studio'dan ücretsiz API anahtarı gerektirir.
