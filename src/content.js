@@ -2086,8 +2086,8 @@ ${userPrompt}`;
  * @param {HTMLElement} parentOverlay - Ana modal overlay (kapatılacak)
  */
 const showCompareResultsModal = (modelResults, parentOverlay) => {
-    // Ana modal'ı kapat
-    parentOverlay.remove();
+    // Ana modal'ı gizle (kaldırma, sadece gizle)
+    parentOverlay.style.display = 'none';
     
     // Yeni karşılaştırma modal'ı oluştur
     const overlay = document.createElement('div');
@@ -2143,9 +2143,11 @@ const showCompareResultsModal = (modelResults, parentOverlay) => {
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
     
-    // Close modal function
+    // Close modal function - karşılaştırma modal'ını kapat ve ana modal'ı tekrar göster
     const closeModal = () => {
         overlay.remove();
+        // Ana modal'ı tekrar göster
+        parentOverlay.style.display = '';
     };
     
     const closeBtn = document.getElementById('eksi-ai-compare-modal-close');
