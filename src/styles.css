@@ -347,8 +347,28 @@
     background: var(--eksi-ai-btn-hover);
 }
 
+/** Modal mesaj alanı (kota hatası modal'ı için) */
+.eksi-ai-quota-modal-message {
+    margin-bottom: 20px;
+    line-height: 1.6;
+    color: var(--eksi-ai-text);
+}
+
+.eksi-ai-quota-modal-message p {
+    margin: 0 0 10px 0;
+}
+
+.eksi-ai-quota-modal-message p:last-child {
+    margin-bottom: 0;
+}
+
+.eksi-ai-quota-modal-message strong {
+    color: var(--eksi-ai-btn-bg);
+    font-weight: 600;
+}
+
 /**
- * Kota Aşım Hatası Bileşenleri
+ * Kota Aşım Hatası Bileşenleri (eski inline stil - artık modal kullanılıyor)
  * Rate limit aşıldığında düşük model ile yeniden deneme butonu gösterilir.
  */
 .eksi-ai-quota-error {

@@ -1611,10 +1611,10 @@ const getLowerModel = (currentModelId) => {
 };
 
 /**
- * Kota aşım hatasını düşük model ile yeniden deneme butonu ile gösterir.
+ * Kota aşım hatasını modal pencere ile gösterir.
  * 
- * Gemini API rate limit aşıldığında kullanıcıya daha düşük bir modelle
- * tekrar deneme seçeneği sunar.
+ * Gemini API rate limit aşıldığında kullanıcıya modal pencere açarak
+ * daha düşük bir modelle tekrar deneme seçeneği sunar.
  * 
  * @param {HTMLElement} resultArea - Hata mesajının gösterileceği element
  * @param {string} errorMessage - API'den gelen hata mesajı
@@ -1623,44 +1623,108 @@ const getLowerModel = (currentModelId) => {
  * @param {HTMLElement|null} clickedButton - Seçili buton referansı
  */
 const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, showPromptHeader, clickedButton) => {
-    resultArea.style.display = 'block';
-    
     const settings = await getSettings();
     const currentModelId = settings.selectedModel || 'gemini-2.5-flash';
     const lowerModel = getLowerModel(currentModelId);
     
-    // Create error container
-    const errorContainer = document.createElement('div');
-    errorContainer.className = 'eksi-ai-quota-error';
+    // Create modal overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'eksi-ai-quota-modal-overlay';
+    overlay.className = 'eksi-ai-modal-overlay';
     
-    const errorText = document.createElement('div');
-    errorText.className = 'eksi-ai-quota-error-text';
-    errorText.textContent = 'API kota limiti aşıldı.';
+    // Apply theme to overlay/modal
+    if (detectTheme()) {
+        overlay.classList.add('eksi-ai-dark');
+    }
     
-    const errorDetails = document.createElement('div');
-    errorDetails.className = 'eksi-ai-quota-error-details';
-    errorDetails.textContent = `Mevcut model: ${currentModelId}`;
+    // Create modal content
+    const modal = document.createElement('div');
+    modal.className = 'eksi-ai-modal-content';
     
-    errorContainer.appendChild(errorText);
-    errorContainer.appendChild(errorDetails);
+    let modalContent = `
+        <h3 class="eksi-ai-modal-title">API Kota Limiti Aşıldı</h3>
+        <div class="eksi-ai-quota-modal-message">
+            <p>Mevcut model (<strong>${currentModelId}</strong>) için API kota limiti aşıldı.</p>
+    `;
     
-    // Add retry button if there's a lower model available
     if (lowerModel) {
-        const retryContainer = document.createElement('div');
-        retryContainer.className = 'eksi-ai-quota-retry-container';
-        
-        const retryBtn = document.createElement('button');
-        retryBtn.className = 'eksi-ai-btn';
-        retryBtn.innerHTML = `
-            <span>${lowerModel.name.replace(/^[^\s]+\s*/, '')} ile dene</span>
+        modalContent += `
+            <p>Bir düşük model (<strong>${lowerModel.id}</strong>) ile deneyeyim mi?</p>
         `;
+    } else {
+        modalContent += `
+            <p>Zaten en düşük model kullanılıyor. Lütfen daha sonra tekrar deneyin.</p>
+        `;
+    }
+    
+    modalContent += `
+        </div>
+        <div class="eksi-ai-modal-actions">
+    `;
+    
+    if (lowerModel) {
+        modalContent += `
+            <button id="eksi-ai-quota-modal-cancel" 
+                    class="eksi-ai-modal-btn eksi-ai-modal-cancel-btn">
+                vazgeç
+            </button>
+            <button id="eksi-ai-quota-modal-retry" 
+                    class="eksi-ai-modal-btn eksi-ai-modal-submit-btn">
+                ${lowerModel.name.replace(/^[^\s]+\s*/, '')} ile dene
+            </button>
+        `;
+    } else {
+        modalContent += `
+            <button id="eksi-ai-quota-modal-cancel" 
+                    class="eksi-ai-modal-btn eksi-ai-modal-cancel-btn"
+                    style="margin-left: auto;">
+                tamam
+            </button>
+        `;
+    }
+    
+    modalContent += `
+        </div>
+    `;
+    
+    modal.innerHTML = modalContent;
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    const cancelBtn = document.getElementById('eksi-ai-quota-modal-cancel');
+    const retryBtn = document.getElementById('eksi-ai-quota-modal-retry');
+    
+    // Close modal function
+    const closeModal = () => {
+        overlay.remove();
+        // Show error message in result area
+        resultArea.style.display = 'block';
+        resultArea.innerHTML = '<div class="eksi-ai-warning">API kota limiti aşıldı. Lütfen daha sonra tekrar deneyin.</div>';
+    };
+    
+    // Cancel button
+    cancelBtn.onclick = closeModal;
+    
+    // Close on overlay click (but not on modal click)
+    overlay.onclick = (e) => {
+        if (e.target === overlay) {
+            closeModal();
+        }
+    };
+    
+    // Close on Escape key
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            closeModal();
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    document.addEventListener('keydown', handleEscape);
+    
+    // Retry button - only if lower model is available
+    if (retryBtn && lowerModel) {
         retryBtn.onclick = async () => {
-            // Temporarily change the model for this request
-            retryBtn.disabled = true;
-            retryBtn.textContent = 'Deneniyor...';
-            
-            // Save original model, set lower model temporarily
-            const originalModel = settings.selectedModel;
+            closeModal();
             
             // Clear the cache for this prompt
             responseCache.delete(userPrompt);
@@ -1691,6 +1755,7 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
             
             loadingContainer.appendChild(loadingText);
             loadingContainer.appendChild(stopButton);
+            resultArea.style.display = 'block';
             resultArea.innerHTML = '';
             resultArea.appendChild(loadingContainer);
             
@@ -1740,24 +1805,9 @@ ${userPrompt}`;
                     // If retry also fails, show the error
                     resultArea.innerHTML = `<div class="eksi-ai-warning">Hata: ${escapeHtml(retryErr.message)}</div>`;
                 }
-            } finally {
-                // Re-enable retry button
-                retryBtn.disabled = false;
-                retryBtn.innerHTML = `<span>${lowerModel.name.replace(/^[^\s]+\s*/, '')} ile dene</span>`;
             }
         };
-        
-        retryContainer.appendChild(retryBtn);
-        errorContainer.appendChild(retryContainer);
-    } else {
-        const noModelText = document.createElement('div');
-        noModelText.className = 'eksi-ai-quota-no-model';
-        noModelText.textContent = 'Zaten en düşük model kullanılıyor. Lütfen daha sonra tekrar deneyin.';
-        errorContainer.appendChild(noModelText);
     }
-    
-    resultArea.innerHTML = '';
-    resultArea.appendChild(errorContainer);
 };
 
 // =============================================================================
