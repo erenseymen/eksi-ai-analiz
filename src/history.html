@@ -72,6 +72,66 @@
             box-shadow: 0 2px 8px rgba(129, 193, 75, 0.1);
         }
 
+        .history-item.selectable {
+            cursor: pointer;
+            position: relative;
+            padding-left: 45px;
+        }
+
+        .history-item.selectable::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            background: white;
+            transition: all 0.2s;
+        }
+
+        .history-item.selectable.selected::before {
+            background: #81c14b;
+            border-color: #81c14b;
+        }
+
+        .history-item.selectable.selected::after {
+            content: '✓';
+            position: absolute;
+            left: 19px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .history-item.selectable.selected {
+            border-color: #81c14b;
+            background: #f0f8e8;
+        }
+
+        .selection-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: #e8f5e9;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .selection-toolbar span {
+            font-weight: 600;
+            color: #2e7d32;
+        }
+
+
         .history-item-header {
             display: flex;
             justify-content: space-between;
@@ -387,6 +447,23 @@
                 border-color: #81c14b;
                 outline: none;
             }
+
+            .history-item.selectable::before {
+                background: #363636;
+                border-color: #555;
+            }
+
+            .history-item.selectable.selected {
+                background: #2e4a1e;
+            }
+
+            .selection-toolbar {
+                background: #2e4a1e;
+            }
+
+            .selection-toolbar span {
+                color: #a5d67a;
+            }
         }
     </style>
 </head>
@@ -425,6 +502,13 @@
             <p>Henüz kaydedilmiş analiz yok.</p>
         </div>
 
+        <!-- Seçim Toolbar -->
+        <div id="selectionToolbar" class="selection-toolbar" style="display: none;">
+            <span id="selectionCount">0 öğe seçildi</span>
+            <button id="btnReanalyze" class="btn-primary">🔄 Seçilenleri Tekrar Analiz Et</button>
+            <button id="btnClearSelection" class="btn-secondary">✖ Seçimi Temizle</button>
+        </div>
+
         <div id="historyList" class="history-list" style="display: none;"></div>
 
         <div id="loadMoreContainer" style="display: none; text-align: center; margin-top: 20px;">
@@ -446,8 +530,45 @@
         </div>
     </div>
 
+    <!-- Yeniden Analiz Modal -->
+    <div id="reanalyzeModal" class="detail-modal">
+        <div class="detail-modal-content" style="max-width: 700px;">
+            <div class="detail-modal-header">
+                <h2>🔄 Seçilen Analizleri Tekrar Çalıştır</h2>
+                <button class="detail-modal-close" id="reanalyzeModalClose">&times;</button>
+            </div>
+            <div id="reanalyzeSummary" class="detail-meta"></div>
+            <div style="margin-bottom: 15px;">
+                <label for="reanalyzePromptSelect" style="display: block; margin-bottom: 8px; font-weight: 600;">Prompt
+                    Seçin:</label>
+                <select id="reanalyzePromptSelect"
+                    style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ddd; font-size: 14px; margin-bottom: 10px;">
+                    <option value="">-- Kayıtlı promptlardan seçin veya özel prompt yazın --</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label for="reanalyzeCustomPrompt" style="display: block; margin-bottom: 8px; font-weight: 600;">Özel
+                    Prompt:</label>
+                <textarea id="reanalyzeCustomPrompt"
+                    placeholder="Birden fazla analiz sonucunu birlikte değerlendirmek için prompt yazın..."
+                    style="width: 100%; height: 120px; padding: 10px; border-radius: 6px; border: 1px solid #ddd; font-size: 14px; resize: vertical; box-sizing: border-box;"></textarea>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button id="btnCancelReanalyze" class="btn-secondary">İptal</button>
+                <button id="btnSubmitReanalyze" class="btn-primary">🚀 Analiz Et</button>
+            </div>
+            <div id="reanalyzeResult" style="display: none; margin-top: 20px;">
+                <h3 style="margin-bottom: 10px;">Sonuç:</h3>
+                <div id="reanalyzeResultContent" class="detail-response"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="prompts.js"></script>
     <script src="constants.js"></script>
+    <script src="settings.js"></script>
     <script src="markdown.js"></script>
+    <script src="api.js"></script>
     <script src="history.js"></script>
 </body>
 

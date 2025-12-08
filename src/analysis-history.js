@@ -32,6 +32,7 @@ const DEFAULT_HISTORY_RETENTION_DAYS = 30;
  * @param {string} analysisData.response - AI yanıtı
  * @param {string} analysisData.modelId - Kullanılan model
  * @param {number} analysisData.entryCount - Entry sayısı
+ * @param {Array} [analysisData.sourceEntries] - Kaynak entry'ler (opsiyonel)
  * @returns {Promise<void>}
  */
 const saveToHistory = async (analysisData) => {
@@ -57,7 +58,9 @@ const saveToHistory = async (analysisData) => {
                 responsePreview: analysisData.response.substring(0, 200) + (analysisData.response.length > 200 ? '...' : ''),
                 modelId: analysisData.modelId,
                 entryCount: analysisData.entryCount,
-                responseTime: analysisData.responseTime
+                responseTime: analysisData.responseTime,
+                // Kaynak entry'leri de sakla (tekrar analiz için)
+                sourceEntries: analysisData.sourceEntries || []
             };
 
             // Başa ekle (en yeni en üstte)
@@ -99,5 +102,42 @@ const getHistory = async () => {
 const clearHistory = async () => {
     return new Promise((resolve) => {
         chrome.storage.local.set({ analysisHistory: [] }, resolve);
+    });
+};
+
+/**
+ * Belirli bir URL için kaydedilmiş analiz sonuçlarını alır.
+ * 
+ * URL'nin base path'ini kullanarak eşleşme yapar (query parametreleri dahil).
+ * 
+ * @param {string} url - Kontrol edilecek URL
+ * @returns {Promise<Array>} URL ile eşleşen analiz sonuçları listesi
+ */
+const getCachedAnalysisForUrl = async (url) => {
+    return new Promise((resolve) => {
+        chrome.storage.local.get({ analysisHistory: [] }, (result) => {
+            const history = result.analysisHistory;
+
+            // URL'leri normalize et (trailing slash, hash kaldır)
+            const normalizeUrl = (u) => {
+                try {
+                    const parsed = new URL(u);
+                    // Hash'i kaldır, pathname ve search'ü birleştir
+                    return parsed.origin + parsed.pathname + parsed.search;
+                } catch {
+                    return u;
+                }
+            };
+
+            const normalizedUrl = normalizeUrl(url);
+
+            // Eşleşen kayıtları bul
+            const matches = history.filter(item => {
+                const itemUrl = normalizeUrl(item.topicUrl);
+                return itemUrl === normalizedUrl;
+            });
+
+            resolve(matches);
+        });
     });
 };

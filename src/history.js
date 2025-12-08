@@ -28,6 +28,9 @@ let displayedCount = 0;
 /** @type {Array} Tüm geçmiş verileri */
 let allHistoryData = [];
 
+/** @type {Set<string>} Seçilen öğelerin ID'leri */
+let selectedItems = new Set();
+
 /**
  * Saklama süresini storage'dan alır.
  * 
@@ -194,14 +197,19 @@ const renderHistory = (history, append = false) => {
             minute: '2-digit'
         });
 
+        // Kaynak entry'si olan öğeler seçilebilir
+        const hasSourceEntries = item.sourceEntries && item.sourceEntries.length > 0;
+        const selectableClass = hasSourceEntries ? 'selectable' : '';
+        const selectedClass = selectedItems.has(item.id) ? 'selected' : '';
+
         html += `
-            <div class="history-item" data-id="${escapeHtml(item.id)}">
+            <div class="history-item ${selectableClass} ${selectedClass}" data-id="${escapeHtml(item.id)}" data-has-source="${hasSourceEntries}">
                 <div class="history-item-header">
                     <a href="${escapeHtml(item.topicUrl)}" target="_blank" class="history-title">${escapeHtml(item.topicTitle)}</a>
                     <span class="history-date">${dateStr}</span>
                 </div>
                 <div class="history-meta">
-                    📝 ${escapeHtml(item.modelId)} | 📊 ${item.entryCount} entry | ⏱️ ${item.responseTime ? (item.responseTime / 1000).toFixed(1) + 's' : '-'}
+                    📝 ${escapeHtml(item.modelId)} | 📊 ${item.entryCount} entry | ⏱️ ${item.responseTime ? (item.responseTime / 1000).toFixed(1) + 's' : '-'}${hasSourceEntries ? ' | 📦 Kaynak Mevcut' : ''}
                 </div>
                 <div class="history-prompt">${escapeHtml(item.promptPreview || item.prompt.substring(0, 100) + (item.prompt.length > 100 ? '...' : ''))}</div>
                 <div class="history-actions">
@@ -238,9 +246,30 @@ const renderHistory = (history, append = false) => {
  * @param {Array} history - Analiz geçmişi listesi
  */
 const attachEventListeners = (history) => {
+    // Seçilebilir öğeler için tıklama
+    document.querySelectorAll('.history-item.selectable').forEach(item => {
+        item.addEventListener('click', (e) => {
+            // Butonlara veya linklere tıklandığında seçim yapma
+            if (e.target.closest('.history-actions') || e.target.closest('.history-title')) {
+                return;
+            }
+
+            const itemId = item.getAttribute('data-id');
+            if (selectedItems.has(itemId)) {
+                selectedItems.delete(itemId);
+                item.classList.remove('selected');
+            } else {
+                selectedItems.add(itemId);
+                item.classList.add('selected');
+            }
+            updateSelectionToolbar();
+        });
+    });
+
     // Görüntüle butonları
     document.querySelectorAll('.btn-view').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
             const itemId = btn.getAttribute('data-id');
             const item = history.find(h => h.id === itemId);
             if (item) {
@@ -251,7 +280,8 @@ const attachEventListeners = (history) => {
 
     // Kopyala butonları
     document.querySelectorAll('.btn-copy').forEach(btn => {
-        btn.addEventListener('click', async () => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
             const itemId = btn.getAttribute('data-id');
             const item = history.find(h => h.id === itemId);
             if (item) {
@@ -273,24 +303,30 @@ const attachEventListeners = (history) => {
 
     // Sil butonları
     document.querySelectorAll('.btn-delete').forEach(btn => {
-        btn.addEventListener('click', async () => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
             const itemId = btn.getAttribute('data-id');
             const item = history.find(h => h.id === itemId);
             if (item && confirm(`"${item.topicTitle}" analizini silmek istediğinize emin misiniz?`)) {
+                // Seçimden de kaldır
+                selectedItems.delete(itemId);
                 await deleteHistoryItem(itemId);
                 await loadHistory(); // Listeyi yeniden yükle
+                updateSelectionToolbar();
             }
         });
     });
 
     // Tümünü temizle butonu
     const clearBtn = document.getElementById('btnClearAll');
-    clearBtn.addEventListener('click', async () => {
+    clearBtn.onclick = async () => {
         if (confirm('Tüm analiz geçmişini silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) {
+            selectedItems.clear();
             await clearHistory();
             await loadHistory(); // Listeyi yeniden yükle
+            updateSelectionToolbar();
         }
-    });
+    };
 };
 
 /**
@@ -407,7 +443,262 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // Seçim temizle butonu
+    const clearSelectionBtn = document.getElementById('btnClearSelection');
+    if (clearSelectionBtn) {
+        clearSelectionBtn.addEventListener('click', () => {
+            clearSelection();
+        });
+    }
+
+    // Yeniden analiz butonu
+    const reanalyzeBtn = document.getElementById('btnReanalyze');
+    if (reanalyzeBtn) {
+        reanalyzeBtn.addEventListener('click', () => {
+            showReanalyzeModal();
+        });
+    }
+
+    // Yeniden analiz modal event'leri
+    setupReanalyzeModal();
+
     // Geçmişi yükle
     loadHistory();
 });
 
+// =============================================================================
+// SEÇİM YÖNETİMİ
+// =============================================================================
+
+/**
+ * Seçim toolbar'ını günceller.
+ */
+const updateSelectionToolbar = () => {
+    const toolbar = document.getElementById('selectionToolbar');
+    const countEl = document.getElementById('selectionCount');
+
+    if (selectedItems.size > 0) {
+        toolbar.style.display = 'flex';
+        countEl.textContent = `${selectedItems.size} öğe seçildi`;
+    } else {
+        toolbar.style.display = 'none';
+    }
+};
+
+/**
+ * Tüm seçimleri temizler.
+ */
+const clearSelection = () => {
+    selectedItems.clear();
+    document.querySelectorAll('.history-item.selected').forEach(item => {
+        item.classList.remove('selected');
+    });
+    updateSelectionToolbar();
+};
+
+// =============================================================================
+// YENİDEN ANALİZ
+// =============================================================================
+
+/**
+ * Yeniden analiz modal'ını gösterir.
+ */
+const showReanalyzeModal = async () => {
+    const modal = document.getElementById('reanalyzeModal');
+    const summaryEl = document.getElementById('reanalyzeSummary');
+    const promptSelect = document.getElementById('reanalyzePromptSelect');
+    const customPromptEl = document.getElementById('reanalyzeCustomPrompt');
+    const resultArea = document.getElementById('reanalyzeResult');
+
+    // Sonuç alanını gizle
+    resultArea.style.display = 'none';
+
+    // Seçilen öğeleri al
+    const selectedItemsList = allHistoryData.filter(item => selectedItems.has(item.id));
+
+    // Özet bilgi göster
+    let totalEntries = 0;
+    let summaryHtml = '<p><strong>Seçilen Analizler:</strong></p><ul style="margin: 10px 0; padding-left: 20px;">';
+    selectedItemsList.forEach(item => {
+        const entryCount = item.sourceEntries ? item.sourceEntries.length : item.entryCount;
+        totalEntries += entryCount;
+        summaryHtml += `<li>${escapeHtml(item.topicTitle)} (${entryCount} entry)</li>`;
+    });
+    summaryHtml += `</ul><p><strong>Toplam:</strong> ${totalEntries} entry</p>`;
+    summaryEl.innerHTML = summaryHtml;
+
+    // Prompt seçeneklerini yükle
+    try {
+        const settings = await getSettings();
+        promptSelect.innerHTML = '<option value="">-- Kayıtlı promptlardan seçin veya özel prompt yazın --</option>';
+        settings.prompts.forEach((prompt, index) => {
+            const option = document.createElement('option');
+            option.value = index.toString();
+            option.textContent = prompt.name;
+            promptSelect.appendChild(option);
+        });
+    } catch (err) {
+        console.warn('Prompt ayarları yüklenemedi:', err);
+    }
+
+    // Modal'ı göster
+    modal.classList.add('active');
+    customPromptEl.value = '';
+    customPromptEl.focus();
+};
+
+/**
+ * Yeniden analiz modal event'lerini ayarlar.
+ */
+const setupReanalyzeModal = () => {
+    const modal = document.getElementById('reanalyzeModal');
+    const closeBtn = document.getElementById('reanalyzeModalClose');
+    const cancelBtn = document.getElementById('btnCancelReanalyze');
+    const submitBtn = document.getElementById('btnSubmitReanalyze');
+    const promptSelect = document.getElementById('reanalyzePromptSelect');
+    const customPromptEl = document.getElementById('reanalyzeCustomPrompt');
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+    };
+
+    closeBtn.onclick = closeModal;
+    cancelBtn.onclick = closeModal;
+
+    modal.onclick = (e) => {
+        if (e.target === modal) {
+            closeModal();
+        }
+    };
+
+    // Prompt seçildiğinde textarea'ya yaz
+    promptSelect.onchange = async () => {
+        const selectedIndex = promptSelect.value;
+        if (selectedIndex !== '') {
+            try {
+                const settings = await getSettings();
+                const selectedPrompt = settings.prompts[parseInt(selectedIndex)];
+                if (selectedPrompt) {
+                    customPromptEl.value = selectedPrompt.prompt;
+                }
+            } catch (err) {
+                console.warn('Prompt yüklenemedi:', err);
+            }
+        }
+    };
+
+    // Analiz başlat
+    submitBtn.onclick = async () => {
+        const userPrompt = customPromptEl.value.trim();
+        if (!userPrompt) {
+            customPromptEl.style.borderColor = '#d9534f';
+            customPromptEl.focus();
+            return;
+        }
+        customPromptEl.style.borderColor = '';
+
+        await runReanalysis(userPrompt);
+    };
+
+    // Enter ile gönder
+    customPromptEl.onkeydown = (e) => {
+        if (customPromptEl.style.borderColor === 'rgb(217, 83, 79)') {
+            customPromptEl.style.borderColor = '';
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            submitBtn.click();
+        }
+    };
+
+    // ESC ile kapat
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+};
+
+/**
+ * Yeniden analiz çalıştırır.
+ * 
+ * @param {string} userPrompt - Kullanıcı prompt'u
+ */
+const runReanalysis = async (userPrompt) => {
+    const resultArea = document.getElementById('reanalyzeResult');
+    const resultContent = document.getElementById('reanalyzeResultContent');
+    const submitBtn = document.getElementById('btnSubmitReanalyze');
+
+    // Seçilen öğelerin kaynak entry'lerini birleştir
+    const selectedItemsList = allHistoryData.filter(item => selectedItems.has(item.id));
+
+    // Entry'leri hazırla - her başlık için ayrı grup
+    let combinedData = [];
+    selectedItemsList.forEach(item => {
+        if (item.sourceEntries && item.sourceEntries.length > 0) {
+            combinedData.push({
+                topicTitle: item.topicTitle,
+                topicUrl: item.topicUrl,
+                entries: item.sourceEntries
+            });
+        }
+    });
+
+    if (combinedData.length === 0) {
+        resultArea.style.display = 'block';
+        resultContent.innerHTML = '<div style="color: #d9534f;">Seçilen analizlerde kaynak entry bulunamadı. Lütfen kaynak entry\'si olan analizleri seçin.</div>';
+        return;
+    }
+
+    // UI güncelle
+    resultArea.style.display = 'block';
+    resultContent.innerHTML = '<div style="text-align: center; padding: 20px;">🔄 Gemini düşünüyor...</div>';
+    submitBtn.disabled = true;
+    submitBtn.textContent = '⏳ Analiz ediliyor...';
+
+    try {
+        // Ayarları al
+        const settings = await getSettings();
+        const apiKey = settings.geminiApiKey;
+        const modelId = settings.selectedModel || 'gemini-2.5-flash';
+
+        if (!apiKey) {
+            resultContent.innerHTML = '<div style="color: #d9534f;">Gemini API Key bulunamadı. Ayarlar sayfasından ekleyin.</div>';
+            return;
+        }
+
+        // Prompt oluştur
+        const entriesJson = JSON.stringify(combinedData, null, 2);
+        const finalPrompt = `Aşağıda birden fazla Ekşi Sözlük başlığından toplanan entry'ler JSON formatında verilmiştir.
+Her başlık için topicTitle, topicUrl ve entries alanları mevcuttur.
+
+${entriesJson}
+
+${userPrompt}`;
+
+        // API çağrısı yap
+        const abortController = new AbortController();
+        const { text: response, responseTime } = await callGeminiApiStreaming(
+            apiKey,
+            modelId,
+            finalPrompt,
+            abortController.signal,
+            (chunk, fullText) => {
+                resultContent.innerHTML = parseMarkdown(fullText);
+            }
+        );
+
+        // Sonucu göster
+        resultContent.innerHTML = `
+            <div style="margin-bottom: 10px; color: #666; font-size: 13px;">
+                📝 ${modelId} | ⏱️ ${(responseTime / 1000).toFixed(2)}s
+            </div>
+            ${parseMarkdown(response)}
+        `;
+
+    } catch (err) {
+        resultContent.innerHTML = `<div style="color: #d9534f;">Hata: ${escapeHtml(err.message)}</div>`;
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '🚀 Analiz Et';
+    }
+};
