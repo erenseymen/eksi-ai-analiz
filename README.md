@@ -57,6 +57,7 @@ Eklenti, farklı URL tiplerine göre entry'leri toplar:
 | `/baslik--123?a=nice` | Şükela | "Güzel" olarak işaretlenmiş entry'ler |
 | `/baslik--123?a=dailynice` | Günün en beğenilenleri | O günün en beğenilen entry'leri |
 | `/baslik--123?a=popular` | Gündem | Gündemdeki entry'ler |
+| `/baslik--123?a=find&keywords=...` | Başlık içi arama | Aranan kelimeyi içeren entry'ler |
 
 > **Not:** Filtreler birleştirilebilir. Örn: `?a=nice&day=2025-01-15`
 
