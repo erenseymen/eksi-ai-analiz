@@ -1601,7 +1601,50 @@ ${entriesJson}
 ${userPrompt}`;
 
     try {
-        const { text: response, responseTime } = await callGeminiApi(apiKey, modelId, finalPrompt, abortController.signal);
+        // Streaming için değişkenler
+        let fullResponse = '';
+        let headerHTML = '';
+
+        // Show custom prompt header if requested (sadece başlangıçta bir kez)
+        if (showPromptHeader && userPrompt) {
+            headerHTML = `<div class="eksi-ai-custom-prompt-header">
+                <span class="eksi-ai-custom-prompt-label">Özel Prompt:</span>
+                <span class="eksi-ai-custom-prompt-text">${escapeHtml(userPrompt).replace(/\n/g, '<br>')}</span>
+            </div>`;
+        }
+
+        // Model notu için placeholder (responseTime sonra eklenecek)
+        headerHTML += `<div class="eksi-ai-model-note" id="model-note-temp">📝 ${modelId} ⏳</div>`;
+
+        // Başlangıç HTML'ini ayarla
+        resultArea.innerHTML = headerHTML + '<div class="eksi-ai-streaming-content eksi-ai-streaming eksi-ai-markdown"></div>';
+        resultArea.classList.add('eksi-ai-markdown');
+
+        const streamingContent = resultArea.querySelector('.eksi-ai-streaming-content');
+
+        // Streaming API çağrısı
+        const { text: response, responseTime } = await callGeminiApiStreaming(
+            apiKey,
+            modelId,
+            finalPrompt,
+            abortController.signal,
+            (chunk, fullText) => {
+                // Her chunk geldiğinde UI güncelle
+                fullResponse = fullText;
+                streamingContent.innerHTML = parseMarkdown(fullText);
+            }
+        );
+
+        // Streaming tamamlandı - cursor'ı kaldır
+        streamingContent.classList.remove('eksi-ai-streaming');
+
+        // Model notunu responseTime ile güncelle
+        const modelNote = resultArea.querySelector('#model-note-temp');
+        if (modelNote) {
+            const timeStr = responseTime ? ` (${(responseTime / 1000).toFixed(2)}s)` : '';
+            modelNote.innerHTML = `📝 ${modelId}${timeStr}`;
+            modelNote.removeAttribute('id');
+        }
 
         // Cache the successful response with model info and response time
         addToCache(cacheKey, { response, modelId, responseTime, timestamp: Date.now() });
@@ -1621,25 +1664,6 @@ ${userPrompt}`;
         if (clickedButton && !clickedButton.classList.contains('eksi-ai-btn-selected')) {
             return;
         }
-
-        // Build result HTML
-        let resultHTML = '';
-
-        // Show custom prompt header if requested
-        if (showPromptHeader && userPrompt) {
-            resultHTML += `<div class="eksi-ai-custom-prompt-header">
-                <span class="eksi-ai-custom-prompt-label">Özel Prompt:</span>
-                <span class="eksi-ai-custom-prompt-text">${escapeHtml(userPrompt).replace(/\n/g, '<br>')}</span>
-            </div>`;
-        }
-
-        // Show model note with response time
-        const timeStr = responseTime ? ` (${(responseTime / 1000).toFixed(2)}s)` : '';
-        resultHTML += `<div class="eksi-ai-model-note">📝 ${modelId}${timeStr}</div>`;
-
-        resultHTML += parseMarkdown(response);
-        resultArea.innerHTML = resultHTML;
-        resultArea.classList.add('eksi-ai-markdown');
 
         // Add action buttons for the result
         addResultActionButtons(resultArea, response, userPrompt, showPromptHeader, clickedButton);
@@ -1750,6 +1774,135 @@ const callGeminiApi = async (apiKey, modelId, prompt, signal) => {
         }
     } catch (err) {
         throw new Error(err.message || 'Model bulunamadı. Lütfen model adını ve API versiyonunu kontrol edin.');
+    }
+};
+
+/**
+ * Gemini API'ye streaming HTTP isteği yapar.
+ * 
+ * SSE (Server-Sent Events) kullanarak yanıtı parça parça alır.
+ * Her parça geldiğinde callback fonksiyonunu çağırır.
+ * 
+ * @param {string} apiKey - Gemini API anahtarı
+ * @param {string} modelId - Kullanılacak model ID'si
+ * @param {string} prompt - Gönderilecek tam prompt
+ * @param {AbortSignal} signal - İstek iptal sinyali
+ * @param {Function} onChunk - Her parça geldiğinde çağrılacak callback (chunk, fullText) => void
+ * @returns {Promise<{text: string, responseTime: number}>} Tam yanıt ve süre
+ * @throws {Error} API hatası durumunda
+ */
+const callGeminiApiStreaming = async (apiKey, modelId, prompt, signal, onChunk) => {
+    const startTime = performance.now();
+
+    // Model bazlı API versiyonu belirleme
+    const model = MODELS.find(m => m.id === modelId);
+    const apiVersion = model?.apiVersion || 'v1';
+    // streamGenerateContent endpoint'i + SSE formatı için alt=sse
+    const url = `https://generativelanguage.googleapis.com/${apiVersion}/models/${modelId}:streamGenerateContent?alt=sse&key=${apiKey}`;
+
+    try {
+        // Request body oluştur
+        let requestBody;
+
+        if (apiVersion === 'v1beta') {
+            requestBody = {
+                systemInstruction: {
+                    parts: [{ text: SYSTEM_PROMPT }]
+                },
+                contents: [{
+                    parts: [{ text: prompt }]
+                }]
+            };
+        } else {
+            const combinedPrompt = `${SYSTEM_PROMPT}\n\n${prompt}`;
+            requestBody = {
+                contents: [{
+                    parts: [{ text: combinedPrompt }]
+                }]
+            };
+        }
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody),
+            signal: signal
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            const errorMsg = errorData.error?.message || 'API request failed';
+            const fullError = errorData.error?.details
+                ? `${errorMsg}\n\n${JSON.stringify(errorData.error.details, null, 2)}`
+                : errorMsg;
+            throw new Error(fullError);
+        }
+
+        // SSE stream'ini oku
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let fullText = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+
+            if (done) break;
+
+            // Gelen veriyi buffer'a ekle
+            buffer += decoder.decode(value, { stream: true });
+
+            // SSE event'lerini parse et
+            // Her event "data: " ile başlar ve "\n\n" ile biter
+            const lines = buffer.split('\n');
+            buffer = '';
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+
+                // Son satır tamamlanmamış olabilir, buffer'a geri koy
+                if (i === lines.length - 1 && !line.endsWith('\n')) {
+                    buffer = line;
+                    continue;
+                }
+
+                // "data: " ile başlayan satırları işle
+                if (line.startsWith('data: ')) {
+                    const jsonStr = line.substring(6).trim();
+
+                    if (jsonStr && jsonStr !== '[DONE]') {
+                        try {
+                            const data = JSON.parse(jsonStr);
+                            // Gemini API yanıt formatı
+                            const chunk = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+                            if (chunk) {
+                                fullText += chunk;
+                                // Callback'i çağır
+                                if (onChunk) {
+                                    onChunk(chunk, fullText);
+                                }
+                            }
+                        } catch (parseErr) {
+                            // JSON parse hatası - muhtemelen eksik veri, devam et
+                        }
+                    }
+                }
+            }
+        }
+
+        const endTime = performance.now();
+        const responseTime = endTime - startTime;
+
+        return { text: fullText, responseTime };
+    } catch (err) {
+        // Abort hatalarını yeniden fırlat
+        if (err.name === 'AbortError') {
+            throw err;
+        }
+        throw new Error(err.message || 'Streaming hatası oluştu.');
     }
 };
 

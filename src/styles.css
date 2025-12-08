@@ -232,6 +232,31 @@
     opacity: 0.8;
 }
 
+/**
+ * Streaming yanıt imleci
+ * Yanıt akışı devam ederken yanıp sönen imleç gösterir.
+ */
+.eksi-ai-streaming::after {
+    content: '▊';
+    animation: eksi-ai-blink 0.7s infinite;
+    color: var(--eksi-ai-btn-bg);
+    font-weight: bold;
+    margin-left: 2px;
+}
+
+@keyframes eksi-ai-blink {
+
+    0%,
+    50% {
+        opacity: 1;
+    }
+
+    51%,
+    100% {
+        opacity: 0;
+    }
+}
+
 /** Aksiyon butonları konteyneri (prompt butonları için) */
 .eksi-ai-actions {
     margin-top: 10px;
