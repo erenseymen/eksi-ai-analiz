@@ -442,7 +442,7 @@ const showDetailModal = (item) => {
         <p><strong>Yanıt Süresi:</strong> ${item.responseTime ? (item.responseTime / 1000).toFixed(1) + ' saniye' : '-'}</p>
         <p><strong>Başlık URL:</strong> <a href="${escapeHtml(item.topicUrl)}" target="_blank">${escapeHtml(item.topicUrl)}</a></p>
         <p><strong>Prompt:</strong></p>
-        <div style="background: #fff; padding: 10px; border-radius: 4px; margin-top: 5px; font-style: italic; white-space: pre-wrap;">${escapeHtml(item.prompt)}</div>
+        <div class="detail-response" style="margin-top: 5px; font-style: italic;">${escapeHtml(item.prompt)}</div>
     `;
     responseEl.innerHTML = parseMarkdown(item.response);
 
