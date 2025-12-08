@@ -160,7 +160,16 @@ const openCustomPromptModal = (customButton = null, prefillPrompt = null, mainBu
     if (detectTheme()) overlay.classList.add('eksi-ai-dark');
     const modal = document.createElement('div');
     modal.className = 'eksi-ai-modal-content';
-    modal.innerHTML = `<h3 class="eksi-ai-modal-title">Ne yapmamı istersin?</h3><textarea id="eksi-ai-custom-prompt" class="eksi-ai-textarea" placeholder="Örnek: Bu konudaki mizahi entry'leri listele"></textarea><div class="eksi-ai-modal-actions"><button id="eksi-ai-modal-cancel" class="eksi-ai-modal-btn eksi-ai-modal-cancel-btn">vazgeç</button><button id="eksi-ai-modal-submit" class="eksi-ai-modal-btn eksi-ai-modal-submit-btn">gönder</button></div>`;
+
+    // Mevcut prompt'un satır sayısına göre textarea yüksekliğini hesapla
+    const textToUse = prefillPrompt || lastCustomPrompt || '';
+    const lineCount = textToUse ? textToUse.split('\n').length : 4;
+    // Minimum 4 satır, maksimum 20 satır
+    const rows = Math.max(4, Math.min(20, lineCount));
+    // Her satır yaklaşık 24px (line-height + padding dikkate alınarak)
+    const textareaHeight = rows * 24;
+
+    modal.innerHTML = `<h3 class="eksi-ai-modal-title">Ne yapmamı istersin?</h3><textarea id="eksi-ai-custom-prompt" class="eksi-ai-textarea" style="height: ${textareaHeight}px" placeholder="Örnek: Bu konudaki mizahi entry'leri listele"></textarea><div class="eksi-ai-modal-actions"><button id="eksi-ai-modal-cancel" class="eksi-ai-modal-btn eksi-ai-modal-cancel-btn">vazgeç</button><button id="eksi-ai-modal-submit" class="eksi-ai-modal-btn eksi-ai-modal-submit-btn">gönder</button></div>`;
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
     const textarea = document.getElementById('eksi-ai-custom-prompt');
