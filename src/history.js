@@ -16,8 +16,17 @@
 /** @type {number} Geçmişin varsayılan saklama süresi (gün) */
 const DEFAULT_RETENTION_DAYS = 30;
 
+/** @type {number} Sayfa başına gösterilecek kayıt sayısı */
+const ITEMS_PER_PAGE = 20;
+
 /** @type {number} Geçerli saklama süresi (gün) - sayfa yüklendiğinde güncellenir */
 let currentRetentionDays = DEFAULT_RETENTION_DAYS;
+
+/** @type {number} Şu an gösterilen kayıt sayısı */
+let displayedCount = 0;
+
+/** @type {Array} Tüm geçmiş verileri */
+let allHistoryData = [];
 
 /**
  * Saklama süresini storage'dan alır.
@@ -128,13 +137,16 @@ const deleteHistoryItem = async (itemId) => {
  * Geçmiş listesini render eder.
  * 
  * @param {Array} history - Analiz geçmişi listesi
+ * @param {boolean} append - True ise mevcut listeye ekle, false ise sıfırdan oluştur
  */
-const renderHistory = (history) => {
+const renderHistory = (history, append = false) => {
     const loadingEl = document.getElementById('loading');
     const emptyStateEl = document.getElementById('emptyState');
     const historyListEl = document.getElementById('historyList');
     const statsEl = document.getElementById('stats');
     const clearBtn = document.getElementById('btnClearAll');
+    const loadMoreContainer = document.getElementById('loadMoreContainer');
+    const remainingCountEl = document.getElementById('remainingCount');
 
     loadingEl.style.display = 'none';
 
@@ -143,7 +155,14 @@ const renderHistory = (history) => {
         historyListEl.style.display = 'none';
         statsEl.style.display = 'none';
         clearBtn.style.display = 'none';
+        loadMoreContainer.style.display = 'none';
         return;
+    }
+
+    // Global veriyi sakla
+    if (!append) {
+        allHistoryData = history;
+        displayedCount = 0;
     }
 
     emptyStateEl.style.display = 'none';
@@ -154,11 +173,18 @@ const renderHistory = (history) => {
     // İstatistikleri göster
     const statsTextEl = document.getElementById('statsText');
     const retentionText = currentRetentionDays === 0 ? 'Sınırsız' : `Son ${currentRetentionDays} gün`;
-    statsTextEl.textContent = `Toplam ${history.length} analiz (${retentionText})`;
+    statsTextEl.textContent = `Toplam ${allHistoryData.length} analiz (${retentionText})`;
+
+    // Gösterilecek kayıtları hesapla
+    const startIndex = displayedCount;
+    const endIndex = Math.min(displayedCount + ITEMS_PER_PAGE, allHistoryData.length);
+    const itemsToShow = allHistoryData.slice(startIndex, endIndex);
+
+    displayedCount = endIndex;
 
     // Geçmiş listesini oluştur
     let html = '';
-    history.forEach((item) => {
+    itemsToShow.forEach((item) => {
         const date = new Date(item.timestamp);
         const dateStr = date.toLocaleDateString('tr-TR', {
             year: 'numeric',
@@ -187,10 +213,23 @@ const renderHistory = (history) => {
         `;
     });
 
-    historyListEl.innerHTML = html;
+    if (append) {
+        historyListEl.insertAdjacentHTML('beforeend', html);
+    } else {
+        historyListEl.innerHTML = html;
+    }
 
-    // Event listener'ları ekle
-    attachEventListeners(history);
+    // "Daha Fazla Yükle" butonunu göster/gizle
+    const remainingItems = allHistoryData.length - displayedCount;
+    if (remainingItems > 0) {
+        loadMoreContainer.style.display = 'block';
+        remainingCountEl.textContent = remainingItems;
+    } else {
+        loadMoreContainer.style.display = 'none';
+    }
+
+    // Event listener'ı ekle
+    attachEventListeners(allHistoryData);
 };
 
 /**
@@ -357,6 +396,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                     statsTextEl.style.color = '';
                 }, 2000);
             }
+        });
+    }
+
+    // "Daha Fazla Yükle" butonu event listener'ı
+    const loadMoreBtn = document.getElementById('btnLoadMore');
+    if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', () => {
+            renderHistory(allHistoryData, true);
         });
     }
 
