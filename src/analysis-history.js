@@ -20,7 +20,7 @@
 const DEFAULT_HISTORY_RETENTION_DAYS = 30;
 
 /**
- * Analiz sonucunu geçmişe kaydeder.
+ * Analiz sonucunu veya sadece scrape edilmiş entry'leri geçmişe kaydeder.
  * 
  * chrome.storage.local kullanarak kalıcı depolama sağlar.
  * Ayarlanan saklama süresinden eski kayıtlar otomatik olarak temizlenir.
@@ -28,11 +28,13 @@ const DEFAULT_HISTORY_RETENTION_DAYS = 30;
  * @param {Object} analysisData - Kaydedilecek analiz verisi
  * @param {string} analysisData.topicTitle - Başlık adı
  * @param {string} analysisData.topicId - Başlık ID'si
- * @param {string} analysisData.prompt - Kullanılan prompt
- * @param {string} analysisData.response - AI yanıtı
- * @param {string} analysisData.modelId - Kullanılan model
+ * @param {string} [analysisData.prompt] - Kullanılan prompt (opsiyonel, scrapeOnly için)
+ * @param {string} [analysisData.response] - AI yanıtı (opsiyonel, scrapeOnly için)
+ * @param {string} [analysisData.modelId] - Kullanılan model (opsiyonel, scrapeOnly için)
  * @param {number} analysisData.entryCount - Entry sayısı
  * @param {Array} [analysisData.sourceEntries] - Kaynak entry'ler (opsiyonel)
+ * @param {boolean} [analysisData.scrapeOnly] - Sadece scrape verisi mi (response yok)
+ * @param {boolean} [analysisData.wasStopped] - İşlem yarıda mı kesildi
  * @returns {Promise<void>}
  */
 const saveToHistory = async (analysisData) => {
@@ -45,6 +47,10 @@ const saveToHistory = async (analysisData) => {
             let history = result.analysisHistory;
             const retentionDays = result.historyRetentionDays;
 
+            // Prompt ve response opsiyonel olabilir (scrapeOnly için)
+            const prompt = analysisData.prompt || '';
+            const response = analysisData.response || '';
+
             // Yeni kayıt oluştur
             const newEntry = {
                 id: Date.now().toString(),
@@ -52,15 +58,19 @@ const saveToHistory = async (analysisData) => {
                 topicTitle: analysisData.topicTitle,
                 topicId: analysisData.topicId,
                 topicUrl: window.location.href,
-                prompt: analysisData.prompt,
-                promptPreview: analysisData.prompt.substring(0, 100) + (analysisData.prompt.length > 100 ? '...' : ''),
-                response: analysisData.response,
-                responsePreview: analysisData.response.substring(0, 200) + (analysisData.response.length > 200 ? '...' : ''),
-                modelId: analysisData.modelId,
+                prompt: prompt,
+                promptPreview: prompt ? (prompt.substring(0, 100) + (prompt.length > 100 ? '...' : '')) : '',
+                response: response,
+                responsePreview: response ? (response.substring(0, 200) + (response.length > 200 ? '...' : '')) : '',
+                modelId: analysisData.modelId || '',
                 entryCount: analysisData.entryCount,
                 responseTime: analysisData.responseTime,
                 // Kaynak entry'leri de sakla (tekrar analiz için)
-                sourceEntries: analysisData.sourceEntries || []
+                sourceEntries: analysisData.sourceEntries || [],
+                // Sadece scrape verisi mi (henüz analiz yapılmamış)
+                scrapeOnly: analysisData.scrapeOnly || false,
+                // İşlem yarıda mı kesildi
+                wasStopped: analysisData.wasStopped || false
             };
 
             // Başa ekle (en yeni en üstte)

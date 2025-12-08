@@ -132,6 +132,70 @@ const deleteHistoryItem = async (itemId) => {
     });
 };
 
+/**
+ * Geçmiş sayfasından yapılan analiz sonuçlarını geçmişe kaydeder.
+ * 
+ * @param {Object} analysisData - Kaydedilecek analiz verisi
+ * @param {string} analysisData.topicTitle - Başlık adı
+ * @param {string} analysisData.topicId - Başlık ID'si
+ * @param {string} analysisData.topicUrl - Başlık URL'si
+ * @param {string} analysisData.prompt - Kullanılan prompt
+ * @param {string} analysisData.response - AI yanıtı
+ * @param {string} analysisData.modelId - Kullanılan model
+ * @param {number} analysisData.entryCount - Entry sayısı
+ * @param {number} analysisData.responseTime - Yanıt süresi (ms)
+ * @param {Array} analysisData.sourceEntries - Kaynak entry'ler
+ * @returns {Promise<void>}
+ */
+const saveToHistoryFromPage = async (analysisData) => {
+    return new Promise((resolve) => {
+        chrome.storage.local.get({
+            analysisHistory: [],
+            historyRetentionDays: DEFAULT_RETENTION_DAYS
+        }, (result) => {
+            let history = result.analysisHistory;
+            const retentionDays = result.historyRetentionDays;
+
+            const prompt = analysisData.prompt || '';
+            const response = analysisData.response || '';
+
+            // Yeni kayıt oluştur
+            const newEntry = {
+                id: Date.now().toString(),
+                timestamp: new Date().toISOString(),
+                topicTitle: analysisData.topicTitle,
+                topicId: analysisData.topicId || '',
+                topicUrl: analysisData.topicUrl,
+                prompt: prompt,
+                promptPreview: prompt ? (prompt.substring(0, 100) + (prompt.length > 100 ? '...' : '')) : '',
+                response: response,
+                responsePreview: response ? (response.substring(0, 200) + (response.length > 200 ? '...' : '')) : '',
+                modelId: analysisData.modelId || '',
+                entryCount: analysisData.entryCount,
+                responseTime: analysisData.responseTime,
+                sourceEntries: analysisData.sourceEntries || [],
+                // Geçmiş sayfasından yapılan analiz
+                fromHistoryPage: true
+            };
+
+            // Başa ekle
+            history.unshift(newEntry);
+
+            // Eski kayıtları temizle
+            if (retentionDays > 0) {
+                const cutoffDate = new Date();
+                cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+                history = history.filter(item => {
+                    const itemDate = new Date(item.timestamp);
+                    return itemDate >= cutoffDate;
+                });
+            }
+
+            chrome.storage.local.set({ analysisHistory: history }, resolve);
+        });
+    });
+};
+
 // =============================================================================
 // UI YÖNETİMİ
 // =============================================================================
@@ -202,6 +266,27 @@ const renderHistory = (history, append = false) => {
         const selectableClass = hasSourceEntries ? 'selectable' : '';
         const selectedClass = selectedItems.has(item.id) ? 'selected' : '';
 
+        // scrapeOnly ve wasStopped durumlarını kontrol et
+        const isScrapeOnly = item.scrapeOnly === true;
+        const wasStopped = item.wasStopped === true;
+
+        // Meta bilgisi
+        let metaHtml = '';
+        if (isScrapeOnly) {
+            if (wasStopped) {
+                metaHtml = `⚠️ Yarıda kesildi | 📊 ${item.entryCount} entry${hasSourceEntries ? ' | 📦 Kaynak Mevcut' : ''}`;
+            } else {
+                metaHtml = `📦 Sadece scrape | 📊 ${item.entryCount} entry${hasSourceEntries ? ' | 📦 Kaynak Mevcut' : ''}`;
+            }
+        } else {
+            metaHtml = `📝 ${escapeHtml(item.modelId || '-')} | 📊 ${item.entryCount} entry | ⏱️ ${item.responseTime ? (item.responseTime / 1000).toFixed(1) + 's' : '-'}${hasSourceEntries ? ' | 📦 Kaynak Mevcut' : ''}`;
+        }
+
+        // Prompt gösterimi
+        const promptDisplay = isScrapeOnly
+            ? '<em style="opacity: 0.6;">Henüz analiz yapılmadı - entry\'ler kaydedildi</em>'
+            : escapeHtml(item.promptPreview || (item.prompt ? item.prompt.substring(0, 100) + (item.prompt.length > 100 ? '...' : '') : ''));
+
         html += `
             <div class="history-item ${selectableClass} ${selectedClass}" data-id="${escapeHtml(item.id)}" data-has-source="${hasSourceEntries}">
                 <div class="history-item-header">
@@ -209,12 +294,12 @@ const renderHistory = (history, append = false) => {
                     <span class="history-date">${dateStr}</span>
                 </div>
                 <div class="history-meta">
-                    📝 ${escapeHtml(item.modelId)} | 📊 ${item.entryCount} entry | ⏱️ ${item.responseTime ? (item.responseTime / 1000).toFixed(1) + 's' : '-'}${hasSourceEntries ? ' | 📦 Kaynak Mevcut' : ''}
+                    ${metaHtml}
                 </div>
-                <div class="history-prompt">${escapeHtml(item.promptPreview || item.prompt.substring(0, 100) + (item.prompt.length > 100 ? '...' : ''))}</div>
+                <div class="history-prompt">${promptDisplay}</div>
                 <div class="history-actions">
-                    <button class="btn-primary btn-view" data-id="${escapeHtml(item.id)}">Görüntüle</button>
-                    <button class="btn-secondary btn-copy" data-id="${escapeHtml(item.id)}">Kopyala</button>
+                    ${!isScrapeOnly ? `<button class="btn-primary btn-view" data-id="${escapeHtml(item.id)}">Görüntüle</button>` : ''}
+                    ${!isScrapeOnly ? `<button class="btn-secondary btn-copy" data-id="${escapeHtml(item.id)}">Kopyala</button>` : ''}
                     <button class="btn-danger btn-delete" data-id="${escapeHtml(item.id)}">Sil</button>
                 </div>
             </div>
@@ -687,10 +772,38 @@ ${userPrompt}`;
             }
         );
 
+        // Sonucu geçmişe kaydet
+        // Birden fazla başlık varsa birleştir
+        const combinedTitle = selectedItemsList.length === 1
+            ? selectedItemsList[0].topicTitle
+            : `${selectedItemsList.length} başlık (${selectedItemsList.map(i => i.topicTitle).join(', ').substring(0, 50)}...)`;
+
+        // Tüm entry'leri birleştir
+        const allSourceEntries = [];
+        combinedData.forEach(d => allSourceEntries.push(...d.entries));
+
+        await saveToHistoryFromPage({
+            topicTitle: combinedTitle,
+            topicId: '',
+            topicUrl: window.location.href,
+            prompt: userPrompt,
+            response: response,
+            modelId: modelId,
+            entryCount: allSourceEntries.length,
+            responseTime: responseTime,
+            sourceEntries: allSourceEntries
+        });
+
+        // Geçmiş listesini yenile (yeni kayıt görünsün)
+        await loadHistory();
+
+        // Seçimi temizle
+        clearSelection();
+
         // Sonucu göster
         resultContent.innerHTML = `
             <div style="margin-bottom: 10px; color: #666; font-size: 13px;">
-                📝 ${modelId} | ⏱️ ${(responseTime / 1000).toFixed(2)}s
+                📝 ${modelId} | ⏱️ ${(responseTime / 1000).toFixed(2)}s | ✅ Geçmişe kaydedildi
             </div>
             ${parseMarkdown(response)}
         `;

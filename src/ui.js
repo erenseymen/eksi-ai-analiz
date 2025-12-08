@@ -455,6 +455,15 @@ const startAnalysisForTopic = async (h1Element, topicId) => {
         }
 
         if (allEntries.length > 0) {
+            // Scrape tamamlandığında (başarıyla veya durdurularak) geçmişe kaydet
+            await saveToHistory({
+                topicTitle,
+                topicId,
+                entryCount: allEntries.length,
+                sourceEntries: allEntries,
+                scrapeOnly: true,
+                wasStopped: shouldStopScraping
+            });
             await renderActions(container, shouldStopScraping);
             addToggleVisibilityButton(btnId, containerId);
         } else {
@@ -500,6 +509,15 @@ const startAnalysis = async () => {
         }
 
         if (allEntries.length > 0) {
+            // Scrape tamamlandığında (başarıyla veya durdurularak) geçmişe kaydet
+            await saveToHistory({
+                topicTitle,
+                topicId,
+                entryCount: allEntries.length,
+                sourceEntries: allEntries,
+                scrapeOnly: true,
+                wasStopped: shouldStopScraping
+            });
             await renderActions(container, shouldStopScraping);
             addToggleVisibilityButton('eksi-ai-main-btn', 'eksi-ai-container');
         } else {
@@ -551,6 +569,15 @@ const startSingleEntryAnalysis = async () => {
         }
 
         if (allEntries.length > 0) {
+            // Scrape tamamlandığında (başarıyla veya durdurularak) geçmişe kaydet
+            await saveToHistory({
+                topicTitle,
+                topicId,
+                entryCount: allEntries.length,
+                sourceEntries: allEntries,
+                scrapeOnly: true,
+                wasStopped: shouldStopScraping
+            });
             await renderActions(container, shouldStopScraping);
             addToggleVisibilityButton('eksi-ai-entry-btn', 'eksi-ai-entry-container');
         } else {
