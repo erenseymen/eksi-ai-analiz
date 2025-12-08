@@ -97,6 +97,39 @@ const retryWithBackoff = async (fn, retries = MAX_RETRIES) => {
 /** @type {string|null} Son kullanılan özel prompt (önbellek için) */
 let lastCustomPrompt = null;
 
+/**
+ * Entry verilerinden tahmini token sayısını hesaplar.
+ * 
+ * Gemini tokenizer yaklaşık olarak:
+ * - Türkçe için ~4 karakter = 1 token
+ * - JSON yapısı ve metadata için ek ~20% overhead
+ * 
+ * @param {Array} entries - Entry listesi
+ * @returns {{charCount: number, tokenEstimate: number}} Karakter ve tahmini token sayısı
+ */
+const estimateTokens = (entries) => {
+    const entriesJson = JSON.stringify(entries);
+    const charCount = entriesJson.length;
+    // Türkçe için yaklaşık 4 karakter = 1 token, JSON overhead için %20 ekle
+    const tokenEstimate = Math.ceil(charCount / 4 * 1.2);
+    return { charCount, tokenEstimate };
+};
+
+/**
+ * Token sayısını okunabilir formatta döndürür.
+ * 
+ * @param {number} tokens - Token sayısı
+ * @returns {string} Formatlanmış string (örn: "38.5K")
+ */
+const formatTokenCount = (tokens) => {
+    if (tokens >= 1000000) {
+        return `${(tokens / 1000000).toFixed(1)}M`;
+    } else if (tokens >= 1000) {
+        return `${(tokens / 1000).toFixed(1)}K`;
+    }
+    return tokens.toString();
+};
+
 // =============================================================================
 // AYARLAR
 // =============================================================================
@@ -1339,9 +1372,31 @@ const addToggleVisibilityButton = (mainBtnId, containerId) => {
 const renderActions = async (container, wasStopped = false) => {
     const settings = await getSettings();
 
+    // Token sayısını hesapla
+    const { charCount, tokenEstimate } = estimateTokens(allEntries);
+    const tokenStr = formatTokenCount(tokenEstimate);
+
+    // Seçili modelin context window'unu al
+    const selectedModel = MODELS.find(m => m.id === settings.selectedModel);
+    const contextWindow = selectedModel?.contextWindow || 1000000;
+    const contextStr = formatTokenCount(contextWindow);
+
+    // Context kullanım yüzdesi
+    const usagePercent = ((tokenEstimate / contextWindow) * 100).toFixed(1);
+
+    // Uyarı rengi: >80% sarı, >95% kırmızı
+    let tokenClass = '';
+    if (tokenEstimate > contextWindow * 0.95) {
+        tokenClass = 'eksi-ai-token-danger';
+    } else if (tokenEstimate > contextWindow * 0.80) {
+        tokenClass = 'eksi-ai-token-warning';
+    }
+
     const statusMessage = wasStopped
-        ? `<div class="eksi-ai-info">İşlem durduruldu. ${allEntries.length} entry toplandı.</div>`
-        : `<h3>${allEntries.length} entry toplandı.</h3>`;
+        ? `<div class="eksi-ai-info">İşlem durduruldu. ${allEntries.length} entry toplandı.</div>
+           <div class="eksi-ai-token-info ${tokenClass}">📊 ${allEntries.length} entry | ~${tokenStr} token | ${settings.selectedModel} (${contextStr} context)</div>`
+        : `<h3>${allEntries.length} entry toplandı.</h3>
+           <div class="eksi-ai-token-info ${tokenClass}">📊 ~${tokenStr} token tahmini | ${settings.selectedModel} (${contextStr} context) | %${usagePercent} kullanım</div>`;
 
     let buttonsHtml = `
         <button id="btn-download" class="eksi-ai-btn secondary">JSON İndir</button>

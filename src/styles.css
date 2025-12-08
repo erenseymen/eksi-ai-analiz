@@ -321,6 +321,48 @@
     font-weight: bold;
 }
 
+/**
+ * Token bilgisi göstergesi
+ * Entry toplandıktan sonra tahmini token sayısını gösterir.
+ */
+.eksi-ai-token-info {
+    font-size: 13px;
+    color: var(--eksi-ai-text);
+    opacity: 0.85;
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    background: var(--eksi-ai-input-bg);
+    border: 1px solid var(--eksi-ai-border);
+    border-radius: 4px;
+    display: inline-block;
+}
+
+/** Token uyarı durumu (>80% context kullanımı) */
+.eksi-ai-token-warning {
+    color: #856404;
+    background-color: #fff3cd;
+    border-color: #ffeeba;
+}
+
+.eksi-ai-dark .eksi-ai-token-warning {
+    color: #ffc107;
+    background-color: #3d3200;
+    border-color: #665200;
+}
+
+/** Token tehlike durumu (>95% context kullanımı) */
+.eksi-ai-token-danger {
+    color: #721c24;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+.eksi-ai-dark .eksi-ai-token-danger {
+    color: #ff6b6b;
+    background-color: #4c2323;
+    border-color: #663333;
+}
+
 /* =============================================================================
    5. MODAL STİLLERİ
    ============================================================================= */
