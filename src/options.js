@@ -430,9 +430,9 @@ const updateAllModelsStatus = async () => {
                         Bu modeli kullan
                     </button>`;
 
-                // Test cevabını göster (varsa)
+                // Test cevabını göster (varsa) - tooltip ile tam cevabı göster
                 const responseHtml = availability.response
-                    ? `<br><small style="color: #666; font-style: italic; display: block; margin-top: 4px; max-width: 500px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(availability.response)}">💬 ${escapeHtml(availability.response)}</small>`
+                    ? `<br><small class="gemini-response-preview" style="color: #666; font-style: italic; display: block; margin-top: 4px; max-width: 500px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; position: relative;" data-full-response="${escapeHtml(availability.response)}">💬 ${escapeHtml(availability.response)}</small>`
                     : '';
 
                 modelRow.innerHTML = `
@@ -457,6 +457,67 @@ const updateAllModelsStatus = async () => {
                     };
                     useBtn.onmouseleave = () => {
                         useBtn.style.backgroundColor = '#81c14b';
+                    };
+                }
+
+                // Gemini response tooltip event listener'ları ekle
+                const responsePreview = modelRow.querySelector('.gemini-response-preview');
+                if (responsePreview) {
+                    let tooltipElement = null;
+
+                    responsePreview.onmouseenter = (e) => {
+                        const fullResponse = responsePreview.getAttribute('data-full-response');
+                        if (!fullResponse) return;
+
+                        // Tooltip element oluştur
+                        tooltipElement = document.createElement('div');
+                        tooltipElement.className = 'gemini-response-tooltip';
+                        tooltipElement.style.cssText = `
+                            position: fixed;
+                            background: #2d2d2d;
+                            color: #e0e0e0;
+                            padding: 12px 15px;
+                            border-radius: 8px;
+                            font-size: 13px;
+                            font-style: normal;
+                            max-width: 500px;
+                            max-height: 300px;
+                            overflow-y: auto;
+                            white-space: pre-wrap;
+                            word-wrap: break-word;
+                            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                            z-index: 10000;
+                            line-height: 1.5;
+                            border: 1px solid #444;
+                        `;
+                        tooltipElement.textContent = fullResponse;
+
+                        document.body.appendChild(tooltipElement);
+
+                        // Pozisyonu ayarla
+                        const rect = responsePreview.getBoundingClientRect();
+                        const tooltipRect = tooltipElement.getBoundingClientRect();
+
+                        let left = rect.left;
+                        let top = rect.bottom + 5;
+
+                        // Ekran sınırlarını kontrol et
+                        if (left + tooltipRect.width > window.innerWidth - 10) {
+                            left = window.innerWidth - tooltipRect.width - 10;
+                        }
+                        if (top + tooltipRect.height > window.innerHeight - 10) {
+                            top = rect.top - tooltipRect.height - 5;
+                        }
+
+                        tooltipElement.style.left = `${Math.max(10, left)}px`;
+                        tooltipElement.style.top = `${top}px`;
+                    };
+
+                    responsePreview.onmouseleave = () => {
+                        if (tooltipElement && tooltipElement.parentNode) {
+                            tooltipElement.parentNode.removeChild(tooltipElement);
+                            tooltipElement = null;
+                        }
                     };
                 }
             } else if (availability.quotaExceeded) {
