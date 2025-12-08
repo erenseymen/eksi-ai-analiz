@@ -1898,11 +1898,17 @@ ${userPrompt}`;
                 const timeStr = responseTime ? ` (${(responseTime / 1000).toFixed(2)}s)` : '';
                 statusDiv.textContent = `✅ Başarılı${timeStr}`;
 
-                // Response'u kısalt (ilk karakterler)
+                // Response'u kısalt: tek satırlık gösterim için ilk 80 karakter
                 const maxLength = 80;
                 const truncatedResponse = response.length > maxLength
                     ? response.substring(0, maxLength).trim() + '...'
                     : response;
+
+                // Tooltip için: maksimum 10 satır göster
+                const maxTooltipLines = 10;
+                const responseLines = response.split('\n');
+                const tooltipText = responseLines.slice(0, maxTooltipLines).join('\n') +
+                    (responseLines.length > maxTooltipLines ? '\n...' : '');
 
                 modelRow.innerHTML = `
                     <div class="eksi-ai-model-check-info">
@@ -1921,12 +1927,44 @@ ${userPrompt}`;
                 const infoDiv = modelRow.querySelector('.eksi-ai-model-check-info');
                 infoDiv.appendChild(statusDiv);
 
-                // Response önizlemesi ekle (ayarlar sayfasındaki tooltip stiliyle)
-                const responsePreview = document.createElement('small');
-                responsePreview.style.cssText = 'color: #666; font-style: italic; display: block; margin-top: 4px; max-width: 500px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
-                responsePreview.title = truncatedResponse; // Kırpılmış response
-                responsePreview.textContent = '💬 ' + truncatedResponse;
-                infoDiv.appendChild(responsePreview);
+                // Response önizlemesi ekle (body'ye eklenen tooltip ile, maksimum 10 satır)
+                const previewTrigger = document.createElement('small');
+                previewTrigger.className = 'eksi-ai-response-preview-trigger';
+                previewTrigger.textContent = '💬 ' + truncatedResponse;
+
+                // Tooltip'i body'ye ekleyerek modal'ın stacking context'inden çıkar
+                let activeTooltip = null;
+
+                previewTrigger.addEventListener('mouseenter', (e) => {
+                    // Eğer zaten aktif tooltip varsa kaldır
+                    if (activeTooltip) {
+                        activeTooltip.remove();
+                    }
+
+                    // Tooltip oluştur
+                    activeTooltip = document.createElement('div');
+                    activeTooltip.className = 'eksi-ai-response-preview-tooltip eksi-ai-response-preview-tooltip-visible';
+                    if (detectTheme()) {
+                        activeTooltip.classList.add('eksi-ai-dark');
+                    }
+                    activeTooltip.textContent = tooltipText;
+                    document.body.appendChild(activeTooltip);
+
+                    // Pozisyonu hesapla (trigger'ın üstünde)
+                    const rect = previewTrigger.getBoundingClientRect();
+                    activeTooltip.style.position = 'fixed';
+                    activeTooltip.style.left = `${rect.left}px`;
+                    activeTooltip.style.bottom = `${window.innerHeight - rect.top + 8}px`;
+                });
+
+                previewTrigger.addEventListener('mouseleave', () => {
+                    if (activeTooltip) {
+                        activeTooltip.remove();
+                        activeTooltip = null;
+                    }
+                });
+
+                infoDiv.appendChild(previewTrigger);
 
                 // Buton event listener ekle
                 const useBtn = modelRow.querySelector('.eksi-ai-use-model-btn');

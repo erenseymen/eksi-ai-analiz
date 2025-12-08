@@ -174,8 +174,9 @@
  * Daha koyu yeşil ve iç gölge ile "basılmış" görünümü verir.
  */
 .eksi-ai-btn.eksi-ai-btn-selected {
-    background-color: #558b2f !important; /* Darker green */
-    box-shadow: inset 0 2px 5px rgba(0,0,0,0.2) !important;
+    background-color: #558b2f !important;
+    /* Darker green */
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2) !important;
     transform: translateY(1px);
 }
 
@@ -196,7 +197,7 @@
     top: 45%;
     width: 5px;
     height: 9px;
-    border: solid rgba(255,255,255,0.8);
+    border: solid rgba(255, 255, 255, 0.8);
     border-width: 0 2px 2px 0;
     transform: translateY(-50%) rotate(45deg);
 }
@@ -557,6 +558,7 @@
     from {
         transform: rotate(0deg);
     }
+
     to {
         transform: rotate(360deg);
     }
@@ -706,7 +708,7 @@
     margin: 0;
 }
 
-.eksi-ai-markdown blockquote p + p {
+.eksi-ai-markdown blockquote p+p {
     margin-top: 0.5em;
 }
 
@@ -1025,4 +1027,97 @@
 .eksi-ai-dark .eksi-ai-compare-card {
     background: var(--eksi-ai-bg);
     border-color: var(--eksi-ai-border);
+}
+
+/* =============================================================================
+   10. RESPONSE ÖNİZLEME TOOLTIP STİLLERİ
+   ============================================================================= */
+
+/**
+ * Quota modalındaki başarılı model cevapları için tooltip
+ * Hover ile açılır, maksimum 10 satır gösterir
+ */
+.eksi-ai-response-preview-container {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+}
+
+.eksi-ai-response-preview-trigger {
+    color: #666;
+    font-style: italic;
+    display: block;
+    margin-top: 4px;
+    max-width: 500px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.eksi-ai-response-preview-trigger:hover {
+    color: var(--eksi-ai-btn-bg);
+}
+
+.eksi-ai-response-preview-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    margin-bottom: 8px;
+    padding: 12px 14px;
+    background: var(--eksi-ai-modal-bg);
+    border: 1px solid var(--eksi-ai-border);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 100000;
+    min-width: 300px;
+    max-width: 500px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--eksi-ai-text);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(5px);
+    transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+    /* Maksimum 10 satır - her satır ~21px (13px font * 1.5 line-height) + padding */
+    max-height: calc(21px * 10 + 24px);
+    overflow-y: hidden;
+}
+
+.eksi-ai-response-preview-container:hover .eksi-ai-response-preview-tooltip,
+.eksi-ai-response-preview-tooltip-visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/** Tooltip ok işareti */
+.eksi-ai-response-preview-tooltip::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 20px;
+    width: 10px;
+    height: 10px;
+    background: var(--eksi-ai-modal-bg);
+    border-right: 1px solid var(--eksi-ai-border);
+    border-bottom: 1px solid var(--eksi-ai-border);
+    transform: rotate(45deg);
+}
+
+/** Karanlık temada tooltip */
+.eksi-ai-dark .eksi-ai-response-preview-trigger {
+    color: #999;
+}
+
+.eksi-ai-dark .eksi-ai-response-preview-trigger:hover {
+    color: var(--eksi-ai-btn-bg);
+}
+
+.eksi-ai-dark .eksi-ai-response-preview-tooltip {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
