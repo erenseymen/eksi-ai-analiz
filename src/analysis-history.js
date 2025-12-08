@@ -16,14 +16,14 @@
 // ANALİZ GEÇMİŞİ
 // =============================================================================
 
-/** @type {number} Geçmişte saklanacak maksimum analiz sayısı */
-const MAX_HISTORY_SIZE = 50;
+/** @type {number} Geçmişin varsayılan saklama süresi (gün) */
+const DEFAULT_HISTORY_RETENTION_DAYS = 30;
 
 /**
  * Analiz sonucunu geçmişe kaydeder.
  * 
  * chrome.storage.local kullanarak kalıcı depolama sağlar.
- * Maksimum boyut aşılırsa en eski kayıt silinir.
+ * Ayarlanan saklama süresinden eski kayıtlar otomatik olarak temizlenir.
  * 
  * @param {Object} analysisData - Kaydedilecek analiz verisi
  * @param {string} analysisData.topicTitle - Başlık adı
@@ -36,8 +36,13 @@ const MAX_HISTORY_SIZE = 50;
  */
 const saveToHistory = async (analysisData) => {
     return new Promise((resolve) => {
-        chrome.storage.local.get({ analysisHistory: [] }, (result) => {
+        // Hem geçmiş hem de saklama süresini al
+        chrome.storage.local.get({
+            analysisHistory: [],
+            historyRetentionDays: DEFAULT_HISTORY_RETENTION_DAYS
+        }, (result) => {
             let history = result.analysisHistory;
+            const retentionDays = result.historyRetentionDays;
 
             // Yeni kayıt oluştur
             const newEntry = {
@@ -58,9 +63,14 @@ const saveToHistory = async (analysisData) => {
             // Başa ekle (en yeni en üstte)
             history.unshift(newEntry);
 
-            // Maksimum boyutu kontrol et
-            if (history.length > MAX_HISTORY_SIZE) {
-                history = history.slice(0, MAX_HISTORY_SIZE);
+            // Eski kayıtları temizle (ayarlanan saklama süresine göre, 0 = sınırsız)
+            if (retentionDays > 0) {
+                const cutoffDate = new Date();
+                cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+                history = history.filter(item => {
+                    const itemDate = new Date(item.timestamp);
+                    return itemDate >= cutoffDate;
+                });
             }
 
             chrome.storage.local.set({ analysisHistory: history }, resolve);

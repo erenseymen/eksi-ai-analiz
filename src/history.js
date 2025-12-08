@@ -13,8 +13,68 @@
 // SABİTLER
 // =============================================================================
 
-/** @type {number} Geçmişte saklanacak maksimum analiz sayısı */
-const MAX_HISTORY_SIZE = 50;
+/** @type {number} Geçmişin varsayılan saklama süresi (gün) */
+const DEFAULT_RETENTION_DAYS = 30;
+
+/** @type {number} Geçerli saklama süresi (gün) - sayfa yüklendiğinde güncellenir */
+let currentRetentionDays = DEFAULT_RETENTION_DAYS;
+
+/**
+ * Saklama süresini storage'dan alır.
+ * 
+ * @returns {Promise<number>} Saklama süresi (gün)
+ */
+const getRetentionDays = async () => {
+    return new Promise((resolve) => {
+        chrome.storage.local.get({ historyRetentionDays: DEFAULT_RETENTION_DAYS }, (result) => {
+            resolve(result.historyRetentionDays);
+        });
+    });
+};
+
+/**
+ * Saklama süresini storage'a kaydeder.
+ * 
+ * @param {number} days - Saklama süresi (gün)
+ * @returns {Promise<void>}
+ */
+const setRetentionDays = async (days) => {
+    return new Promise((resolve) => {
+        chrome.storage.local.set({ historyRetentionDays: days }, resolve);
+    });
+};
+
+/**
+ * Eski kayıtları temizler (ayarlanan saklama süresine göre).
+ * 
+ * @param {number} days - Saklama süresi (gün), 0 = sınırsız
+ * @returns {Promise<number>} Silinen kayıt sayısı
+ */
+const cleanupOldEntries = async (days) => {
+    // Sınırsız ise temizleme yapma
+    if (days === 0) {
+        return 0;
+    }
+
+    return new Promise((resolve) => {
+        chrome.storage.local.get({ analysisHistory: [] }, (result) => {
+            const history = result.analysisHistory;
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - days);
+
+            const filteredHistory = history.filter(item => {
+                const itemDate = new Date(item.timestamp);
+                return itemDate >= cutoffDate;
+            });
+
+            const deletedCount = history.length - filteredHistory.length;
+
+            chrome.storage.local.set({ analysisHistory: filteredHistory }, () => {
+                resolve(deletedCount);
+            });
+        });
+    });
+};
 
 // =============================================================================
 // GEÇMİŞ YÖNETİMİ
@@ -92,7 +152,9 @@ const renderHistory = (history) => {
     clearBtn.style.display = 'block';
 
     // İstatistikleri göster
-    statsEl.textContent = `Toplam ${history.length} analiz (Maksimum: ${MAX_HISTORY_SIZE})`;
+    const statsTextEl = document.getElementById('statsText');
+    const retentionText = currentRetentionDays === 0 ? 'Sınırsız' : `Son ${currentRetentionDays} gün`;
+    statsTextEl.textContent = `Toplam ${history.length} analiz (${retentionText})`;
 
     // Geçmiş listesini oluştur
     let html = '';
@@ -261,7 +323,44 @@ const loadHistory = async () => {
 // SAYFA YÜKLENDİĞİNDE
 // =============================================================================
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // Saklama süresini yükle
+    currentRetentionDays = await getRetentionDays();
+
+    // Select elementini güncelle
+    const retentionSelect = document.getElementById('retentionDays');
+    if (retentionSelect) {
+        retentionSelect.value = currentRetentionDays.toString();
+
+        // Değişiklik event listener'ı
+        retentionSelect.addEventListener('change', async (e) => {
+            const newDays = parseInt(e.target.value, 10);
+            currentRetentionDays = newDays;
+
+            // Yeni değeri kaydet
+            await setRetentionDays(newDays);
+
+            // Eski kayıtları temizle
+            const deletedCount = await cleanupOldEntries(newDays);
+
+            if (deletedCount > 0) {
+                // Listeyi yeniden yükle
+                await loadHistory();
+
+                // Kullanıcıya bilgi ver
+                const statsTextEl = document.getElementById('statsText');
+                const originalText = statsTextEl.textContent;
+                statsTextEl.textContent = `${deletedCount} eski kayıt silindi`;
+                statsTextEl.style.color = '#ff6b6b';
+                setTimeout(() => {
+                    statsTextEl.textContent = originalText;
+                    statsTextEl.style.color = '';
+                }, 2000);
+            }
+        });
+    }
+
+    // Geçmişi yükle
     loadHistory();
 });
 
