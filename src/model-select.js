@@ -106,6 +106,7 @@ document.getElementById('historyLink').addEventListener('click', () => {
 document.getElementById('settingsLink').addEventListener('click', (e) => {
     e.preventDefault();
     chrome.runtime.openOptionsPage();
+    window.close();
 });
 
 /**
