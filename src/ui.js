@@ -208,6 +208,8 @@ const runGemini = async (userPrompt, showPromptHeader = false, clickedButton = n
         resultArea.classList.add('eksi-ai-markdown');
         addResultActionButtons(resultArea, cd.response, userPrompt, showPromptHeader, clickedButton);
         if (clickedButton) clickedButton.classList.add('eksi-ai-btn-cached');
+        // Cache hit istatistiği kaydet
+        recordApiCall({ modelId: cd.modelId, tokenEstimate: 0, responseTime: 0, fromCache: true, topicTitle });
         return;
     }
     const abortController = new AbortController();
@@ -237,6 +239,9 @@ const runGemini = async (userPrompt, showPromptHeader = false, clickedButton = n
         if (mn) { mn.innerHTML = `📝 ${modelId} (${(responseTime / 1000).toFixed(2)}s)`; mn.removeAttribute('id'); }
         addToCache(cacheKey, { response, modelId, responseTime, timestamp: Date.now() });
         await saveToHistory({ topicTitle, topicId, prompt: userPrompt, response, modelId, entryCount: allEntries.length, responseTime });
+        // API çağrısı istatistiği kaydet
+        const { tokenEstimate } = estimateTokens(allEntries);
+        recordApiCall({ modelId, tokenEstimate, responseTime, fromCache: false, topicTitle });
         if (clickedButton) clickedButton.classList.add('eksi-ai-btn-cached');
         if (mainButton) mainButton.classList.add('eksi-ai-btn-cached');
         if (clickedButton && !clickedButton.classList.contains('eksi-ai-btn-selected')) return;

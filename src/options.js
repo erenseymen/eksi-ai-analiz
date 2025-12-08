@@ -868,3 +868,112 @@ const setupRefreshButton = () => {
     }
 };
 
+// =============================================================================
+// İSTATİSTİK FONKSİYONLARI
+// =============================================================================
+
+/**
+ * Token sayısını okunabilir formata çevirir.
+ */
+const formatTokenDisplay = (tokens) => {
+    if (tokens >= 1000000) {
+        return (tokens / 1000000).toFixed(1) + 'M';
+    } else if (tokens >= 1000) {
+        return (tokens / 1000).toFixed(1) + 'K';
+    }
+    return tokens.toString();
+};
+
+/**
+ * Zaman damgasını göreceli zamana çevirir.
+ */
+const formatRelativeTime = (timestamp) => {
+    const now = Date.now();
+    const diff = now - timestamp;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return 'Az önce';
+    if (minutes < 60) return `${minutes} dk önce`;
+    if (hours < 24) return `${hours} saat önce`;
+    if (days < 7) return `${days} gün önce`;
+    return new Date(timestamp).toLocaleDateString('tr-TR');
+};
+
+/**
+ * İstatistikleri yükler ve UI'da gösterir.
+ */
+const loadAndDisplayStats = async () => {
+    try {
+        const summary = await getStatsSummary();
+
+        // Toplam istatistikler
+        document.getElementById('statsTotalCalls').textContent = summary.totals.apiCalls;
+        document.getElementById('statsTotalTokens').textContent = formatTokenDisplay(summary.totals.totalTokens);
+        document.getElementById('statsCacheHits').textContent = summary.totals.cacheHits;
+
+        // Son 24 saat
+        document.getElementById('stats24hCalls').textContent = summary.last24h.apiCalls;
+        document.getElementById('stats24hCache').textContent = summary.last24h.cacheHits;
+        document.getElementById('stats24hTokens').textContent = formatTokenDisplay(summary.last24h.totalTokens);
+
+        // Model kullanımı
+        const modelUsageDiv = document.getElementById('statsModelUsage');
+        if (Object.keys(summary.modelUsage).length > 0) {
+            modelUsageDiv.innerHTML = Object.entries(summary.modelUsage)
+                .sort((a, b) => b[1] - a[1])
+                .map(([model, count]) => `<span style="background:#e9ecef;padding:4px 10px;border-radius:15px;">${model}: <strong>${count}</strong></span>`)
+                .join('');
+        } else {
+            modelUsageDiv.innerHTML = '<span style="color:#999;">Henüz veri yok</span>';
+        }
+
+        // Son çağrılar tablosu
+        const historyBody = document.getElementById('statsHistoryBody');
+        if (summary.recentHistory.length > 0) {
+            historyBody.innerHTML = summary.recentHistory.map(h => `
+                <tr>
+                    <td style="padding:8px;border-bottom:1px solid #eee;">${formatRelativeTime(h.timestamp)}</td>
+                    <td style="padding:8px;border-bottom:1px solid #eee;">${h.modelId || '-'}</td>
+                    <td style="padding:8px;border-bottom:1px solid #eee;">${formatTokenDisplay(h.tokenEstimate)}</td>
+                    <td style="padding:8px;border-bottom:1px solid #eee;">${h.responseTime ? (h.responseTime / 1000).toFixed(2) + 's' : '-'}</td>
+                    <td style="padding:8px;border-bottom:1px solid #eee;">${h.fromCache ? '💾 Cache' : '🔄 API'}</td>
+                </tr>
+            `).join('');
+        } else {
+            historyBody.innerHTML = '<tr><td colspan="5" style="padding:20px;text-align:center;color:#999;">Henüz kayıt yok</td></tr>';
+        }
+    } catch (err) {
+        console.warn('Stats yükleme hatası:', err);
+    }
+};
+
+/**
+ * İstatistikleri sıfırla butonuna event listener ekle.
+ */
+const setupClearStatsButton = () => {
+    const clearBtn = document.getElementById('clearStatsBtn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', async () => {
+            if (confirm('Tüm kullanım istatistiklerini silmek istediğinize emin misiniz?')) {
+                await clearUsageStats();
+                await loadAndDisplayStats();
+
+                const status = document.getElementById('status');
+                status.textContent = 'İstatistikler sıfırlandı.';
+                status.className = 'status success';
+                status.style.display = 'block';
+                setTimeout(() => {
+                    status.style.display = 'none';
+                }, 3000);
+            }
+        });
+    }
+};
+
+// Sayfa yüklendiğinde istatistikleri yükle
+document.addEventListener('DOMContentLoaded', () => {
+    loadAndDisplayStats();
+    setupClearStatsButton();
+});

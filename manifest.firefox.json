@@ -49,6 +49,7 @@
                 "src/scraper.js",
                 "src/api.js",
                 "src/markdown.js",
+                "src/stats.js",
                 "src/ui.js",
                 "src/content.js"
             ],
