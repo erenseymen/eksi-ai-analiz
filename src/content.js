@@ -637,15 +637,15 @@ const extractEntriesFromDoc = (doc, focustoEntryId = null) => {
 const scrapeEntriesFromUrl = async (url) => {
     allEntries = [];
 
-    // Parse URL to preserve query parameters
+    // URL'yi parse et ve query parametrelerini koru
     const urlObj = new URL(url);
     const baseUrl = urlObj.origin + urlObj.pathname;
     const existingParams = new URLSearchParams(urlObj.search);
 
-    // Check for focusto parameter
+    // focusto parametresini kontrol et
     const focustoEntryId = existingParams.get('focusto');
 
-    // Get current page number from URL (if exists)
+    // URL'den mevcut sayfa numarasını al (varsa)
     const currentPageParam = existingParams.get('p');
     let startPage = currentPageParam ? parseInt(currentPageParam) : 1;
 
@@ -767,11 +767,11 @@ const init = () => {
 
     switch (pageType) {
         case 'topic-page':
-            // Single topic page - existing logic
+            // Tek başlık sayfası - mevcut mantık
             initTopicPage();
             break;
         case 'entry-page':
-            // Single entry page - could link to topic page
+            // Tek entry sayfası - başlık sayfasına link verebilir
             initEntryPage();
             break;
         case 'home-page':
@@ -799,13 +799,13 @@ const initTopicPage = () => {
     let topicHeader = document.getElementById('topic');
     let topicTitleH1 = topicHeader ? topicHeader.querySelector('h1') : document.querySelector('h1');
 
-    // If we found h1 but not topicHeader (or topicHeader didn't contain h1), update topicHeader
+    // h1 bulunduysa ama topicHeader bulunamadıysa (veya topicHeader h1'i içermiyorsa), topicHeader'ı güncelle
     if (topicTitleH1 && (!topicHeader || !topicHeader.contains(topicTitleH1))) {
         topicHeader = topicTitleH1.parentElement;
     }
 
     if (topicTitleH1 && !document.getElementById('eksi-ai-main-btn')) {
-        // For topic pages, use current page analysis (useCurrentPage = true)
+        // Başlık sayfaları için mevcut sayfa analizini kullan (useCurrentPage = true)
         createAnalysisButton(topicTitleH1, null, true);
     }
 };
@@ -819,7 +819,7 @@ const initTopicPage = () => {
 const scrapeSingleEntryFromCurrentPage = () => {
     allEntries = [];
 
-    // Extract entry ID from current URL (/entry/ENTRY_ID)
+    // Mevcut URL'den entry ID'sini çıkar (/entry/ENTRY_ID)
     const entryIdMatch = window.location.pathname.match(/\/entry\/(\d+)/);
     if (!entryIdMatch) {
         return;
@@ -827,14 +827,14 @@ const scrapeSingleEntryFromCurrentPage = () => {
 
     const entryId = entryIdMatch[1];
 
-    // Try multiple strategies to find the entry in the DOM
+    // DOM'da entry'yi bulmak için birden fazla strateji dene
     let entryItem = null;
     let contentElement = null;
 
-    // Strategy 1: Find by data-id attribute
+    // Strateji 1: data-id attribute ile bul
     entryItem = document.querySelector(`li[data-id="${entryId}"]`);
 
-    // Strategy 2: Find via entry-item-list
+    // Strateji 2: entry-item-list üzerinden bul
     if (!entryItem) {
         const entryList = document.querySelector('#entry-item-list');
         if (entryList) {
@@ -843,7 +843,7 @@ const scrapeSingleEntryFromCurrentPage = () => {
         }
     }
 
-    // Strategy 3: Find by entry URL link (date link typically contains entry URL)
+    // Strateji 3: Entry URL linki ile bul (tarih linki genellikle entry URL'sini içerir)
     if (!entryItem) {
         const entryLink = document.querySelector(`a[href="/entry/${entryId}"]`);
         if (entryLink) {
@@ -851,7 +851,7 @@ const scrapeSingleEntryFromCurrentPage = () => {
         }
     }
 
-    // Strategy 4: Find any list item in the main content area that might be the entry
+    // Strateji 4: Entry olabilecek ana içerik alanındaki herhangi bir list item'ı bul
     if (!entryItem) {
         const main = document.querySelector('main');
         if (main) {
@@ -874,21 +874,21 @@ const scrapeSingleEntryFromCurrentPage = () => {
         return;
     }
 
-    // Extract entry data
+    // Entry verisini çıkar
     const id = entryItem.getAttribute('data-id') || entryId;
 
-    // Try to find content element - multiple possible structures
+    // Content elementini bulmayı dene - birden fazla olası yapı
     contentElement = entryItem.querySelector('.content');
     if (!contentElement) {
-        // Try finding content directly in the list item
-        // On entry pages, content might be directly in the li without .content class
-        // We'll clone the item and remove metadata elements
+        // List item içinde doğrudan içerik bulmayı dene
+        // Entry sayfalarında içerik .content sınıfı olmadan li içinde olabilir
+        // Elementi klonlayıp metadata elementlerini kaldıracağız
         const clone = entryItem.cloneNode(true);
 
-        // Remove common metadata elements
+        // Yaygın metadata elementlerini kaldır
         clone.querySelectorAll('.entry-author, .entry-date, .entry-footer, .entry-meta, .entry-actions').forEach(el => el.remove());
 
-        // Remove author links
+        // Yazar linklerini kaldır
         clone.querySelectorAll('a[href^="/biri/"]').forEach(el => {
             // Keep the text if it's not just the author name
             if (el.textContent.trim() === el.href.split('/').pop()) {
@@ -896,7 +896,7 @@ const scrapeSingleEntryFromCurrentPage = () => {
             }
         });
 
-        // Remove date links (they point to the entry itself)
+        // Tarih linklerini kaldır (entry'nin kendisine işaret ederler)
         clone.querySelectorAll(`a[href="/entry/${entryId}"]`).forEach(el => el.remove());
 
         contentElement = clone;
@@ -904,7 +904,7 @@ const scrapeSingleEntryFromCurrentPage = () => {
 
     const content = extractContentWithFullUrls(contentElement);
 
-    // Extract author - try multiple selectors
+    // Yazarı çıkar - birden fazla seçici dene
     let author = entryItem.querySelector('.entry-author')?.innerText.trim() || '';
     if (!author) {
         const authorLink = entryItem.querySelector('a[href^="/biri/"]');
@@ -913,7 +913,7 @@ const scrapeSingleEntryFromCurrentPage = () => {
         }
     }
 
-    // Extract date - try multiple selectors
+    // Tarihi çıkar - birden fazla seçici dene
     let date = entryItem.querySelector('.entry-date')?.innerText.trim() || '';
     if (!date) {
         const dateLink = entryItem.querySelector(`a[href="/entry/${entryId}"]`);
@@ -922,12 +922,12 @@ const scrapeSingleEntryFromCurrentPage = () => {
         }
     }
 
-    // Extract topic title
+    // Başlık adını çıkar
     topicTitle = document.querySelector('h1')?.innerText ||
         document.querySelector('#topic h1')?.innerText ||
         "Basliksiz";
 
-    // Extract topic ID if available
+    // Varsa başlık ID'sini çıkar
     const topicLink = document.querySelector('h1 a[href*="--"]') ||
         document.querySelector('a[href*="--"]');
     if (topicLink) {
@@ -943,7 +943,7 @@ const scrapeSingleEntryFromCurrentPage = () => {
             content
         };
 
-        // Extract referenced entry IDs from content
+        // İçerikten referans entry ID'lerini çıkar
         const referencedEntryIds = extractReferencedEntryIds(content);
         if (referencedEntryIds.length > 0) {
             entry.referenced_entry_ids = referencedEntryIds;
@@ -967,12 +967,12 @@ const startSingleEntryAnalysis = async () => {
         return;
     }
 
-    // Reset stop flag and clear response cache for new analysis
+    // Durdurma bayrağını sıfırla ve yeni analiz için yanıt önbelleğini temizle
     shouldStopScraping = false;
     responseCache.clear();
     lastCustomPrompt = null;
 
-    // Change button to "Stop" button
+    // Butonu "Durdur" butonuna dönüştür
     btn.textContent = "Durdur";
     btn.onclick = stopScraping;
     btn.disabled = false;
@@ -990,7 +990,7 @@ const startSingleEntryAnalysis = async () => {
             await fetchAllReferencedEntries(statusSpan);
         }
 
-        // Render actions if we have entries
+        // Entry varsa aksiyonları render et
         if (allEntries.length > 0) {
             await renderActions(container, shouldStopScraping);
             // Gizle/Göster butonunu ekle
@@ -1001,7 +1001,7 @@ const startSingleEntryAnalysis = async () => {
     } catch (err) {
         container.innerHTML = `<div class="eksi-ai-warning">Hata oluştu: ${escapeHtml(err.message)}</div>`;
     } finally {
-        // Restore original button
+        // Orijinal butonu geri yükle
         btn.disabled = false;
         btn.textContent = "Bu Entry'yi Analiz Et";
         btn.onclick = startSingleEntryAnalysis;
@@ -1021,7 +1021,7 @@ const createSingleEntryButton = (heading) => {
         return;
     }
 
-    // Check if button already exists
+    // Buton zaten var mı kontrol et
     if (document.getElementById('eksi-ai-entry-btn')) {
         return; // Button already exists
     }
@@ -1032,14 +1032,14 @@ const createSingleEntryButton = (heading) => {
     btn.textContent = "Bu Entry'yi Analiz Et";
     btn.onclick = startSingleEntryAnalysis;
 
-    // Insert button after h1
+    // Butonu h1'den sonra ekle
     if (heading.nextSibling) {
         heading.parentNode.insertBefore(btn, heading.nextSibling);
     } else {
         heading.parentNode.appendChild(btn);
     }
 
-    // Create container for results/actions
+    // Sonuçlar/aksiyonlar için container oluştur
     const container = document.createElement('div');
     container.id = 'eksi-ai-entry-container';
     container.className = 'eksi-ai-container';
@@ -1061,8 +1061,8 @@ const createSingleEntryButton = (heading) => {
  * Tam başlık analizi için ayrı bir buton eklenmez.
  */
 const initEntryPage = () => {
-    // On entry pages, we need to find the topic link and the heading
-    // The DOM structure on entry pages: h1 contains the topic title link
+    // Entry sayfalarında başlık linkini ve heading'i bulmamız gerekiyor
+    // Entry sayfalarında DOM yapısı: h1 başlık title linkini içerir
 
     // First, find the h1 element (topic title)
     const heading = document.querySelector('#topic h1') || document.querySelector('h1');
@@ -1070,7 +1070,7 @@ const initEntryPage = () => {
         return;
     }
 
-    // Create button for single entry analysis
+    // Tek entry analizi için buton oluştur
     createSingleEntryButton(heading);
 };
 
@@ -1087,7 +1087,7 @@ const initEntryPage = () => {
  * @returns {boolean} true ise karanlık mod aktif
  */
 const detectTheme = () => {
-    // Check for dark mode based on body background color or specific classes
+    // Body background rengine veya belirli sınıflara göre karanlık modu kontrol et
     // Ekşi Sözlük dark mode usually has a dark background color
     const bodyBg = window.getComputedStyle(document.body).backgroundColor;
     // Simple check: if background is dark (brightness < 128), it's dark mode
@@ -1113,12 +1113,12 @@ const startAnalysis = async () => {
         return;
     }
 
-    // Reset stop flag and clear response cache for new analysis
+    // Durdurma bayrağını sıfırla ve yeni analiz için yanıt önbelleğini temizle
     shouldStopScraping = false;
     responseCache.clear();
     lastCustomPrompt = null;
 
-    // Change button to "Stop" button
+    // Butonu "Durdur" butonuna dönüştür
     btn.textContent = "Durdur";
     btn.onclick = stopScraping;
     btn.disabled = false;
@@ -1129,7 +1129,7 @@ const startAnalysis = async () => {
     try {
         await scrapeEntries();
 
-        // Render actions if we have entries (even if stopped early)
+        // Entry varsa (erken durdurulsa bile) aksiyonları render et
         if (allEntries.length > 0) {
             await renderActions(container, shouldStopScraping);
             // Gizle/Göster butonunu ekle
@@ -1140,7 +1140,7 @@ const startAnalysis = async () => {
     } catch (err) {
         container.innerHTML = `<div class="eksi-ai-warning">Hata oluştu: ${escapeHtml(err.message)}</div>`;
     } finally {
-        // Restore original button
+        // Orijinal butonu geri yükle
         btn.disabled = false;
         btn.textContent = "Entry'leri Analiz Et";
         btn.onclick = startAnalysis;
@@ -1155,7 +1155,7 @@ const startAnalysis = async () => {
  */
 const stopScraping = () => {
     shouldStopScraping = true;
-    // Try to find either button (main or entry page button)
+    // Her iki butonu da bulmayı dene (ana veya entry sayfa butonu)
     const btn = document.getElementById('eksi-ai-main-btn') || document.getElementById('eksi-ai-entry-btn');
     if (btn) {
         btn.disabled = true;
@@ -1191,15 +1191,15 @@ const scrapeEntries = async () => {
     const baseUrl = currentUrlObj.origin + currentUrlObj.pathname;
     const existingParams = new URLSearchParams(currentUrlObj.search);
 
-    // Check for focusto parameter
+    // focusto parametresini kontrol et
     const focustoEntryId = existingParams.get('focusto');
 
-    // Get current page number from URL (if exists)
+    // URL'den mevcut sayfa numarasını al (varsa)
     const currentPageParam = existingParams.get('p');
     let startPage = currentPageParam ? parseInt(currentPageParam) : 1;
 
-    // If we have focusto, the server shows the page containing that entry
-    // We need to detect which page we're on from the pager
+    // focusto varsa, sunucu o entry'yi içeren sayfayı gösterir
+    // Pager'ı kontrol ederek hangi sayfada olduğumuzu tespit etmeliyiz
     if (focustoEntryId) {
         const currentPageFromPager = pager?.getAttribute('data-currentpage');
         if (currentPageFromPager) {
