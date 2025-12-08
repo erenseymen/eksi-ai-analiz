@@ -1493,7 +1493,6 @@ const renderActions = async (container, wasStopped = false) => {
     });
 
     buttonsHtml += `<button id="btn-custom-manual" class="eksi-ai-btn">Özel Prompt</button>`;
-    buttonsHtml += `<button id="btn-history" class="eksi-ai-btn secondary" title="Kaydedilmiş analizleri görüntüle">📜 Geçmiş</button>`;
 
     container.innerHTML = `
         ${statusMessage}
@@ -1548,9 +1547,6 @@ const renderActions = async (container, wasStopped = false) => {
         // Otherwise, open modal for new prompt
         openCustomPromptModal(customBtn);
     };
-
-    // History button listener
-    document.getElementById('btn-history').onclick = openHistoryModal;
 };
 
 // =============================================================================
@@ -2638,182 +2634,6 @@ ${userPrompt}`;
 // =============================================================================
 // ÖZEL PROMPT MODALI
 // =============================================================================
-
-/**
- * Analiz geçmişi modalını açar.
- * 
- * Kaydedilmiş analizleri listeler. Kullanıcı detayları görüntüleyebilir,
- * yanıtı kopyalayabilir veya geçmişi temizleyebilir.
- */
-const openHistoryModal = async () => {
-    const history = await getHistory();
-
-    // Modal overlay oluştur
-    const overlay = document.createElement('div');
-    overlay.id = 'eksi-ai-history-overlay';
-    overlay.className = 'eksi-ai-modal-overlay';
-
-    if (detectTheme()) {
-        overlay.classList.add('eksi-ai-dark');
-    }
-
-    // Modal içeriği
-    let historyHtml = '';
-
-    if (history.length === 0) {
-        historyHtml = '<p style="text-align: center; color: var(--eksi-ai-text); opacity: 0.7;">Henüz kaydedilmiş analiz yok.</p>';
-    } else {
-        historyHtml = '<div class="eksi-ai-history-list">';
-        history.forEach((item, index) => {
-            const date = new Date(item.timestamp);
-            const dateStr = date.toLocaleDateString('tr-TR') + ' ' + date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-
-            historyHtml += `
-                <div class="eksi-ai-history-item" data-index="${index}">
-                    <div class="eksi-ai-history-item-header">
-                        <a href="${escapeHtml(item.topicUrl)}" target="_blank" class="eksi-ai-history-title">${escapeHtml(item.topicTitle)}</a>
-                        <span class="eksi-ai-history-date">${dateStr}</span>
-                    </div>
-                    <div class="eksi-ai-history-meta">
-                        📝 ${item.modelId} | 📊 ${item.entryCount} entry | ⏱️ ${item.responseTime ? (item.responseTime / 1000).toFixed(1) + 's' : '-'}
-                    </div>
-                    <div class="eksi-ai-history-prompt">${escapeHtml(item.promptPreview)}</div>
-                    <div class="eksi-ai-history-actions">
-                        <button class="eksi-ai-btn eksi-ai-history-view-btn" data-index="${index}">Görüntüle</button>
-                        <button class="eksi-ai-btn secondary eksi-ai-history-copy-btn" data-index="${index}">Kopyala</button>
-                        <button class="eksi-ai-btn secondary eksi-ai-history-delete-btn" data-index="${index}" style="background:#d9534f!important;">Sil</button>
-                    </div>
-                </div>
-            `;
-        });
-        historyHtml += '</div>';
-    }
-
-    overlay.innerHTML = `
-        <div class="eksi-ai-modal" style="max-width: 700px; max-height: 80vh;">
-            <div class="eksi-ai-modal-header">
-                <h3>📜 Analiz Geçmişi (${history.length}/${MAX_HISTORY_SIZE})</h3>
-                <button class="eksi-ai-modal-close" id="eksi-ai-history-close">&times;</button>
-            </div>
-            <div class="eksi-ai-modal-content" style="overflow-y: auto; max-height: calc(80vh - 120px);">
-                ${historyHtml}
-            </div>
-            <div class="eksi-ai-modal-actions">
-                ${history.length > 0 ? '<button id="eksi-ai-history-clear" class="eksi-ai-modal-btn" style="background:#d9534f;">Tümünü Temizle</button>' : ''}
-                <button id="eksi-ai-history-close-btn" class="eksi-ai-modal-btn eksi-ai-modal-cancel-btn">Kapat</button>
-            </div>
-        </div>
-    `;
-
-    document.body.appendChild(overlay);
-
-    // Event handler for escape key
-    const handleEscape = (e) => {
-        if (e.key === 'Escape') {
-            overlay.remove();
-            document.removeEventListener('keydown', handleEscape);
-        }
-    };
-    document.addEventListener('keydown', handleEscape);
-
-    // Close button handlers
-    overlay.querySelector('#eksi-ai-history-close').onclick = () => {
-        overlay.remove();
-        document.removeEventListener('keydown', handleEscape);
-    };
-    overlay.querySelector('#eksi-ai-history-close-btn').onclick = () => {
-        overlay.remove();
-        document.removeEventListener('keydown', handleEscape);
-    };
-
-    // Overlay click to close
-    overlay.onclick = (e) => {
-        if (e.target === overlay) {
-            overlay.remove();
-            document.removeEventListener('keydown', handleEscape);
-        }
-    };
-
-    // Clear all button
-    const clearBtn = overlay.querySelector('#eksi-ai-history-clear');
-    if (clearBtn) {
-        clearBtn.onclick = async () => {
-            if (confirm('Tüm analiz geçmişini silmek istediğinize emin misiniz?')) {
-                await clearHistory();
-                overlay.remove();
-                document.removeEventListener('keydown', handleEscape);
-                // Yeniden aç (boş liste göstermek için)
-                openHistoryModal();
-            }
-        };
-    }
-
-    // View buttons
-    overlay.querySelectorAll('.eksi-ai-history-view-btn').forEach(btn => {
-        btn.onclick = () => {
-            const index = parseInt(btn.getAttribute('data-index'));
-            const item = history[index];
-            // Yeni pencerede tam yanıtı göster
-            const win = window.open('', '_blank');
-            win.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>${escapeHtml(item.topicTitle)} - Analiz</title>
-                    <style>
-                        body { font-family: 'Segoe UI', sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6; }
-                        pre { white-space: pre-wrap; background: #f5f5f5; padding: 15px; border-radius: 5px; }
-                        h1 { font-size: 1.5em; }
-                        .meta { color: #666; margin-bottom: 20px; }
-                    </style>
-                </head>
-                <body>
-                    <h1>${escapeHtml(item.topicTitle)}</h1>
-                    <div class="meta">
-                        <p><strong>Tarih:</strong> ${new Date(item.timestamp).toLocaleString('tr-TR')}</p>
-                        <p><strong>Model:</strong> ${item.modelId}</p>
-                        <p><strong>Entry Sayısı:</strong> ${item.entryCount}</p>
-                        <p><strong>Prompt:</strong> ${escapeHtml(item.prompt)}</p>
-                    </div>
-                    <h2>Yanıt</h2>
-                    <pre>${escapeHtml(item.response)}</pre>
-                </body>
-                </html>
-            `);
-        };
-    });
-
-    // Copy buttons
-    overlay.querySelectorAll('.eksi-ai-history-copy-btn').forEach(btn => {
-        btn.onclick = async () => {
-            const index = parseInt(btn.getAttribute('data-index'));
-            const item = history[index];
-            try {
-                await navigator.clipboard.writeText(item.response);
-                btn.textContent = '✓ Kopyalandı';
-                setTimeout(() => { btn.textContent = 'Kopyala'; }, 2000);
-            } catch (err) {
-                btn.textContent = 'Hata!';
-            }
-        };
-    });
-
-    // Delete buttons
-    overlay.querySelectorAll('.eksi-ai-history-delete-btn').forEach(btn => {
-        btn.onclick = async () => {
-            const index = parseInt(btn.getAttribute('data-index'));
-            if (confirm('Bu analizi silmek istediğinize emin misiniz?')) {
-                const updatedHistory = history.filter((_, i) => i !== index);
-                await new Promise(resolve => {
-                    chrome.storage.local.set({ analysisHistory: updatedHistory }, resolve);
-                });
-                overlay.remove();
-                document.removeEventListener('keydown', handleEscape);
-                openHistoryModal(); // Yeniden aç
-            }
-        };
-    });
-};
 
 /**
  * Özel prompt giriş modalını açar.
