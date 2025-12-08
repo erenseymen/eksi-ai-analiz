@@ -529,6 +529,89 @@
     font-style: italic;
 }
 
+/* =============================================================================
+   GEÇMİŞ MODAL STİLLERİ
+   ============================================================================= */
+
+/** Geçmiş listesi konteyneri */
+.eksi-ai-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/** Geçmiş listesi öğesi */
+.eksi-ai-history-item {
+    padding: 12px 15px;
+    background: var(--eksi-ai-input-bg);
+    border: 1px solid var(--eksi-ai-border);
+    border-radius: 6px;
+    transition: border-color 0.2s;
+}
+
+.eksi-ai-history-item:hover {
+    border-color: var(--eksi-ai-btn-bg);
+}
+
+/** Geçmiş öğe başlığı */
+.eksi-ai-history-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.eksi-ai-history-title {
+    font-weight: 600;
+    color: var(--eksi-ai-btn-bg);
+    text-decoration: none;
+    flex: 1;
+    word-break: break-word;
+}
+
+.eksi-ai-history-title:hover {
+    text-decoration: underline;
+}
+
+.eksi-ai-history-date {
+    font-size: 12px;
+    color: var(--eksi-ai-text);
+    opacity: 0.7;
+    white-space: nowrap;
+}
+
+/** Geçmiş öğe meta bilgisi */
+.eksi-ai-history-meta {
+    font-size: 12px;
+    color: var(--eksi-ai-text);
+    opacity: 0.8;
+    margin-bottom: 6px;
+}
+
+/** Geçmiş öğe prompt önizlemesi */
+.eksi-ai-history-prompt {
+    font-size: 13px;
+    color: var(--eksi-ai-text);
+    opacity: 0.9;
+    margin-bottom: 10px;
+    font-style: italic;
+    word-break: break-word;
+}
+
+/** Geçmiş öğe aksiyon butonları */
+.eksi-ai-history-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.eksi-ai-history-actions .eksi-ai-btn {
+    padding: 5px 12px;
+    font-size: 12px;
+    margin: 0;
+}
+
 /** Model notu - düşük model ile yanıtlandığında gösterilir */
 .eksi-ai-model-note {
     display: inline-block;
