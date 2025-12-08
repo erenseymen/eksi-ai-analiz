@@ -57,6 +57,43 @@ const addToCache = (key, value) => {
     responseCache.set(key, value);
 };
 
+/** @type {number} Maksimum yeniden deneme sayısı (ağ hataları için) */
+const MAX_RETRIES = 3;
+
+/**
+ * Geçici ağ hataları için yeniden deneme yapar.
+ * 
+ * Exponential backoff stratejisi kullanır (1s, 2s, 4s).
+ * Abort hataları ve quota hataları yeniden denenmez.
+ * 
+ * @param {Function} fn - Çalıştırılacak async fonksiyon
+ * @param {number} [retries=MAX_RETRIES] - Maksimum deneme sayısı
+ * @returns {Promise<*>} Fonksiyonun sonucu
+ * @throws {Error} Tüm denemeler başarısız olursa
+ */
+const retryWithBackoff = async (fn, retries = MAX_RETRIES) => {
+    for (let attempt = 0; attempt < retries; attempt++) {
+        try {
+            return await fn();
+        } catch (err) {
+            // Abort hataları yeniden denenmez
+            if (err.name === 'AbortError' || err.message?.includes('aborted')) {
+                throw err;
+            }
+            // Quota hataları yeniden denenmez
+            if (err.message?.includes('quota') || err.message?.includes('429')) {
+                throw err;
+            }
+            // Son deneme ise hatayı fırlat
+            if (attempt === retries - 1) {
+                throw err;
+            }
+            // Exponential backoff ile bekle (1s, 2s, 4s)
+            await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+        }
+    }
+};
+
 /** @type {string|null} Son kullanılan özel prompt (önbellek için) */
 let lastCustomPrompt = null;
 
@@ -1686,14 +1723,14 @@ const callGeminiApi = async (apiKey, modelId, prompt, signal) => {
             };
         }
 
-        const response = await fetch(url, {
+        const response = await retryWithBackoff(() => fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(requestBody),
             signal: signal
-        });
+        }));
 
         if (response.ok) {
             const data = await response.json();
