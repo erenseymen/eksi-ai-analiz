@@ -633,7 +633,6 @@ const useModelInSettings = async (modelId) => {
 const renderPrompts = () => {
     const list = document.getElementById('promptsList');
     if (!list) {
-        console.error('promptsList elementi bulunamadı');
         return;
     }
 

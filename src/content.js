@@ -153,7 +153,6 @@ const detectPageType = () => {
  */
 const createAnalysisButton = (h1Element, topicId = null, useCurrentPage = false) => {
     if (!h1Element) {
-        console.error('h1Element is required');
         return;
     }
 
@@ -240,7 +239,6 @@ const startAnalysisForTopic = async (h1Element, topicId) => {
         // h1 linkinden topic URL'sini çıkar
         const topicLink = h1Element.querySelector('a');
         if (!topicLink || !topicLink.href) {
-            console.error('Topic link not found');
             return;
         }
         topicUrl = topicLink.href;
@@ -252,7 +250,6 @@ const startAnalysisForTopic = async (h1Element, topicId) => {
     const container = document.getElementById(containerId);
 
     if (!btn || !container) {
-        console.error('Button or container not found');
         return;
     }
 
@@ -282,7 +279,6 @@ const startAnalysisForTopic = async (h1Element, topicId) => {
             container.innerHTML = '<div class="eksi-ai-warning">Hiç entry toplanamadı.</div>';
         }
     } catch (err) {
-        console.error(err);
         container.innerHTML = `<div class="eksi-ai-warning">Hata oluştu: ${escapeHtml(err.message)}</div>`;
     } finally {
         // Orijinal butonu geri yükle
@@ -372,7 +368,6 @@ const fetchEntryById = async (entryId) => {
             content
         };
     } catch (err) {
-        console.error(`Error fetching entry ${entryId}:`, err);
         return null;
     }
 };
@@ -769,7 +764,6 @@ const scrapeSingleEntryFromCurrentPage = () => {
     // Extract entry ID from current URL (/entry/ENTRY_ID)
     const entryIdMatch = window.location.pathname.match(/\/entry\/(\d+)/);
     if (!entryIdMatch) {
-        console.error('Entry ID not found in URL');
         return;
     }
 
@@ -819,7 +813,6 @@ const scrapeSingleEntryFromCurrentPage = () => {
     }
 
     if (!entryItem) {
-        console.error('Entry element not found on page');
         return;
     }
 
@@ -899,8 +892,6 @@ const scrapeSingleEntryFromCurrentPage = () => {
         }
 
         allEntries.push(entry);
-    } else {
-        console.error('Entry content could not be extracted');
     }
 };
 
@@ -915,7 +906,6 @@ const startSingleEntryAnalysis = async () => {
     const container = document.getElementById('eksi-ai-entry-container');
 
     if (!btn || !container) {
-        console.error('Button or container not found');
         return;
     }
 
@@ -951,7 +941,6 @@ const startSingleEntryAnalysis = async () => {
             container.innerHTML = '<div class="eksi-ai-warning">Entry toplanamadı.</div>';
         }
     } catch (err) {
-        console.error(err);
         container.innerHTML = `<div class="eksi-ai-warning">Hata oluştu: ${escapeHtml(err.message)}</div>`;
     } finally {
         // Restore original button
@@ -971,7 +960,6 @@ const startSingleEntryAnalysis = async () => {
  */
 const createSingleEntryButton = (heading) => {
     if (!heading) {
-        console.error('Heading is required');
         return;
     }
 
@@ -1021,7 +1009,6 @@ const initEntryPage = () => {
     // First, find the h1 element (topic title)
     const heading = document.querySelector('#topic h1') || document.querySelector('h1');
     if (!heading) {
-        console.error('Entry page: heading not found');
         return;
     }
 
@@ -1065,7 +1052,6 @@ const startAnalysis = async () => {
     const container = document.getElementById('eksi-ai-container');
 
     if (!btn || !container) {
-        console.error('Button or container not found');
         return;
     }
 
@@ -1094,7 +1080,6 @@ const startAnalysis = async () => {
             container.innerHTML = '<div class="eksi-ai-warning">Hiç entry toplanamadı.</div>';
         }
     } catch (err) {
-        console.error(err);
         container.innerHTML = `<div class="eksi-ai-warning">Hata oluştu: ${escapeHtml(err.message)}</div>`;
     } finally {
         // Restore original button
@@ -1256,7 +1241,6 @@ const addToggleVisibilityButton = (mainBtnId, containerId) => {
     const container = document.getElementById(containerId);
 
     if (!mainBtn || !container) {
-        console.error('Main button or container not found for toggle button');
         return;
     }
 
@@ -1461,7 +1445,6 @@ const runGemini = async (userPrompt, showPromptHeader = false, clickedButton = n
 
     // Early return if result area not found
     if (!resultArea || !warningArea) {
-        console.error('Result area or warning area not found');
         return;
     }
 
@@ -2935,7 +2918,6 @@ const copyToClipboard = async (text, button) => {
             button.classList.remove('success');
         }, 2000);
     } catch (err) {
-        console.error('Kopyalama hatası:', err);
         button.innerHTML = `
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
