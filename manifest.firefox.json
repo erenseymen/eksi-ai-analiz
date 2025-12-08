@@ -42,6 +42,14 @@
             "js": [
                 "src/prompts.js",
                 "src/constants.js",
+                "src/utils.js",
+                "src/analysis-history.js",
+                "src/settings.js",
+                "src/page-detector.js",
+                "src/scraper.js",
+                "src/api.js",
+                "src/markdown.js",
+                "src/ui.js",
                 "src/content.js"
             ],
             "css": [
