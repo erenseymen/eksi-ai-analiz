@@ -6,7 +6,8 @@
     "author": "Eren Seymen",
     "homepage_url": "https://github.com/erenseymen/eksi-ai-analiz",
     "permissions": [
-        "storage"
+        "storage",
+        "tabs"
     ],
     "host_permissions": [
         "https://eksisozluk.com/*",
@@ -39,7 +40,8 @@
     "web_accessible_resources": [
         {
             "resources": [
-                "src/options.html"
+                "src/options.html",
+                "src/history.html"
             ],
             "matches": [
                 "https://eksisozluk.com/*"

@@ -91,6 +91,15 @@ const restoreOptions = () => {
 // =============================================================================
 
 /**
+ * Geçmiş sayfasını açar.
+ * chrome.tabs.create() ile history.html açılır.
+ */
+document.getElementById('historyLink').addEventListener('click', () => {
+    chrome.tabs.create({ url: chrome.runtime.getURL('src/history.html') });
+    window.close();
+});
+
+/**
  * Tam ayarlar sayfasına yönlendirme linki.
  * chrome.runtime.openOptionsPage() ile options.html açılır.
  */
