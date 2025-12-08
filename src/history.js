@@ -222,7 +222,7 @@ const showDetailModal = (item) => {
         <p><strong>Prompt:</strong></p>
         <div style="background: #fff; padding: 10px; border-radius: 4px; margin-top: 5px; font-style: italic; white-space: pre-wrap;">${escapeHtml(item.prompt)}</div>
     `;
-    responseEl.textContent = item.response;
+    responseEl.innerHTML = parseMarkdown(item.response);
 
     modal.classList.add('active');
 
