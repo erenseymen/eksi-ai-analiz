@@ -44,7 +44,8 @@ const init = () => {
             // Bu sayfalarda buton gösterme
             break;
         default:
-            initTopicPage();
+            // Desteklenmeyen sayfa tiplerinde buton gösterme
+            break;
     }
 };
 
