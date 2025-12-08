@@ -33,8 +33,29 @@ let topicId = "";
 /** @type {boolean} Entry toplama işleminin durdurulup durdurulmayacağını belirten bayrak */
 let shouldStopScraping = false;
 
+
 /** @type {Map<string, Object>} Gemini yanıtları için önbellek (anahtar: prompt, değer: yanıt) */
 let responseCache = new Map();
+
+/** @type {number} Önbellekteki maksimum yanıt sayısı (bellek sızıntısını önlemek için) */
+const MAX_CACHE_SIZE = 50;
+
+/**
+ * Önbelleğe güvenli bir şekilde yanıt ekler.
+ * 
+ * Maksimum boyut aşılırsa en eski girişi siler (FIFO).
+ * 
+ * @param {string} key - Önbellek anahtarı (genellikle prompt)
+ * @param {Object} value - Önbellek değeri (yanıt, model bilgisi vb.)
+ */
+const addToCache = (key, value) => {
+    // Maksimum boyut aşıldıysa en eski girişi sil
+    if (responseCache.size >= MAX_CACHE_SIZE) {
+        const firstKey = responseCache.keys().next().value;
+        responseCache.delete(firstKey);
+    }
+    responseCache.set(key, value);
+};
 
 /** @type {string|null} Son kullanılan özel prompt (önbellek için) */
 let lastCustomPrompt = null;
@@ -1546,7 +1567,7 @@ ${userPrompt}`;
         const { text: response, responseTime } = await callGeminiApi(apiKey, modelId, finalPrompt, abortController.signal);
 
         // Cache the successful response with model info and response time
-        responseCache.set(cacheKey, { response, modelId, responseTime, timestamp: Date.now() });
+        addToCache(cacheKey, { response, modelId, responseTime, timestamp: Date.now() });
 
         // Mark button as cached
         if (clickedButton) {
@@ -1959,7 +1980,7 @@ ${userPrompt}`;
                     overlay.remove();
 
                     // Response'u cache'e kaydet (tekrar erişim için, responseTime ile)
-                    responseCache.set(userPrompt, { response, modelId: model.id, responseTime, timestamp: Date.now() });
+                    addToCache(userPrompt, { response, modelId: model.id, responseTime, timestamp: Date.now() });
 
                     // Mark clicked button as selected and cached (if available)
                     if (clickedButton) {
@@ -2235,7 +2256,7 @@ ${userPrompt}`;
         const { text: response, responseTime } = await callGeminiApi(apiKey, model.id, finalPrompt, abortController.signal);
 
         // Cache the successful response with model info and response time
-        responseCache.set(userPrompt, { response, modelId: model.id, responseTime, timestamp: Date.now() });
+        addToCache(userPrompt, { response, modelId: model.id, responseTime, timestamp: Date.now() });
 
         // Build result HTML
         let resultHTML = '';
