@@ -264,6 +264,108 @@
             max-height: 500px;
             overflow-y: auto;
         }
+
+        /* Dark Mode - Automatic detection based on system preference */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #1a1a1a;
+                color: #e0e0e0;
+            }
+
+            .container {
+                background: #2d2d2d;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            }
+
+            h1 {
+                color: #81c14b;
+            }
+
+            .empty-state {
+                color: #999;
+            }
+
+            .history-item {
+                background: #363636;
+                border-color: #444;
+            }
+
+            .history-item:hover {
+                border-color: #81c14b;
+                box-shadow: 0 2px 8px rgba(129, 193, 75, 0.2);
+            }
+
+            .history-title {
+                color: #81c14b;
+            }
+
+            .history-date {
+                color: #999;
+            }
+
+            .history-meta {
+                color: #999;
+            }
+
+            .history-prompt {
+                color: #bbb;
+                background: #404040;
+            }
+
+            .stats {
+                background: #2e4a1e;
+                color: #a5d67a;
+            }
+
+            .loading {
+                color: #999;
+            }
+
+            .detail-modal-content {
+                background: #2d2d2d;
+            }
+
+            .detail-modal-header h2 {
+                color: #81c14b;
+            }
+
+            .detail-modal-close {
+                color: #999;
+            }
+
+            .detail-modal-close:hover {
+                color: #e0e0e0;
+            }
+
+            .detail-meta {
+                background: #363636;
+            }
+
+            .detail-meta p {
+                color: #ccc;
+            }
+
+            .detail-meta a {
+                color: #81c14b;
+            }
+
+            .detail-response {
+                background: #1e1e1e;
+                color: #d4d4d4;
+            }
+
+            button {
+                color: white;
+            }
+
+            .btn-secondary {
+                background-color: #555;
+            }
+
+            .btn-secondary:hover {
+                background-color: #666;
+            }
+        }
     </style>
 </head>
 

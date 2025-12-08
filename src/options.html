@@ -167,6 +167,159 @@
         .save-item-btn:hover {
             background-color: #6da53e;
         }
+
+        /* Dark Mode - Automatic detection based on system preference */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #1a1a1a;
+                color: #e0e0e0;
+            }
+
+            .container {
+                background: #2d2d2d;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            }
+
+            h1,
+            h2,
+            h3 {
+                color: #81c14b;
+            }
+
+            label {
+                color: #e0e0e0;
+            }
+
+            input[type="text"] {
+                background-color: #363636;
+                color: #e0e0e0;
+                border-color: #555;
+            }
+
+            input[type="text"]:focus {
+                border-color: #81c14b;
+            }
+
+            select {
+                background-color: #363636;
+                color: #e0e0e0;
+                border-color: #555;
+            }
+
+            .prompt-item {
+                background: #363636;
+                border-color: #444;
+            }
+
+            .prompt-item textarea {
+                background-color: #2d2d2d;
+                color: #e0e0e0;
+                border-color: #555;
+            }
+
+            .prompt-item input[type="text"] {
+                background-color: #2d2d2d;
+                color: #e0e0e0;
+                border-color: #555;
+            }
+
+            .status.success {
+                background-color: #1e4a1e;
+                color: #a5d67a;
+            }
+
+            .status.error {
+                background-color: #4a1e1e;
+                color: #ff9999;
+            }
+
+            .info {
+                color: #999;
+            }
+
+            a {
+                color: #81c14b;
+            }
+
+            #modelInfo {
+                background: #363636 !important;
+                color: #ccc;
+            }
+
+            #allModelsStatus {
+                background: #363636 !important;
+                border-color: #555 !important;
+            }
+
+            #allModelsStatus h3 {
+                color: #e0e0e0 !important;
+            }
+
+            #systemPromptDisplay {
+                background: #363636 !important;
+                color: #d4d4d4 !important;
+                border-color: #555 !important;
+            }
+
+            hr {
+                border-top-color: #444 !important;
+            }
+
+            /* Stats section */
+            #statsOverview+div,
+            #statsOverview+div+div {
+                background: #363636 !important;
+            }
+
+            #statsOverview+div h4,
+            #statsOverview+div+div h4 {
+                color: #e0e0e0 !important;
+            }
+
+            #statsOverview+div+div+div {
+                background: #2d2d2d !important;
+                border-color: #444 !important;
+            }
+
+            #statsOverview+div+div+div>div:first-child {
+                background: #363636 !important;
+                border-bottom-color: #444 !important;
+                color: #e0e0e0;
+            }
+
+            #statsHistory {
+                background: #2d2d2d !important;
+            }
+
+            #statsHistory table {
+                background: #2d2d2d !important;
+            }
+
+            #statsHistory th {
+                background: #363636 !important;
+                color: #e0e0e0 !important;
+                border-bottom-color: #444 !important;
+            }
+
+            #statsHistory td {
+                border-bottom-color: #444 !important;
+                color: #ccc !important;
+            }
+
+            #statsHistory thead tr {
+                background: #363636 !important;
+            }
+
+            #statsHistory tbody tr:hover {
+                background: #404040 !important;
+            }
+
+            /* Model usage badges */
+            #statsModelUsage span {
+                background: #404040 !important;
+                color: #ccc !important;
+            }
+        }
     </style>
 </head>
 
@@ -274,68 +427,75 @@
                 font-size: 14px;
                 color: white;
             ">📋</button>
-        <hr style="margin: 30px 0 20px 0; border: 0; border-top: 1px solid #eee;">
+            <hr style="margin: 30px 0 20px 0; border: 0; border-top: 1px solid #eee;">
 
-        <h2>📊 Kullanım İstatistikleri</h2>
-        
-        <div id="statsOverview" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; text-align: center;">
-                <div style="font-size: 2em; font-weight: bold;" id="statsTotalCalls">0</div>
-                <div style="font-size: 0.9em; opacity: 0.9;">Toplam API Çağrısı</div>
-            </div>
-            <div style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 20px; border-radius: 8px; text-align: center;">
-                <div style="font-size: 2em; font-weight: bold;" id="statsTotalTokens">0</div>
-                <div style="font-size: 0.9em; opacity: 0.9;">Toplam Token</div>
-            </div>
-            <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 20px; border-radius: 8px; text-align: center;">
-                <div style="font-size: 2em; font-weight: bold;" id="statsCacheHits">0</div>
-                <div style="font-size: 0.9em; opacity: 0.9;">Cache Hit</div>
-            </div>
-        </div>
-        
-        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-            <h4 style="margin: 0 0 10px 0; color: #333;">Son 24 Saat</h4>
-            <div style="display: flex; gap: 30px; font-size: 0.95em;">
-                <span>🔄 API: <strong id="stats24hCalls">0</strong></span>
-                <span>💾 Cache: <strong id="stats24hCache">0</strong></span>
-                <span>📝 Token: <strong id="stats24hTokens">0</strong></span>
-            </div>
-        </div>
-        
-        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-            <h4 style="margin: 0 0 10px 0; color: #333;">Model Kullanımı</h4>
-            <div id="statsModelUsage" style="display: flex; flex-wrap: wrap; gap: 10px; font-size: 0.9em;">
-                <!-- Model usage will be displayed here -->
-            </div>
-        </div>
-        
-        <div style="background: #fff; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; margin-bottom: 15px;">
-            <div style="background: #f5f5f5; padding: 10px 15px; border-bottom: 1px solid #ddd; font-weight: bold;">Son 10 Çağrı</div>
-            <div id="statsHistory" style="max-height: 300px; overflow-y: auto;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
-                    <thead>
-                        <tr style="background: #f9f9f9;">
-                            <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Zaman</th>
-                            <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Model</th>
-                            <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Token</th>
-                            <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Süre</th>
-                            <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Kaynak</th>
-                        </tr>
-                    </thead>
-                    <tbody id="statsHistoryBody">
-                        <!-- History rows will be inserted here -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        
-        <button id="clearStatsBtn" style="background-color: #d9534f; width: 100%;">🗑️ İstatistikleri Sıfırla</button>
+            <h2>📊 Kullanım İstatistikleri</h2>
 
-    </div>
-    <script src="prompts.js"></script>
-    <script src="constants.js"></script>
-    <script src="stats.js"></script>
-    <script src="options.js"></script>
+            <div id="statsOverview"
+                style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
+                <div
+                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 2em; font-weight: bold;" id="statsTotalCalls">0</div>
+                    <div style="font-size: 0.9em; opacity: 0.9;">Toplam API Çağrısı</div>
+                </div>
+                <div
+                    style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 20px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 2em; font-weight: bold;" id="statsTotalTokens">0</div>
+                    <div style="font-size: 0.9em; opacity: 0.9;">Toplam Token</div>
+                </div>
+                <div
+                    style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 20px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 2em; font-weight: bold;" id="statsCacheHits">0</div>
+                    <div style="font-size: 0.9em; opacity: 0.9;">Cache Hit</div>
+                </div>
+            </div>
+
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <h4 style="margin: 0 0 10px 0; color: #333;">Son 24 Saat</h4>
+                <div style="display: flex; gap: 30px; font-size: 0.95em;">
+                    <span>🔄 API: <strong id="stats24hCalls">0</strong></span>
+                    <span>💾 Cache: <strong id="stats24hCache">0</strong></span>
+                    <span>📝 Token: <strong id="stats24hTokens">0</strong></span>
+                </div>
+            </div>
+
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <h4 style="margin: 0 0 10px 0; color: #333;">Model Kullanımı</h4>
+                <div id="statsModelUsage" style="display: flex; flex-wrap: wrap; gap: 10px; font-size: 0.9em;">
+                    <!-- Model usage will be displayed here -->
+                </div>
+            </div>
+
+            <div
+                style="background: #fff; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; margin-bottom: 15px;">
+                <div style="background: #f5f5f5; padding: 10px 15px; border-bottom: 1px solid #ddd; font-weight: bold;">
+                    Son 10 Çağrı</div>
+                <div id="statsHistory" style="max-height: 300px; overflow-y: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                        <thead>
+                            <tr style="background: #f9f9f9;">
+                                <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Zaman</th>
+                                <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Model</th>
+                                <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Token</th>
+                                <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Süre</th>
+                                <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Kaynak</th>
+                            </tr>
+                        </thead>
+                        <tbody id="statsHistoryBody">
+                            <!-- History rows will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <button id="clearStatsBtn" style="background-color: #d9534f; width: 100%;">🗑️ İstatistikleri
+                Sıfırla</button>
+
+        </div>
+        <script src="prompts.js"></script>
+        <script src="constants.js"></script>
+        <script src="stats.js"></script>
+        <script src="options.js"></script>
 </body>
 
 </html>

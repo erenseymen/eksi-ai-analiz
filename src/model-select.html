@@ -80,6 +80,28 @@
         #settingsLink:hover {
             background-color: #d97706;
         }
+
+        /* Dark Mode - Automatic detection based on system preference */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #1a1a1a;
+                color: #e0e0e0;
+            }
+
+            h2 {
+                color: #81c14b;
+            }
+
+            label {
+                color: #e0e0e0;
+            }
+
+            select {
+                background-color: #363636;
+                color: #e0e0e0;
+                border-color: #555;
+            }
+        }
     </style>
 </head>
 
