@@ -875,13 +875,13 @@
         <div class="detail-modal-content">
             <div class="detail-modal-header">
                 <h2 id="artifactPreviewTitle"></h2>
-                <button class="detail-modal-close" id="artifactPreviewClose">&times;</button>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button id="artifactPreviewCopy" class="btn-secondary">📋 Kopyala</button>
+                    <button id="artifactPreviewDownload" class="btn-primary">📥 İndir</button>
+                    <button class="detail-modal-close" id="artifactPreviewClose">&times;</button>
+                </div>
             </div>
             <div class="detail-response" id="artifactPreviewContent"></div>
-            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-                <button id="artifactPreviewCopy" class="btn-secondary">📋 Kopyala</button>
-                <button id="artifactPreviewDownload" class="btn-primary">📥 İndir</button>
-            </div>
         </div>
     </div>
 

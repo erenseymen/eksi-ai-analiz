@@ -141,7 +141,7 @@ const deleteHistoryItem = async (itemId) => {
     return new Promise((resolve) => {
         chrome.storage.local.get({ scrapedData: [] }, (result) => {
             const scrapedData = result.scrapedData;
-            
+
             // Scrape ID'si mi kontrol et
             if (itemId.startsWith('scrape-')) {
                 // Scrape'i tamamen sil
@@ -189,7 +189,7 @@ const createSourceEntriesHash = (sourceEntries) => {
 
     // ID'leri birleştir ve basit hash oluştur
     const combined = entryIds.join(',');
-    
+
     // Basit hash fonksiyonu (string hash)
     let hash = 0;
     for (let i = 0; i < combined.length; i++) {
@@ -197,7 +197,7 @@ const createSourceEntriesHash = (sourceEntries) => {
         hash = ((hash << 5) - hash) + char;
         hash = hash & hash; // 32bit integer'a çevir
     }
-    
+
     return `hash${Math.abs(hash).toString(36)}`;
 };
 
@@ -242,7 +242,7 @@ const saveToHistoryFromPage = async (analysisData) => {
                 // Ama her başlık için ayrı scrape kaydı oluşturulabilir (farklı topicId/topicTitle)
                 // Ancak sourceEntries aynı olduğu için, sadece bir tane scrape oluşturup
                 // tüm başlıkları birleştirilmiş şekilde tutabiliriz
-                const scrapeIndex = scrapedData.findIndex(item => 
+                const scrapeIndex = scrapedData.findIndex(item =>
                     item.sourceEntriesHash === sourceEntriesHash
                 );
 
@@ -280,7 +280,7 @@ const saveToHistoryFromPage = async (analysisData) => {
                 }
             } else {
                 // Tek başlık için normal işlem
-                const scrapeIndex = scrapedData.findIndex(item => 
+                const scrapeIndex = scrapedData.findIndex(item =>
                     item.sourceEntriesHash === sourceEntriesHash
                 );
 
@@ -321,7 +321,7 @@ const saveToHistoryFromPage = async (analysisData) => {
                 const cutoffDate = new Date();
                 cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
                 const cutoffTime = cutoffDate.getTime();
-                
+
                 scrapedData = scrapedData.filter(item => {
                     const itemDate = new Date(item.scrapedAt);
                     return itemDate.getTime() >= cutoffTime;
@@ -360,13 +360,13 @@ const renderHistory = (scrapes, append = false) => {
         statsEl.style.display = 'none';
         clearBtn.style.display = 'none';
         loadMoreContainer.style.display = 'none';
-        
+
         // Export/Import butonlarını gizle (boş geçmişte export anlamsız)
         const exportBtn = document.getElementById('btnExport');
         const importBtn = document.getElementById('btnImport');
         if (exportBtn) exportBtn.style.display = 'none';
         if (importBtn) importBtn.style.display = 'none';
-        
+
         return;
     }
 
@@ -380,7 +380,7 @@ const renderHistory = (scrapes, append = false) => {
     historyListEl.style.display = 'flex';
     statsEl.style.display = 'block';
     clearBtn.style.display = 'block';
-    
+
     // Export/Import butonlarını göster
     const exportBtn = document.getElementById('btnExport');
     const importBtn = document.getElementById('btnImport');
@@ -454,7 +454,7 @@ const renderHistory = (scrapes, append = false) => {
                     hour: '2-digit',
                     minute: '2-digit'
                 });
-                
+
                 // Her analiz için MD ve Prompt butonları
                 let analysisArtifactsHtml = '';
                 if (analysis.prompt) {
@@ -463,7 +463,7 @@ const renderHistory = (scrapes, append = false) => {
                 if (analysis.response) {
                     analysisArtifactsHtml += `<span class="artifact-badge" data-type="markdown" data-scrape-id="${escapeHtml(scrape.id)}" data-analysis-idx="${idx}">📝 MD</span>`;
                 }
-                
+
                 analysesHtml += `
                     <div class="analysis-item">
                         <div class="analysis-header">
@@ -527,8 +527,8 @@ const attachEventListeners = (scrapes) => {
     document.querySelectorAll('.history-item.selectable').forEach(item => {
         item.addEventListener('click', (e) => {
             // Butonlara, linklere veya artifact'lere tıklandığında seçim yapma
-            if (e.target.closest('.history-actions') || 
-                e.target.closest('.history-title') || 
+            if (e.target.closest('.history-actions') ||
+                e.target.closest('.history-title') ||
                 e.target.closest('.history-title-link') ||
                 e.target.closest('.artifact-badge') ||
                 e.target.closest('.analyses-list') ||
@@ -559,7 +559,7 @@ const attachEventListeners = (scrapes) => {
             const content = JSON.stringify(scrape.sourceEntries, null, 2);
             const filename = `${scrape.topicTitle.replace(/[^a-z0-9]/gi, '_')}_sourceEntries.json`;
             const mimeType = 'application/json';
-            
+
             showArtifactPreview(content, filename, mimeType, 'json');
         });
     });
@@ -572,13 +572,14 @@ const attachEventListeners = (scrapes) => {
             const scrapeId = badge.getAttribute('data-scrape-id');
             const analysisIdx = badge.getAttribute('data-analysis-idx');
             const artifact = badge.getAttribute('data-artifact');
-            
+
             const scrape = scrapes.find(s => s.id === scrapeId);
             if (!scrape) return;
 
             let content = '';
             let filename = '';
             let mimeType = '';
+            let previewType = type; // Görüntüleme için kullanılacak tip
 
             if (analysisIdx !== null) {
                 const analysis = scrape.analyses[parseInt(analysisIdx)];
@@ -590,13 +591,14 @@ const attachEventListeners = (scrapes) => {
                     mimeType = 'text/markdown';
                 } else if (artifact === 'prompt') {
                     content = analysis.prompt || '';
-                    filename = `${scrape.topicTitle.replace(/[^a-z0-9]/gi, '_')}_prompt_${analysisIdx + 1}.txt`;
-                    mimeType = 'text/plain';
+                    filename = `${scrape.topicTitle.replace(/[^a-z0-9]/gi, '_')}_prompt_${analysisIdx + 1}.md`;
+                    mimeType = 'text/markdown';
+                    previewType = 'markdown'; // Prompt'u markdown olarak göster
                 }
             }
 
             if (content) {
-                showArtifactPreview(content, filename, mimeType, type);
+                showArtifactPreview(content, filename, mimeType, previewType);
             }
         });
     });
@@ -662,8 +664,8 @@ const showArtifactPreview = (content, filename, mimeType, type) => {
     if (type === 'markdown') {
         contentEl.innerHTML = parseMarkdown(content);
     } else if (type === 'json') {
-        // JSON syntax highlighting için pre/code kullan
-        contentEl.innerHTML = `<pre><code>${escapeHtml(content)}</code></pre>`;
+        // JSON syntax highlighting için pre/code kullan - word-wrap ile
+        contentEl.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word;"><code>${escapeHtml(content)}</code></pre>`;
     } else {
         // Plain text
         contentEl.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(content)}</pre>`;
@@ -776,7 +778,7 @@ const downloadAllArtifacts = async (scrape) => {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        
+
         // Kısa bir gecikme (çoklu indirme için)
         await new Promise(resolve => setTimeout(resolve, 100));
     }
@@ -802,7 +804,7 @@ const loadHistory = async () => {
 const exportHistory = async () => {
     try {
         const scrapes = await getHistory();
-        
+
         if (scrapes.length === 0) {
             alert('Dışa aktarılacak analiz geçmişi bulunamadı.');
             return;
@@ -822,10 +824,10 @@ const exportHistory = async () => {
         const dataStr = JSON.stringify(exportData, null, 2);
         const dataBlob = new Blob([dataStr], { type: 'application/json' });
         const url = URL.createObjectURL(dataBlob);
-        
+
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
         const filename = `eksi-ai-analiz-gecmisi-${timestamp}.json`;
-        
+
         const a = document.createElement('a');
         a.href = url;
         a.download = filename;
@@ -862,7 +864,7 @@ const importHistory = async (file) => {
             importData.history.forEach(item => {
                 const sourceEntries = item.sourceEntries || [];
                 const sourceEntriesHash = createSourceEntriesHash(sourceEntries);
-                
+
                 if (!newItemsMap.has(sourceEntriesHash)) {
                     // Yeni scrape oluştur
                     newItemsMap.set(sourceEntriesHash, {
@@ -880,7 +882,7 @@ const importHistory = async (file) => {
                 }
 
                 const scrape = newItemsMap.get(sourceEntriesHash);
-                
+
                 if (!item.scrapeOnly) {
                     // Analiz ekle
                     scrape.analyses.push({
