@@ -456,13 +456,13 @@ const renderHistory = (scrapes, append = false) => {
                     minute: '2-digit'
                 });
 
-                // Her analiz için MD ve Prompt butonları
+                // Her analiz için Prompt ve Cevap butonları
                 let analysisArtifactsHtml = '';
                 if (analysis.prompt) {
-                    analysisArtifactsHtml += `<span class="artifact-badge" data-type="json" data-scrape-id="${escapeHtml(scrape.id)}" data-analysis-idx="${idx}" data-artifact="prompt">💬 Prompt</span>`;
+                    analysisArtifactsHtml += `<button class="btn-secondary" data-type="json" data-scrape-id="${escapeHtml(scrape.id)}" data-analysis-idx="${idx}" data-artifact="prompt">💬 Prompt</button>`;
                 }
                 if (analysis.response) {
-                    analysisArtifactsHtml += `<span class="artifact-badge" data-type="markdown" data-scrape-id="${escapeHtml(scrape.id)}" data-analysis-idx="${idx}">📝 Cevap</span>`;
+                    analysisArtifactsHtml += `<button class="btn-secondary" data-type="markdown" data-scrape-id="${escapeHtml(scrape.id)}" data-analysis-idx="${idx}">📝 Cevap</button>`;
                 }
 
                 analysesHtml += `
@@ -531,9 +531,8 @@ const attachEventListeners = (scrapes) => {
             if (e.target.closest('.history-actions') ||
                 e.target.closest('.history-title') ||
                 e.target.closest('.history-title-link') ||
-                e.target.closest('.artifact-badge') ||
-                e.target.closest('.analyses-list') ||
-                e.target.closest('.analysis-artifacts')) {
+                e.target.closest('.analysis-artifacts') ||
+                e.target.closest('.analyses-list')) {
                 return;
             }
 
@@ -565,14 +564,14 @@ const attachEventListeners = (scrapes) => {
         });
     });
 
-    // Artifact badge'lerine tıklama (MD ve Prompt)
-    document.querySelectorAll('.artifact-badge').forEach(badge => {
-        badge.addEventListener('click', (e) => {
+    // Prompt ve Cevap butonlarına tıklama
+    document.querySelectorAll('.analysis-artifacts button').forEach(btn => {
+        btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const type = badge.getAttribute('data-type');
-            const scrapeId = badge.getAttribute('data-scrape-id');
-            const analysisIdx = badge.getAttribute('data-analysis-idx');
-            const artifact = badge.getAttribute('data-artifact');
+            const type = btn.getAttribute('data-type');
+            const scrapeId = btn.getAttribute('data-scrape-id');
+            const analysisIdx = btn.getAttribute('data-analysis-idx');
+            const artifact = btn.getAttribute('data-artifact');
 
             const scrape = scrapes.find(s => s.id === scrapeId);
             if (!scrape) return;
@@ -727,61 +726,59 @@ const showArtifactPreview = (content, filename, mimeType, type) => {
 };
 
 /**
- * Tüm artifact'leri indirir (ZIP benzeri yapı).
+ * Tüm artifact'leri ZIP dosyası olarak indirir.
  * 
  * @param {Object} scrape - Scrape objesi
  */
 const downloadAllArtifacts = async (scrape) => {
-    const artifacts = [];
+    // JSZip kontrolü
+    if (typeof JSZip === 'undefined') {
+        alert('ZIP oluşturma kütüphanesi yüklenemedi. Lütfen sayfayı yenileyin.');
+        return;
+    }
+
+    const zip = new JSZip();
+    let hasFiles = false;
 
     // SourceEntries JSON
     if (scrape.sourceEntries && scrape.sourceEntries.length > 0) {
         const content = JSON.stringify(scrape.sourceEntries, null, 2);
-        artifacts.push({
-            filename: `${scrape.topicTitle.replace(/[^a-z0-9]/gi, '_')}_sourceEntries.json`,
-            content: content,
-            mimeType: 'application/json'
-        });
+        zip.file(`${scrape.topicTitle.replace(/[^a-z0-9]/gi, '_')}_sourceEntries.json`, content);
+        hasFiles = true;
     }
 
     // Her analiz için artifact'ler
     scrape.analyses.forEach((analysis, idx) => {
         if (analysis.response) {
             // Markdown
-            artifacts.push({
-                filename: `${scrape.topicTitle.replace(/[^a-z0-9]/gi, '_')}_analysis_${idx + 1}.md`,
-                content: analysis.response,
-                mimeType: 'text/markdown'
-            });
+            zip.file(`${scrape.topicTitle.replace(/[^a-z0-9]/gi, '_')}_analysis_${idx + 1}.md`, analysis.response);
+            hasFiles = true;
         }
         if (analysis.prompt) {
-            artifacts.push({
-                filename: `${scrape.topicTitle.replace(/[^a-z0-9]/gi, '_')}_prompt_${idx + 1}.txt`,
-                content: analysis.prompt,
-                mimeType: 'text/plain'
-            });
+            zip.file(`${scrape.topicTitle.replace(/[^a-z0-9]/gi, '_')}_prompt_${idx + 1}.txt`, analysis.prompt);
+            hasFiles = true;
         }
     });
 
-    if (artifacts.length === 0) {
+    if (!hasFiles) {
         alert('İndirilecek artifact bulunamadı.');
         return;
     }
 
-    // Her artifact'i ayrı ayrı indir
-    for (const artifact of artifacts) {
-        const blob = new Blob([artifact.content], { type: artifact.mimeType });
+    try {
+        // ZIP dosyasını oluştur
+        const blob = await zip.generateAsync({ type: 'blob' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = artifact.filename;
+        a.download = `${scrape.topicTitle.replace(/[^a-z0-9]/gi, '_')}_artifacts.zip`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-
-        // Kısa bir gecikme (çoklu indirme için)
-        await new Promise(resolve => setTimeout(resolve, 100));
+    } catch (err) {
+        console.error('ZIP oluşturma hatası:', err);
+        alert('ZIP dosyası oluşturulurken bir hata oluştu: ' + err.message);
     }
 };
 
