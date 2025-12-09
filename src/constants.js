@@ -170,21 +170,39 @@ const checkModelAvailability = async (apiKey, modelId, checkQuota = true) => {
         if (checkQuota) {
             try {
                 // Eğlenceli bir test isteği yaparak quota durumunu kontrol et
-                // System prompt kullanılmıyor, sadece user prompt gönderiliyor
+                // Sistem prompt'u da gönderiliyor (normal API çağrılarıyla aynı)
                 const testPrompt = getRandomTestPrompt();
                 const testUrl = `https://generativelanguage.googleapis.com/${apiVersion}/models/${modelId}:generateContent?key=${apiKey}`;
+                
+                // Request body oluştur - sistem prompt'u da ekle
+                let requestBody;
+                
+                if (apiVersion === 'v1beta') {
+                    // v1beta: systemInstruction alanını kullan
+                    requestBody = {
+                        systemInstruction: {
+                            parts: [{ text: SYSTEM_PROMPT }]
+                        },
+                        contents: [{
+                            parts: [{ text: testPrompt }]
+                        }]
+                    };
+                } else {
+                    // v1: system instruction'ı prompt'un başına ekle
+                    const combinedPrompt = `${SYSTEM_PROMPT}\n\n${testPrompt}`;
+                    requestBody = {
+                        contents: [{
+                            parts: [{ text: combinedPrompt }]
+                        }]
+                    };
+                }
+                
                 const testResponse = await fetch(testUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [{
-                                text: testPrompt
-                            }]
-                        }]
-                    })
+                    body: JSON.stringify(requestBody)
                 });
 
                 if (testResponse.ok) {
