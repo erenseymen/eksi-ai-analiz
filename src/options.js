@@ -894,23 +894,65 @@ const setupThemeSelector = () => {
 };
 
 /**
- * Tab geçişlerini ayarlar.
+ * Tab geçişlerini ayarlar ve aktif tab'ı storage'a kaydeder.
  */
 const setupTabs = () => {
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
+            const tabId = btn.dataset.tab;
+
             // Remove active from all
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
 
             // Add active to clicked
             btn.classList.add('active');
-            const tabContent = document.getElementById('tab-' + btn.dataset.tab);
+            const tabContent = document.getElementById('tab-' + tabId);
             if (tabContent) {
                 tabContent.classList.add('active');
             }
+
+            // Aktif tab'ı storage'a kaydet
+            if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
+                chrome.storage.sync.set({ optionsActiveTab: tabId });
+            }
         });
     });
+};
+
+/**
+ * Kaydedilmiş aktif tab'ı geri yükler veya varsayılanı ayarlar.
+ * Bu fonksiyon sayfa yüklenmeden önce çağrılmalı.
+ */
+const restoreActiveTab = async () => {
+    let savedTab = 'api'; // Varsayılan tab
+
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
+        try {
+            const result = await new Promise(resolve => {
+                chrome.storage.sync.get('optionsActiveTab', resolve);
+            });
+            if (result.optionsActiveTab) {
+                savedTab = result.optionsActiveTab;
+            }
+        } catch (e) {
+            // Storage erişimi başarısız, varsayılanı kullan
+        }
+    }
+
+    // Doğru tab'ı aktif yap
+    const tabBtn = document.querySelector(`.tab-btn[data-tab="${savedTab}"]`);
+    const tabContent = document.getElementById('tab-' + savedTab);
+
+    if (tabBtn && tabContent) {
+        // Önce tümünden active'i kaldır
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+        // Doğru tab'ı aktif yap
+        tabBtn.classList.add('active');
+        tabContent.classList.add('active');
+    }
 };
 
 /**
@@ -930,9 +972,11 @@ const setupCollapsibleSections = () => {
 /**
  * Sayfa yüklendiğinde ayarları geri yükle ve system prompt'u göster.
  */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // Önce temayı yükle (sayfa yüklenirken hemen uygulanması için)
     restoreTheme();
+    // Önce kaydedilmiş tab'ı geri yükle (flash önlemek için)
+    await restoreActiveTab();
     // Tab ve section ayarlarını yap
     setupTabs();
     setupCollapsibleSections();
