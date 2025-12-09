@@ -808,9 +808,6 @@ const compareModelsWithStreaming = async () => {
             <div class="models-comparison-grid" id="modelsComparisonGrid"></div>
         </div>
         <div class="models-comparison-section" id="failedModelsSection">
-            <div class="models-comparison-section-title error" id="failedModelsTitle" style="display: none;">
-                ❌ Hatalı Modeller
-            </div>
             <div class="models-comparison-grid" id="failedModelsGrid"></div>
         </div>
     `;
@@ -818,7 +815,6 @@ const compareModelsWithStreaming = async () => {
     const successGridContainer = document.getElementById('modelsComparisonGrid');
     const failedGridContainer = document.getElementById('failedModelsGrid');
     const successfulModelsTitle = document.getElementById('successfulModelsTitle');
-    const failedModelsTitle = document.getElementById('failedModelsTitle');
     
     // Başlangıç durumu
     modalStatusSummary.textContent = '⏳ Kontrol ediliyor...';
@@ -832,25 +828,16 @@ const compareModelsWithStreaming = async () => {
     const moveCardBetweenSections = (cardData, targetSection) => {
         const currentContainer = cardData.gridContainer;
         const targetContainer = targetSection === 'success' ? successGridContainer : failedGridContainer;
-        const targetTitle = targetSection === 'success' ? successfulModelsTitle : failedModelsTitle;
         
         if (currentContainer !== targetContainer) {
             currentContainer.removeChild(cardData.card);
             targetContainer.appendChild(cardData.card);
             cardData.gridContainer = targetContainer;
             
-            // Başlıkları göster/gizle
-            if (targetTitle) {
-                const hasModels = targetContainer.children.length > 0;
-                targetTitle.style.display = hasModels ? 'block' : 'none';
-            }
-            
-            // Eski bölümün başlığını kontrol et
-            const oldTitle = targetSection === 'success' ? failedModelsTitle : successfulModelsTitle;
-            const oldContainer = targetSection === 'success' ? failedGridContainer : successGridContainer;
-            if (oldTitle) {
-                const hasModels = oldContainer.children.length > 0;
-                oldTitle.style.display = hasModels ? 'block' : 'none';
+            // Başarılı modeller başlığını göster/gizle
+            if (successfulModelsTitle) {
+                const hasModels = successGridContainer.children.length > 0;
+                successfulModelsTitle.style.display = hasModels ? 'block' : 'none';
             }
         }
     };
