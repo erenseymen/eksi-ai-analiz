@@ -956,7 +956,7 @@ const importHistory = async (file) => {
         const statsTextEl = document.getElementById('statsText');
         if (statsTextEl) {
             const originalText = statsTextEl.textContent;
-            statsTextEl.textContent = `✅ ${newItems.length} kayıt başarıyla içe aktarıldı`;
+            statsTextEl.textContent = `✅ ${newScrapes.length} kayıt başarıyla içe aktarıldı`;
             statsTextEl.style.color = '#28a745';
             setTimeout(() => {
                 statsTextEl.textContent = originalText;
