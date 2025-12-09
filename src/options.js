@@ -799,14 +799,31 @@ const compareModelsWithStreaming = async () => {
     // Modal'ı göster
     modal.classList.add('active');
     
-    // Grid layout için container oluştur
-    modalBody.innerHTML = '<div class="models-comparison-grid" id="modelsComparisonGrid"></div>';
-    const gridContainer = document.getElementById('modelsComparisonGrid');
+    // İki bölüm oluştur: başarılı modeller ve hatalı modeller
+    modalBody.innerHTML = `
+        <div class="models-comparison-section" id="successfulModelsSection">
+            <div class="models-comparison-section-title success" id="successfulModelsTitle" style="display: none;">
+                ✅ Başarılı Modeller
+            </div>
+            <div class="models-comparison-grid" id="modelsComparisonGrid"></div>
+        </div>
+        <div class="models-comparison-section" id="failedModelsSection">
+            <div class="models-comparison-section-title error" id="failedModelsTitle" style="display: none;">
+                ❌ Hatalı Modeller
+            </div>
+            <div class="models-comparison-grid" id="failedModelsGrid"></div>
+        </div>
+    `;
+    
+    const successGridContainer = document.getElementById('modelsComparisonGrid');
+    const failedGridContainer = document.getElementById('failedModelsGrid');
+    const successfulModelsTitle = document.getElementById('successfulModelsTitle');
+    const failedModelsTitle = document.getElementById('failedModelsTitle');
     
     // Başlangıç durumu
     modalStatusSummary.textContent = '⏳ Kontrol ediliyor...';
 
-    // Her model için bir kart oluştur
+    // Her model için bir kart oluştur (başlangıçta başarılı modeller bölümünde)
     const modelCards = {};
     MODELS.forEach((model) => {
         const cardId = `model-card-${model.id}`;
@@ -832,7 +849,7 @@ const compareModelsWithStreaming = async () => {
         card.appendChild(responseDiv);
         card.appendChild(metaDiv);
         
-        gridContainer.appendChild(card);
+        successGridContainer.appendChild(card);
         modelCards[model.id] = {
             card,
             statusDiv,
@@ -840,7 +857,8 @@ const compareModelsWithStreaming = async () => {
             metaDiv,
             startTime: null,
             fullText: '',
-            hasError: false
+            hasError: false,
+            gridContainer: successGridContainer // Başlangıçta başarılı modeller grid'inde
         };
     });
 
@@ -896,6 +914,20 @@ const compareModelsWithStreaming = async () => {
             const errorType = getErrorType(error.message);
             const formattedError = formatErrorMessage(error.message, errorType);
             
+            // Kartı başarılı modeller grid'inden çıkar ve hatalı modeller grid'ine taşı
+            const failedGridContainer = document.getElementById('failedModelsGrid');
+            const failedModelsTitle = document.getElementById('failedModelsTitle');
+            if (failedGridContainer && cardData.gridContainer !== failedGridContainer) {
+                cardData.gridContainer.removeChild(cardData.card);
+                failedGridContainer.appendChild(cardData.card);
+                cardData.gridContainer = failedGridContainer;
+                
+                // Hatalı modeller başlığını göster
+                if (failedModelsTitle) {
+                    failedModelsTitle.style.display = 'block';
+                }
+            }
+            
             // Kartı hata stili ile işaretle
             cardData.card.classList.add('has-error');
             
@@ -926,6 +958,11 @@ const compareModelsWithStreaming = async () => {
     // Başarılı ve başarısız model sayılarını hesapla
     const successfulModels = Object.values(modelCards).filter(card => !card.hasError);
     const failedModels = Object.values(modelCards).filter(card => card.hasError);
+    
+    // Başarılı modeller başlığını göster/gizle
+    if (successfulModels.length > 0 && successfulModelsTitle) {
+        successfulModelsTitle.style.display = 'block';
+    }
     
     // Başlık satırını güncelle
     if (failedModels.length === 0) {

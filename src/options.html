@@ -561,6 +561,33 @@
             margin-top: 0;
         }
 
+        .models-comparison-section {
+            margin-bottom: 25px;
+        }
+
+        .models-comparison-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .models-comparison-section-title {
+            font-size: 1em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .models-comparison-section-title.success {
+            color: #155724;
+            border-bottom-color: #5cb85c;
+        }
+
+        .models-comparison-section-title.error {
+            color: #721c24;
+            border-bottom-color: #d9534f;
+        }
+
         /* System prompt display */
         #systemPromptDisplay {
             background: #f8f9fa;
@@ -963,6 +990,21 @@
             color: #e0e0e0 !important;
         }
 
+        body.dark-theme .models-comparison-section-title {
+            color: #e0e0e0 !important;
+            border-bottom-color: #444 !important;
+        }
+
+        body.dark-theme .models-comparison-section-title.success {
+            color: #a5d67a !important;
+            border-bottom-color: #5cb85c !important;
+        }
+
+        body.dark-theme .models-comparison-section-title.error {
+            color: #ff9999 !important;
+            border-bottom-color: #d9534f !important;
+        }
+
         body.dark-theme #systemPromptDisplay {
             background: #363636 !important;
             color: #d4d4d4 !important;
@@ -1242,6 +1284,21 @@
             body:not(.light-theme):not(.dark-theme) .modal-close:hover {
                 background: #404040 !important;
                 color: #e0e0e0 !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .models-comparison-section-title {
+                color: #e0e0e0 !important;
+                border-bottom-color: #444 !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .models-comparison-section-title.success {
+                color: #a5d67a !important;
+                border-bottom-color: #5cb85c !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .models-comparison-section-title.error {
+                color: #ff9999 !important;
+                border-bottom-color: #d9534f !important;
             }
 
             body:not(.light-theme):not(.dark-theme) #systemPromptDisplay {
