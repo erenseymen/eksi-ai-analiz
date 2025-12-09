@@ -973,7 +973,72 @@ const importHistory = async (file) => {
 // SAYFA YÜKLENDİĞİNDE
 // =============================================================================
 
+/**
+ * Tema seçimini uygular.
+ * 
+ * @param {string} theme - 'auto', 'light', veya 'dark'
+ */
+const applyTheme = (theme) => {
+    const body = document.body;
+    body.classList.remove('light-theme', 'dark-theme');
+    
+    if (theme === 'light') {
+        body.classList.add('light-theme');
+    } else if (theme === 'dark') {
+        body.classList.add('dark-theme');
+    }
+    // 'auto' durumunda class eklenmez, sistem tercihi kullanılır
+};
+
+/**
+ * Tema seçimini yükler ve uygular.
+ */
+const restoreTheme = () => {
+    return new Promise((resolve) => {
+        chrome.storage.sync.get(
+            {
+                theme: 'auto'
+            },
+            (items) => {
+                applyTheme(items.theme || 'auto');
+                resolve();
+            }
+        );
+    });
+};
+
+/**
+ * Storage değişikliklerini dinle ve temayı güncelle.
+ */
+const setupThemeStorageListener = () => {
+    // Mevcut listener'ları kaldır (çoklu kurulumu önlemek için)
+    if (window.themeStorageListener) {
+        chrome.storage.onChanged.removeListener(window.themeStorageListener);
+    }
+    
+    // Yeni listener oluştur
+    window.themeStorageListener = (changes, areaName) => {
+        if (areaName === 'sync' && changes.theme) {
+            const newTheme = changes.theme.newValue || 'auto';
+            applyTheme(newTheme);
+        }
+    };
+    
+    chrome.storage.onChanged.addListener(window.themeStorageListener);
+};
+
 document.addEventListener('DOMContentLoaded', async () => {
+    // Önce temayı yükle (sayfa yüklenirken hemen uygulanması için)
+    await restoreTheme();
+    // Storage değişikliklerini dinle (options sayfasından tema değişikliği için)
+    setupThemeStorageListener();
+    
+    // Sayfa görünür olduğunda temayı kontrol et (diğer sekmelerden döndüğünde)
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            restoreTheme();
+        }
+    });
     // Saklama süresini yükle
     currentRetentionDays = await getRetentionDays();
 
