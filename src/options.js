@@ -103,9 +103,10 @@ const validateApiKey = async (apiKey, updateInputStyle = true) => {
             if (updateInputStyle) {
                 apiKeyInput.classList.remove('valid');
                 apiKeyInput.classList.add('invalid');
+                // Hata mesajı sadece butonun yanında gösterilecek, sayfa içinde gösterme
                 if (apiKeyError) {
-                    apiKeyError.textContent = `Hata: ${shortErrorMessage}`;
-                    apiKeyError.style.display = 'block';
+                    apiKeyError.style.display = 'none';
+                    apiKeyError.textContent = '';
                 }
             }
             return { valid: false, error: shortErrorMessage };
@@ -127,9 +128,10 @@ const validateApiKey = async (apiKey, updateInputStyle = true) => {
         if (updateInputStyle) {
             apiKeyInput.classList.remove('valid');
             apiKeyInput.classList.add('invalid');
+            // Hata mesajı sadece butonun yanında gösterilecek, sayfa içinde gösterme
             if (apiKeyError) {
-                apiKeyError.textContent = `Hata: ${shortErrorMessage}`;
-                apiKeyError.style.display = 'block';
+                apiKeyError.style.display = 'none';
+                apiKeyError.textContent = '';
             }
         }
         return { valid: false, error: shortErrorMessage };
