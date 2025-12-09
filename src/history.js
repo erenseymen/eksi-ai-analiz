@@ -59,6 +59,9 @@ const setRetentionDays = async (days) => {
 /**
  * Eski kayıtları temizler (ayarlanan saklama süresine göre).
  * 
+ * Timestamp'e göre sıralı olduğu için, cutoff date'den sonraki ilk entry'yi bulup
+ * ondan sonraki tüm entry'leri alır (efficient cleanup).
+ * 
  * @param {number} days - Saklama süresi (gün), 0 = sınırsız
  * @returns {Promise<number>} Silinen kayıt sayısı
  */
@@ -70,14 +73,33 @@ const cleanupOldEntries = async (days) => {
 
     return new Promise((resolve) => {
         chrome.storage.local.get({ analysisHistory: [] }, (result) => {
-            const history = result.analysisHistory;
+            let history = result.analysisHistory;
             const cutoffDate = new Date();
             cutoffDate.setDate(cutoffDate.getDate() - days);
 
-            const filteredHistory = history.filter(item => {
-                const itemDate = new Date(item.timestamp);
-                return itemDate >= cutoffDate;
-            });
+            // Timestamp'e göre sıralı olduğu için (descending), cutoff date'den sonraki
+            // ilk entry'yi bulup ondan sonraki tüm entry'leri al
+            // Array en yeniden en eskiye sıralı olduğu için, ilk geçersiz entry'yi bulduğumuzda
+            // ondan sonraki tüm entry'ler de geçersiz olacak
+            const cutoffTime = cutoffDate.getTime();
+            let firstInvalidIndex = -1;
+            
+            for (let i = 0; i < history.length; i++) {
+                const itemDate = new Date(history[i].timestamp);
+                if (itemDate.getTime() < cutoffTime) {
+                    firstInvalidIndex = i;
+                    break;
+                }
+            }
+
+            let filteredHistory;
+            if (firstInvalidIndex >= 0) {
+                // İlk geçersiz entry'den önceki tüm entry'leri al
+                filteredHistory = history.slice(0, firstInvalidIndex);
+            } else {
+                // Tüm entry'ler geçerli
+                filteredHistory = history;
+            }
 
             const deletedCount = history.length - filteredHistory.length;
 
@@ -95,12 +117,19 @@ const cleanupOldEntries = async (days) => {
 /**
  * Kaydedilmiş analiz geçmişini alır.
  * 
- * @returns {Promise<Array>} Analiz geçmişi listesi (en yeniden en eskiye)
+ * @returns {Promise<Array>} Analiz geçmişi listesi (en yeniden en eskiye, timestamp'e göre sıralı)
  */
 const getHistory = async () => {
     return new Promise((resolve) => {
         chrome.storage.local.get({ analysisHistory: [] }, (result) => {
-            resolve(result.analysisHistory);
+            const history = result.analysisHistory;
+            // Timestamp'e göre sırala (descending - en yeni en üstte)
+            history.sort((a, b) => {
+                const dateA = new Date(a.timestamp);
+                const dateB = new Date(b.timestamp);
+                return dateB - dateA; // Descending order
+            });
+            resolve(history);
         });
     });
 };
@@ -183,14 +212,31 @@ const saveToHistoryFromPage = async (analysisData) => {
             // Başa ekle
             history.unshift(newEntry);
 
+            // Veriyi timestamp'e göre sırala (descending - en yeni en üstte)
+            history.sort((a, b) => {
+                const dateA = new Date(a.timestamp);
+                const dateB = new Date(b.timestamp);
+                return dateB - dateA; // Descending order
+            });
+
             // Eski kayıtları temizle
             if (retentionDays > 0) {
                 const cutoffDate = new Date();
                 cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
-                history = history.filter(item => {
-                    const itemDate = new Date(item.timestamp);
-                    return itemDate >= cutoffDate;
-                });
+                const cutoffTime = cutoffDate.getTime();
+                let firstInvalidIndex = -1;
+                
+                for (let i = 0; i < history.length; i++) {
+                    const itemDate = new Date(history[i].timestamp);
+                    if (itemDate.getTime() < cutoffTime) {
+                        firstInvalidIndex = i;
+                        break;
+                    }
+                }
+
+                if (firstInvalidIndex >= 0) {
+                    history = history.slice(0, firstInvalidIndex);
+                }
             }
 
             chrome.storage.local.set({ analysisHistory: history }, resolve);
@@ -501,10 +547,34 @@ const showDetailModal = (item) => {
 
 /**
  * Geçmişi yükler ve gösterir.
+ * 
+ * Aynı başlık için birden fazla scrape-only entry varsa (eski verilerden dolayı),
+ * sadece en son olanını gösterir (benzersiz scrape'ler).
  */
 const loadHistory = async () => {
-    const history = await getHistory();
-    renderHistory(history);
+    let history = await getHistory();
+    
+    // Aynı başlık için birden fazla scrape-only entry varsa, sadece en son olanını göster
+    // (timestamp'e göre sıralı olduğu için, ilk bulduğumuz en son olanıdır)
+    const seenScrapes = new Map(); // topicId veya topicTitle -> entry
+    const uniqueHistory = [];
+    
+    for (const item of history) {
+        if (item.scrapeOnly === true) {
+            // Scrape-only entry için benzersizlik kontrolü
+            const key = item.topicId || item.topicTitle;
+            if (!seenScrapes.has(key)) {
+                seenScrapes.set(key, item);
+                uniqueHistory.push(item);
+            }
+            // Aynı başlık için daha önce bir scrape-only entry gördük, bu yüzden bu entry'yi atla
+        } else {
+            // Analiz sonuçları her zaman gösterilir (benzersizlik kontrolü yok)
+            uniqueHistory.push(item);
+        }
+    }
+    
+    renderHistory(uniqueHistory);
 };
 
 // =============================================================================

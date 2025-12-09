@@ -25,6 +25,9 @@ const DEFAULT_HISTORY_RETENTION_DAYS = 30;
  * chrome.storage.local kullanarak kalıcı depolama sağlar.
  * Ayarlanan saklama süresinden eski kayıtlar otomatik olarak temizlenir.
  * 
+ * Eğer scrapeOnly ise ve aynı başlık için daha önce bir scrape-only entry varsa,
+ * yeni entry oluşturmak yerine mevcut entry'nin timestamp'i güncellenir.
+ * 
  * @param {Object} analysisData - Kaydedilecek analiz verisi
  * @param {string} analysisData.topicTitle - Başlık adı
  * @param {string} analysisData.topicId - Başlık ID'si
@@ -51,30 +54,66 @@ const saveToHistory = async (analysisData) => {
             const prompt = analysisData.prompt || '';
             const response = analysisData.response || '';
 
-            // Yeni kayıt oluştur
-            const newEntry = {
-                id: Date.now().toString(),
-                timestamp: new Date().toISOString(),
-                topicTitle: analysisData.topicTitle,
-                topicId: analysisData.topicId,
-                topicUrl: window.location.href,
-                prompt: prompt,
-                promptPreview: prompt ? (prompt.substring(0, 100) + (prompt.length > 100 ? '...' : '')) : '',
-                response: response,
-                responsePreview: response ? (response.substring(0, 200) + (response.length > 200 ? '...' : '')) : '',
-                modelId: analysisData.modelId || '',
-                entryCount: analysisData.entryCount,
-                responseTime: analysisData.responseTime,
-                // Kaynak entry'leri de sakla (tekrar analiz için)
-                sourceEntries: analysisData.sourceEntries || [],
-                // Sadece scrape verisi mi (henüz analiz yapılmamış)
-                scrapeOnly: analysisData.scrapeOnly || false,
-                // İşlem yarıda mı kesildi
-                wasStopped: analysisData.wasStopped || false
-            };
+            // Eğer scrapeOnly ise, aynı başlık için mevcut scrape-only entry'yi bul
+            let existingEntryIndex = -1;
+            if (analysisData.scrapeOnly) {
+                existingEntryIndex = history.findIndex(item => {
+                    // Aynı başlık kontrolü: topicId varsa onu kullan, yoksa topicTitle kullan
+                    const sameTopic = analysisData.topicId
+                        ? (item.topicId === analysisData.topicId)
+                        : (item.topicTitle === analysisData.topicTitle);
+                    
+                    // Sadece scrape-only entry'leri kontrol et
+                    return sameTopic && item.scrapeOnly === true;
+                });
+            }
 
-            // Başa ekle (en yeni en üstte)
-            history.unshift(newEntry);
+            if (existingEntryIndex >= 0) {
+                // Mevcut entry'yi güncelle
+                const existingEntry = history[existingEntryIndex];
+                existingEntry.timestamp = new Date().toISOString();
+                existingEntry.entryCount = analysisData.entryCount;
+                existingEntry.sourceEntries = analysisData.sourceEntries || [];
+                existingEntry.wasStopped = analysisData.wasStopped || false;
+                existingEntry.topicUrl = window.location.href;
+                
+                // Entry'yi en başa taşı (en yeni en üstte)
+                history.splice(existingEntryIndex, 1);
+                history.unshift(existingEntry);
+            } else {
+                // Yeni kayıt oluştur
+                const newEntry = {
+                    id: Date.now().toString(),
+                    timestamp: new Date().toISOString(),
+                    topicTitle: analysisData.topicTitle,
+                    topicId: analysisData.topicId,
+                    topicUrl: window.location.href,
+                    prompt: prompt,
+                    promptPreview: prompt ? (prompt.substring(0, 100) + (prompt.length > 100 ? '...' : '')) : '',
+                    response: response,
+                    responsePreview: response ? (response.substring(0, 200) + (response.length > 200 ? '...' : '')) : '',
+                    modelId: analysisData.modelId || '',
+                    entryCount: analysisData.entryCount,
+                    responseTime: analysisData.responseTime,
+                    // Kaynak entry'leri de sakla (tekrar analiz için)
+                    sourceEntries: analysisData.sourceEntries || [],
+                    // Sadece scrape verisi mi (henüz analiz yapılmamış)
+                    scrapeOnly: analysisData.scrapeOnly || false,
+                    // İşlem yarıda mı kesildi
+                    wasStopped: analysisData.wasStopped || false
+                };
+
+                // Başa ekle (en yeni en üstte)
+                history.unshift(newEntry);
+            }
+
+            // Veriyi timestamp'e göre sırala (descending - en yeni en üstte)
+            // Bu, güncelleme sonrası sıralamanın doğru olmasını garanti eder
+            history.sort((a, b) => {
+                const dateA = new Date(a.timestamp);
+                const dateB = new Date(b.timestamp);
+                return dateB - dateA; // Descending order
+            });
 
             // Eski kayıtları temizle (ayarlanan saklama süresine göre, 0 = sınırsız)
             if (retentionDays > 0) {
@@ -94,12 +133,19 @@ const saveToHistory = async (analysisData) => {
 /**
  * Kaydedilmiş analiz geçmişini alır.
  * 
- * @returns {Promise<Array>} Analiz geçmişi listesi (en yeniden en eskiye)
+ * @returns {Promise<Array>} Analiz geçmişi listesi (en yeniden en eskiye, timestamp'e göre sıralı)
  */
 const getHistory = async () => {
     return new Promise((resolve) => {
         chrome.storage.local.get({ analysisHistory: [] }, (result) => {
-            resolve(result.analysisHistory);
+            const history = result.analysisHistory;
+            // Timestamp'e göre sırala (descending - en yeni en üstte)
+            history.sort((a, b) => {
+                const dateA = new Date(a.timestamp);
+                const dateB = new Date(b.timestamp);
+                return dateB - dateA; // Descending order
+            });
+            resolve(history);
         });
     });
 };
