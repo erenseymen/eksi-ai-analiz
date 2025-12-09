@@ -863,9 +863,102 @@ const formatErrorMessage = (errorMessage, errorType) => {
  * Her model için aynı prompt'u gönderir ve yanıtları gerçek zamanlı yan yana gösterir.
  * Sonuçlar modal pencerede gösterilir. Hata alan modeller hata bilgileriyle birlikte gösterilir.
  * 
- * @param {string} [customPrompt] - Kullanılacak custom prompt. Verilmezse prompt giriş ekranı gösterilir.
+ * @param {string} [customPrompt] - Kullanılacak custom prompt. Verilmezse son scrape edilen veri veya varsayılan prompt kullanılır.
  */
 let modelComparisonAbortControllers = []; // Modal kapatıldığında iptal edilecek AbortController'lar
+
+/**
+ * Prompt giriş ekranını gösterir ve kullanıcıdan prompt alır.
+ * Kullanıcı prompt'u girdikten sonra test başlatır.
+ */
+const showCustomPromptInput = async () => {
+    const modalBody = document.getElementById('modalBody');
+    const modalStatusSummary = document.getElementById('modalStatusSummary');
+    if (!modalBody) return;
+    
+    // Status summary'yi temizle
+    if (modalStatusSummary) {
+        modalStatusSummary.textContent = '';
+    }
+
+    // Son scrape edilen veriyi al (varsayılan prompt olarak kullanılacak)
+    let defaultPrompt = '';
+    try {
+        const historyData = await new Promise((resolve) => {
+            chrome.storage.local.get({ scrapedData: [] }, (result) => {
+                const scrapedData = result.scrapedData;
+                scrapedData.sort((a, b) => {
+                    const dateA = new Date(a.scrapedAt);
+                    const dateB = new Date(b.scrapedAt);
+                    return dateB - dateA;
+                });
+                resolve(scrapedData);
+            });
+        });
+
+        if (historyData && historyData.length > 0 && historyData[0].sourceEntries && historyData[0].sourceEntries.length > 0) {
+            const lastScrape = historyData[0];
+            const entries = lastScrape.sourceEntries;
+            defaultPrompt = entries.map(entry => entry.content || '').filter(content => content.trim()).join('\n\n');
+        }
+    } catch (error) {
+        console.warn('Son scrape edilen veri alınamadı:', error);
+    }
+
+    // Eğer scrape edilen veri yoksa varsayılan prompt kullan
+    if (!defaultPrompt || defaultPrompt.trim() === '') {
+        defaultPrompt = 'Merhaba! Sen Google Gemini API\'sinin bir modelisin. Kendini kısaca tanıt ve bana kısa bir şaka yap.';
+    }
+
+    // Mevcut içeriği sakla (eğer test devam ediyorsa)
+    const currentContent = modalBody.innerHTML;
+
+    // Prompt giriş ekranını göster
+    modalBody.innerHTML = `
+        <div id="promptInputSection" style="margin-bottom: 20px;">
+            <label for="modelTestPrompt" style="display: block; margin-bottom: 8px; font-weight: bold;">
+                Test Promptu:
+            </label>
+            <textarea 
+                id="modelTestPrompt" 
+                rows="8" 
+                style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; font-size: 14px; resize: vertical;"
+                placeholder="Test edilecek prompt'u buraya girin...">${escapeHtml(defaultPrompt)}</textarea>
+            <div style="margin-top: 10px; display: flex; gap: 10px;">
+                <button id="startModelTestBtn" class="btn-primary" style="flex: 1;">
+                    🚀 Test Et
+                </button>
+                <button id="cancelPromptBtn" class="btn-secondary">
+                    İptal
+                </button>
+            </div>
+        </div>
+    `;
+
+    // Test Et butonuna event listener ekle
+    document.getElementById('startModelTestBtn').addEventListener('click', async () => {
+        const promptText = document.getElementById('modelTestPrompt').value.trim();
+        if (!promptText) {
+            alert('Lütfen bir prompt girin.');
+            return;
+        }
+        // Test'i başlat
+        await compareModelsWithStreaming(promptText);
+    });
+
+    // İptal butonuna event listener ekle
+    document.getElementById('cancelPromptBtn').addEventListener('click', () => {
+        // Eğer önceki içerik varsa geri yükle, yoksa modal'ı kapat
+        if (currentContent && currentContent.trim() !== '') {
+            modalBody.innerHTML = currentContent;
+        } else {
+            const modal = document.getElementById('modelComparisonModal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        }
+    });
+};
 
 const compareModelsWithStreaming = async (customPrompt = null) => {
     const modal = document.getElementById('modelComparisonModal');
@@ -880,10 +973,11 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
         return;
     }
 
-    // Eğer custom prompt verilmemişse, prompt giriş ekranını göster
-    if (customPrompt === null) {
-        // Son scrape edilen veriyi al (varsayılan prompt olarak kullanılacak)
-        let defaultPrompt = '';
+    // Son scrape edilen veriyi al
+    let testPrompt = customPrompt;
+    
+    // Eğer custom prompt verilmemişse, son scrape edilen veriyi veya varsayılan prompt'u kullan
+    if (!testPrompt) {
         try {
             const historyData = await new Promise((resolve) => {
                 chrome.storage.local.get({ scrapedData: [] }, (result) => {
@@ -900,62 +994,17 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
             if (historyData && historyData.length > 0 && historyData[0].sourceEntries && historyData[0].sourceEntries.length > 0) {
                 const lastScrape = historyData[0];
                 const entries = lastScrape.sourceEntries;
-                defaultPrompt = entries.map(entry => entry.content || '').filter(content => content.trim()).join('\n\n');
+                testPrompt = entries.map(entry => entry.content || '').filter(content => content.trim()).join('\n\n');
             }
         } catch (error) {
             console.warn('Son scrape edilen veri alınamadı:', error);
         }
 
         // Eğer scrape edilen veri yoksa varsayılan prompt kullan
-        if (!defaultPrompt || defaultPrompt.trim() === '') {
-            defaultPrompt = 'Merhaba! Sen Google Gemini API\'sinin bir modelisin. Kendini kısaca tanıt ve bana kısa bir şaka yap.';
+        if (!testPrompt || testPrompt.trim() === '') {
+            testPrompt = 'Merhaba! Sen Google Gemini API\'sinin bir modelisin. Kendini kısaca tanıt ve bana kısa bir şaka yap.';
         }
-
-        // Modal'ı göster ve prompt giriş ekranını oluştur
-        modal.classList.add('active');
-        modalStatusSummary.textContent = '';
-
-        modalBody.innerHTML = `
-            <div id="promptInputSection" style="margin-bottom: 20px;">
-                <label for="modelTestPrompt" style="display: block; margin-bottom: 8px; font-weight: bold;">
-                    Test Promptu:
-                </label>
-                <textarea 
-                    id="modelTestPrompt" 
-                    rows="8" 
-                    style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; font-size: 14px; resize: vertical;"
-                    placeholder="Test edilecek prompt'u buraya girin...">${escapeHtml(defaultPrompt)}</textarea>
-                <div style="margin-top: 10px; display: flex; gap: 10px;">
-                    <button id="startModelTestBtn" class="btn-primary" style="flex: 1;">
-                        🚀 Test Et
-                    </button>
-                    <button id="cancelModelTestBtn" class="btn-secondary">
-                        İptal
-                    </button>
-                </div>
-            </div>
-        `;
-
-        // Test Et butonuna event listener ekle
-        document.getElementById('startModelTestBtn').addEventListener('click', async () => {
-            const promptText = document.getElementById('modelTestPrompt').value.trim();
-            if (!promptText) {
-                alert('Lütfen bir prompt girin.');
-                return;
-            }
-            await compareModelsWithStreaming(promptText);
-        });
-
-        // İptal butonuna event listener ekle
-        document.getElementById('cancelModelTestBtn').addEventListener('click', () => {
-            modal.classList.remove('active');
-        });
-
-        return;
     }
-
-    // Custom prompt verilmişse, testi başlat
-    const testPrompt = customPrompt;
 
     // Eğer kontrol zaten devam ediyorsa, yeni kontrol başlatma
     if (isCheckingModels) {
@@ -1784,6 +1833,7 @@ document.getElementById('copySystemPromptBtn').addEventListener('click', copySys
 const setupModal = () => {
     const modal = document.getElementById('modelComparisonModal');
     const closeBtn = document.getElementById('modalCloseBtn');
+    const customPromptBtn = document.getElementById('customPromptBtn');
 
     if (!modal || !closeBtn) return;
 
@@ -1800,6 +1850,13 @@ const setupModal = () => {
         });
         modelComparisonAbortControllers = [];
     };
+
+    // Özel prompt butonuna tıklandığında
+    if (customPromptBtn) {
+        customPromptBtn.addEventListener('click', async () => {
+            await showCustomPromptInput();
+        });
+    }
 
     // Kapat butonuna tıklandığında
     closeBtn.addEventListener('click', () => {
