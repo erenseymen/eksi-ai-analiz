@@ -16,11 +16,38 @@
             margin: 0 auto;
         }
 
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
         h1 {
             color: #81c14b;
             /* Ekşi green-ish */
-            border-bottom: 2px solid #ddd;
-            padding-bottom: 10px;
+            margin: 0;
+            flex: 1;
+        }
+
+        .theme-selector-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .theme-selector-wrapper label {
+            margin: 0;
+            white-space: nowrap;
+        }
+
+        #themeSelect {
+            width: auto;
+            min-width: 200px;
+            padding: 8px 10px;
+            margin: 0;
         }
 
         h2 {
@@ -179,10 +206,18 @@
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
         }
 
+        body.dark-theme .header-row {
+            border-bottom-color: #444;
+        }
+
         body.dark-theme h1,
         body.dark-theme h2,
         body.dark-theme h3 {
             color: #81c14b;
+        }
+
+        body.dark-theme .theme-selector-wrapper label {
+            color: #e0e0e0;
         }
 
         body.dark-theme label {
@@ -329,10 +364,18 @@
                 box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
             }
 
+            body:not(.light-theme):not(.dark-theme) .header-row {
+                border-bottom-color: #444;
+            }
+
             body:not(.light-theme):not(.dark-theme) h1,
             body:not(.light-theme):not(.dark-theme) h2,
             body:not(.light-theme):not(.dark-theme) h3 {
                 color: #81c14b;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .theme-selector-wrapper label {
+                color: #e0e0e0;
             }
 
             body:not(.light-theme):not(.dark-theme) label {
@@ -479,10 +522,18 @@
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1) !important;
         }
 
+        body.light-theme .header-row {
+            border-bottom-color: #ddd !important;
+        }
+
         body.light-theme h1,
         body.light-theme h2,
         body.light-theme h3 {
             color: #81c14b !important;
+        }
+
+        body.light-theme .theme-selector-wrapper label {
+            color: #333 !important;
         }
 
         body.light-theme label {
@@ -581,15 +632,18 @@
 
 <body>
     <div class="container">
-        <h1>Ayarlar</h1>
-
-        <label for="themeSelect">Tema</label>
-        <select id="themeSelect"
-            style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 4px;">
-            <option value="auto">Otomatik (Sistem Tercihi)</option>
-            <option value="light">Açık</option>
-            <option value="dark">Koyu</option>
-        </select>
+        <div class="header-row">
+            <h1>Ayarlar</h1>
+            <div class="theme-selector-wrapper">
+                <label for="themeSelect">Tema</label>
+                <select id="themeSelect"
+                    style="border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="auto">Otomatik (Sistem Tercihi)</option>
+                    <option value="light">Açık</option>
+                    <option value="dark">Koyu</option>
+                </select>
+            </div>
+        </div>
 
         <label for="apiKey">Gemini API Key</label>
         <input type="text" id="apiKey" placeholder="API Key'inizi buraya yapıştırın">
