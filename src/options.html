@@ -258,6 +258,17 @@
             display: block;
         }
 
+        /* API Key Error */
+        .api-key-error {
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            background-color: #f8d7da;
+            color: #721c24;
+            font-size: 0.9em;
+            display: none;
+        }
+
         /* Info box */
         .info {
             background: #f8f9fa;
@@ -667,6 +678,11 @@
             color: #ff9999;
         }
 
+        body.dark-theme .api-key-error {
+            background-color: #4a1e1e;
+            color: #ff9999;
+        }
+
         body.dark-theme .info {
             background: #363636;
             color: #999;
@@ -863,6 +879,11 @@
             }
 
             body:not(.light-theme):not(.dark-theme) .status.error {
+                background-color: #4a1e1e;
+                color: #ff9999;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .api-key-error {
                 background-color: #4a1e1e;
                 color: #ff9999;
             }
@@ -1187,6 +1208,7 @@
                 <div class="section-content">
                     <label for="apiKey">Gemini API Key</label>
                     <input type="text" id="apiKey" placeholder="API Key'inizi buraya yapıştırın">
+                    <div id="apiKeyError" class="api-key-error" style="display: none;"></div>
 
                     <div class="info">
                         <h4>API Key Nasıl Alınır?</h4>

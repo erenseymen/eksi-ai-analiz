@@ -72,11 +72,16 @@ const updatePromptsFromDOM = () => {
  */
 const validateApiKey = async (apiKey, updateInputStyle = true) => {
     const apiKeyInput = document.getElementById('apiKey');
+    const apiKeyError = document.getElementById('apiKeyError');
 
     // Boş API Key geçerli kabul edilir
     if (!apiKey || apiKey.trim() === '') {
         if (updateInputStyle) {
             apiKeyInput.classList.remove('valid', 'invalid');
+            if (apiKeyError) {
+                apiKeyError.style.display = 'none';
+                apiKeyError.textContent = '';
+            }
         }
         return { valid: true };
     }
@@ -92,6 +97,10 @@ const validateApiKey = async (apiKey, updateInputStyle = true) => {
             if (updateInputStyle) {
                 apiKeyInput.classList.remove('valid');
                 apiKeyInput.classList.add('invalid');
+                if (apiKeyError) {
+                    apiKeyError.textContent = `Hata: ${errorMessage}`;
+                    apiKeyError.style.display = 'block';
+                }
             }
             return { valid: false, error: errorMessage };
         }
@@ -100,6 +109,10 @@ const validateApiKey = async (apiKey, updateInputStyle = true) => {
         if (updateInputStyle) {
             apiKeyInput.classList.remove('invalid');
             apiKeyInput.classList.add('valid');
+            if (apiKeyError) {
+                apiKeyError.style.display = 'none';
+                apiKeyError.textContent = '';
+            }
         }
         return { valid: true };
     } catch (error) {
@@ -107,6 +120,10 @@ const validateApiKey = async (apiKey, updateInputStyle = true) => {
         if (updateInputStyle) {
             apiKeyInput.classList.remove('valid');
             apiKeyInput.classList.add('invalid');
+            if (apiKeyError) {
+                apiKeyError.textContent = `Hata: API Key doğrulanırken bir hata oluştu: ${error.message}`;
+                apiKeyError.style.display = 'block';
+            }
         }
         return { valid: false, error: 'API Key doğrulanırken bir hata oluştu: ' + error.message };
     }
@@ -150,13 +167,11 @@ const saveOptions = async () => {
     const validation = await validateApiKey(apiKey, true);
 
     if (!validation.valid) {
-        status.textContent = `Hata: ${validation.error}`;
-        status.className = 'status error';
-        setTimeout(() => {
-            status.textContent = '';
-            status.className = 'status';
-            status.style.display = 'none';
-        }, 5000);
+        // Hata mesajı zaten API key alanının altında gösteriliyor
+        // Genel status alanını temizle
+        status.textContent = '';
+        status.className = 'status';
+        status.style.display = 'none';
         return;
     }
 
@@ -1060,6 +1075,11 @@ document.getElementById('apiKey').addEventListener('blur', async (e) => {
     } else {
         // Boş input'ta doğrulama sınıflarını kaldır ve modeller durumunu gizle
         e.target.classList.remove('valid', 'invalid');
+        const apiKeyError = document.getElementById('apiKeyError');
+        if (apiKeyError) {
+            apiKeyError.style.display = 'none';
+            apiKeyError.textContent = '';
+        }
         const statusDiv = document.getElementById('allModelsStatus');
         if (statusDiv) {
             statusDiv.style.display = 'none';
