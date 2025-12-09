@@ -54,17 +54,46 @@
             color: #333;
         }
 
-        select {
+        /* Custom Hover-Select Dropdown */
+        .model-list {
             width: 100%;
-            padding: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            box-sizing: border-box;
             margin-bottom: 10px;
-            font-size: 14px;
             background-color: #ffffff;
-            color: #333;
+            overflow: hidden;
         }
+
+        .model-option {
+            padding: 10px 12px;
+            font-size: 14px;
+            color: #333;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .model-option:last-child {
+            border-bottom: none;
+        }
+
+        .model-option:hover {
+            background-color: #e8f5e9;
+        }
+
+        .model-option.selected {
+            background-color: #81c14b;
+            color: white;
+        }
+
+        .model-option.selected:hover {
+            background-color: #6da53e;
+        }
+
+
 
         button {
             background-color: #81c14b;
@@ -120,11 +149,26 @@
             color: #e0e0e0;
         }
 
-        body.dark-theme select {
-            background-color: #363636;
-            color: #e0e0e0;
+        body.dark-theme .model-list {
+            background-color: #2d2d2d;
             border-color: #555;
         }
+
+        body.dark-theme .model-option {
+            color: #e0e0e0;
+            border-bottom-color: #444;
+        }
+
+        body.dark-theme .model-option:hover {
+            background-color: #404040;
+        }
+
+        body.dark-theme .model-option.selected {
+            background-color: #81c14b;
+            color: white;
+        }
+
+
 
         body.dark-theme .theme-selector-wrapper label {
             color: #e0e0e0;
@@ -150,10 +194,23 @@
             color: #333 !important;
         }
 
-        body.light-theme select {
+        body.light-theme .model-list {
             background-color: white !important;
-            color: #333 !important;
             border-color: #ddd !important;
+        }
+
+        body.light-theme .model-option {
+            color: #333 !important;
+            border-bottom-color: #eee !important;
+        }
+
+        body.light-theme .model-option:hover {
+            background-color: #e8f5e9 !important;
+        }
+
+        body.light-theme .model-option.selected {
+            background-color: #81c14b !important;
+            color: white !important;
         }
 
         body.light-theme .theme-selector-wrapper label {
@@ -181,11 +238,26 @@
                 color: #e0e0e0;
             }
 
-            body:not(.light-theme):not(.dark-theme) select {
-                background-color: #363636;
-                color: #e0e0e0;
+            body:not(.light-theme):not(.dark-theme) .model-list {
+                background-color: #2d2d2d;
                 border-color: #555;
             }
+
+            body:not(.light-theme):not(.dark-theme) .model-option {
+                color: #e0e0e0;
+                border-bottom-color: #444;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .model-option:hover {
+                background-color: #404040;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .model-option.selected {
+                background-color: #81c14b;
+                color: white;
+            }
+
+
 
             body:not(.light-theme):not(.dark-theme) .theme-selector-wrapper label {
                 color: #e0e0e0;
@@ -203,9 +275,9 @@
 <body>
     <h2>Model Seçimi</h2>
 
-    <select id="modelSelect">
+    <div id="modelList" class="model-list">
         <!-- Options will be populated by JS -->
-    </select>
+    </div>
 
     <button id="historyLink" class="button">📜 Geçmiş</button>
     <a href="#" id="settingsLink" class="button">Tüm Ayarlar</a>

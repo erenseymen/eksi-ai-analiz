@@ -16,58 +16,79 @@
 // =============================================================================
 
 /**
- * Model seçim dropdown'ını MODELS listesiyle doldurur.
+ * Model seçim listesini MODELS listesiyle doldurur.
  * 
- * Basit bir dropdown oluşturur, options.js'deki gibi detaylı bilgi
- * göstermez (popup alanı sınırlı olduğu için).
+ * Özel bir dropdown bileşeni oluşturur. Hover yapıldığında
+ * seçenek otomatik olarak seçilir ve kaydedilir.
  * 
  * @param {string} savedModelId - Önceden kaydedilmiş model ID'si
  */
 const populateModelSelect = (savedModelId) => {
-    const select = document.getElementById('modelSelect');
+    const modelList = document.getElementById('modelList');
 
-    select.innerHTML = '';
+    modelList.innerHTML = '';
 
     // Model option'larını oluştur
     MODELS.forEach(model => {
-        const option = document.createElement('option');
-        option.value = model.id;
-        option.textContent = model.name;
+        const option = document.createElement('div');
+        option.className = 'model-option';
+        option.dataset.modelId = model.id;
+
         if (model.id === savedModelId) {
-            option.selected = true;
+            option.classList.add('selected');
         }
-        select.appendChild(option);
+
+        // Model adı
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = model.name;
+
+        option.appendChild(nameSpan);
+
+        // Click ile seçim
+        option.addEventListener('click', () => {
+            // Önceki seçimi kaldır
+            const currentSelected = modelList.querySelector('.model-option.selected');
+            if (currentSelected) {
+                currentSelected.classList.remove('selected');
+            }
+
+            // Yeni seçimi uygula
+            option.classList.add('selected');
+
+            // Seçimi kaydet ve pencereyi kapat
+            saveModelSelection(model.id, () => {
+                // Seçim efektinin görülmesi için çok kısa bir gecikme
+                setTimeout(() => {
+                    window.close();
+                }, 150);
+            });
+        });
+
+        modelList.appendChild(option);
     });
 };
 
-// =============================================================================
-// AYARLARI KAYDETME VE GERİ YÜKLEME
-// =============================================================================
-
 /**
- * Sadece model seçimini kaydeder.
+ * Model seçimini kaydeder.
  * 
- * Diğer ayarları (API key, prompts) koruyarak sadece seçili modeli
- * günceller. Bu sayede popup'tan yapılan değişiklikler diğer ayarları
- * bozmaz.
+ * @param {string} modelId - Seçili model ID'si
+ * @param {Function} [callback] - Kayıt tamamlandığında çağrılacak fonksiyon
  */
-const saveOptions = () => {
-    const modelSelect = document.getElementById('modelSelect');
-    const selectedModel = modelSelect.value;
-
-    // Mevcut ayarları al ve sadece modeli güncelle
+const saveModelSelection = (modelId, callback) => {
     chrome.storage.sync.get(['geminiApiKey', 'prompts'], (items) => {
         const settings = {
             geminiApiKey: items.geminiApiKey || '',
-            selectedModel: selectedModel,
+            selectedModel: modelId,
             prompts: items.prompts || []
         };
 
-        chrome.storage.sync.set(settings, () => {
-            window.close();
-        });
+        chrome.storage.sync.set(settings, callback);
     });
 };
+
+// =============================================================================
+// AYARLARI GERİ YÜKLEME
+// =============================================================================
 
 /**
  * Kayıtlı model seçimini yükler.
@@ -117,7 +138,7 @@ document.getElementById('settingsLink').addEventListener('click', (e) => {
 const applyTheme = (theme) => {
     const body = document.body;
     body.classList.remove('light-theme', 'dark-theme');
-    
+
     if (theme === 'light') {
         body.classList.add('light-theme');
     } else if (theme === 'dark') {
@@ -148,7 +169,7 @@ const setupThemeStorageListener = () => {
     if (window.themeStorageListener) {
         chrome.storage.onChanged.removeListener(window.themeStorageListener);
     }
-    
+
     // Yeni listener oluştur
     window.themeStorageListener = (changes, areaName) => {
         if (areaName === 'sync' && changes.theme) {
@@ -156,7 +177,7 @@ const setupThemeStorageListener = () => {
             applyTheme(newTheme);
         }
     };
-    
+
     chrome.storage.onChanged.addListener(window.themeStorageListener);
 };
 
@@ -168,16 +189,13 @@ document.addEventListener('DOMContentLoaded', () => {
     restoreTheme();
     // Storage değişikliklerini dinle (options sayfasından tema değişikliği için)
     setupThemeStorageListener();
-    
+
     // Sayfa görünür olduğunda temayı kontrol et (diğer sekmelerden döndüğünde)
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
             restoreTheme();
         }
     });
-    
-    restoreOptions();
 
-    // Model değiştiğinde otomatik kaydet
-    document.getElementById('modelSelect').addEventListener('change', saveOptions);
+    restoreOptions();
 });
