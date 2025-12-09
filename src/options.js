@@ -162,7 +162,7 @@ const saveOptions = async () => {
 
     // DOM'dan güncel prompt listesini al
     updatePromptsFromDOM();
-    
+
     // Tema seçimini al
     const themeSelect = document.getElementById('themeSelect');
     const selectedTheme = themeSelect ? themeSelect.value : 'auto';
@@ -189,7 +189,7 @@ const saveOptions = async () => {
 
         // State tutarlılığı için listeyi yeniden render et
         renderPrompts();
-        
+
         // Tema seçimini uygula
         applyTheme(selectedTheme);
 
@@ -253,7 +253,7 @@ const saveOptions = async () => {
 const applyTheme = (theme) => {
     const body = document.body;
     body.classList.remove('light-theme', 'dark-theme');
-    
+
     if (theme === 'light') {
         body.classList.add('light-theme');
     } else if (theme === 'dark') {
@@ -876,7 +876,7 @@ const setupThemeSelector = () => {
         themeSelect.addEventListener('change', (e) => {
             const selectedTheme = e.target.value;
             applyTheme(selectedTheme);
-            
+
             // Tema seçimini kaydet
             chrome.storage.sync.set({ theme: selectedTheme }, () => {
                 const status = document.getElementById('status');

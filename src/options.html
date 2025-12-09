@@ -636,8 +636,7 @@
             <h1>Ayarlar</h1>
             <div class="theme-selector-wrapper">
                 <label for="themeSelect">Tema</label>
-                <select id="themeSelect"
-                    style="border: 1px solid #ddd; border-radius: 4px;">
+                <select id="themeSelect" style="border: 1px solid #ddd; border-radius: 4px;">
                     <option value="auto">Otomatik (Sistem Tercihi)</option>
                     <option value="light">Açık</option>
                     <option value="dark">Koyu</option>
@@ -708,13 +707,6 @@
         <hr style="margin: 30px 0 20px 0; border: 0; border-top: 1px solid #eee;">
 
         <h2>Sistem Promptu</h2>
-        <p style="font-size: 14px; color: #666; margin-bottom: 15px;">
-            Bu prompt tüm analizlerde AI'a gönderilen temel yönergedir. Değiştirilemez.
-            <br>Özelleştirmek isterseniz
-            <a href="https://github.com/erenseymen/eksi-ai-analiz/blob/master/src/prompts.js"
-                target="_blank"><code>prompts.js</code></a> dosyasını düzenleyebilirsiniz.
-        </p>
-
         <div style="position: relative;">
             <pre id="systemPromptDisplay" style="
                 background: #f8f9fa;
@@ -728,7 +720,7 @@
                 white-space: pre-wrap;
                 word-wrap: break-word;
                 color: #495057;
-                max-height: 400px;
+                max-height: 250px;
                 overflow-y: auto;
                 user-select: text;
                 cursor: text;
@@ -736,7 +728,7 @@
             <button id="copySystemPromptBtn" title="Kopyala" style="
                 position: absolute;
                 top: 10px;
-                right: 10px;
+                right: 20px;
                 background: #81c14b;
                 border: none;
                 border-radius: 4px;
@@ -744,7 +736,17 @@
                 cursor: pointer;
                 font-size: 14px;
                 color: white;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                z-index: 5;
             ">📋</button>
+
+            <p style="font-size: 13px; color: #666; margin-top: 10px; margin-bottom: 0;">
+                Bu prompt sistem tarafından otomatik oluşturulur. Açık kaynaklı olan bu eklentinin <a
+                    href="https://github.com/erenseymen/eksi-ai-analiz/blob/master/src/prompts.js" target="_blank"
+                    style="text-decoration: underline;">src/prompts.js</a> dosyasını inceleyerek veya düzenleyerek
+                değiştirebilirsiniz.
+            </p>
+
             <hr style="margin: 30px 0 20px 0; border: 0; border-top: 1px solid #eee;">
 
             <h2>📊 Kullanım İstatistikleri</h2>

@@ -98,7 +98,7 @@ const getUsageStats = async () => {
     try {
         // İlk çağrıda migration yap
         await migrateStatsToSync();
-        
+
         const result = await chrome.storage.sync.get(STATS_STORAGE_KEY);
         return result[STATS_STORAGE_KEY] || {
             totals: {
