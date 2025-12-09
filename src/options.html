@@ -175,6 +175,33 @@
             font-size: 0.9em;
         }
 
+        .input-with-button {
+            position: relative;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .input-with-button input[type="text"] {
+            width: 100%;
+            padding: 8px 100px 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #ffffff;
+            color: #333;
+            font-size: 0.9em;
+            transition: border-color 0.2s ease;
+        }
+
+        .input-with-button button {
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 6px 12px;
+            font-size: 0.85em;
+            margin: 0;
+        }
+
         input[type="text"] {
             width: 100%;
             padding: 8px 10px;
@@ -956,6 +983,16 @@
             color: #e0e0e0;
         }
 
+        body.dark-theme .input-with-button input[type="text"] {
+            background-color: #363636;
+            color: #e0e0e0;
+            border-color: #555;
+        }
+
+        body.dark-theme .input-with-button input[type="text"]:focus {
+            border-color: #81c14b;
+        }
+
         body.dark-theme input[type="text"],
         body.dark-theme select {
             background-color: #363636;
@@ -1283,6 +1320,16 @@
 
             body:not(.light-theme):not(.dark-theme) label {
                 color: #e0e0e0;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .input-with-button input[type="text"] {
+                background-color: #363636;
+                color: #e0e0e0;
+                border-color: #555;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .input-with-button input[type="text"]:focus {
+                border-color: #81c14b;
             }
 
             body:not(.light-theme):not(.dark-theme) input[type="text"],
@@ -1707,6 +1754,15 @@
             .model-cards-grid {
                 grid-template-columns: 1fr;
             }
+
+            .input-with-button input[type="text"] {
+                padding-right: 90px;
+            }
+
+            .input-with-button button {
+                padding: 6px 10px;
+                font-size: 0.8em;
+            }
         }
 
         /* Markdown Stilleri */
@@ -1878,8 +1934,13 @@
 
         <!-- Tab: API Settings -->
         <div id="tab-api" class="tab-content">
-            <h3 style="margin-top: 0; margin-bottom: 15px;">🔑 Gemini API Anahtarı</h3>
-            <input type="text" id="apiKey" placeholder="API Key'inizi buraya yapıştırın">
+            <h3 style="margin-top: 0; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                <span>🔑 Gemini API Anahtarı</span>
+                <button id="saveBtn" style="margin: 0; padding: 6px 12px; font-size: 0.85em;">💾 Kaydet</button>
+            </h3>
+            <div>
+                <input type="text" id="apiKey" placeholder="API Key'inizi buraya yapıştırın" style="width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 4px; background-color: #ffffff; color: #333; font-size: 0.9em; transition: border-color 0.2s ease; margin-bottom: 10px;">
+            </div>
             <div id="apiKeyError" class="api-key-error" style="display: none;"></div>
 
             <div class="info">
@@ -1909,10 +1970,6 @@
             <div id="allModelsStatus">
                 <h3>Tüm Modellerin API Durumu</h3>
                 <div id="modelsStatusList" style="font-size: 0.85em;"></div>
-            </div>
-
-            <div class="btn-row">
-                <button id="saveBtn">💾 Kaydet</button>
             </div>
             <div id="status" class="status"></div>
         </div>
