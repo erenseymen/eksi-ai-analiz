@@ -2,11 +2,38 @@
  * @fileoverview Ekşi Sözlük AI Analiz - Kullanım İstatistikleri
  * 
  * API çağrılarını, token kullanımını ve cache istatistiklerini takip eder.
+ * 
+ * Not: İstatistikler chrome.storage.sync kullanarak tüm cihazlarda senkronize edilir.
  */
 
 // İstatistik sabitler
 const STATS_STORAGE_KEY = 'eksi_ai_usage_stats';
 const MAX_STATS_HISTORY = 100; // Son 100 çağrıyı sakla
+
+/**
+ * Mevcut local storage'daki istatistikleri sync storage'a taşır (migration).
+ * Sadece bir kez çalışır, sonraki çağrılarda hiçbir şey yapmaz.
+ */
+const migrateStatsToSync = async () => {
+    try {
+        // Sync'te zaten veri varsa migration yapma
+        const syncResult = await chrome.storage.sync.get(STATS_STORAGE_KEY);
+        if (syncResult[STATS_STORAGE_KEY]) {
+            return; // Zaten sync'te veri var
+        }
+
+        // Local'den veri oku
+        const localResult = await chrome.storage.local.get(STATS_STORAGE_KEY);
+        if (localResult[STATS_STORAGE_KEY]) {
+            // Sync'e taşı
+            await chrome.storage.sync.set({ [STATS_STORAGE_KEY]: localResult[STATS_STORAGE_KEY] });
+            // Local'den sil
+            await chrome.storage.local.remove(STATS_STORAGE_KEY);
+        }
+    } catch (err) {
+        console.warn('Stats migration hatası:', err);
+    }
+};
 
 /**
  * Yeni bir API çağrısını kaydeder.
@@ -44,7 +71,7 @@ const recordApiCall = async (callData) => {
             stats.totals.cacheHits++;
         }
 
-        await chrome.storage.local.set({ [STATS_STORAGE_KEY]: stats });
+        await chrome.storage.sync.set({ [STATS_STORAGE_KEY]: stats });
     } catch (err) {
         console.warn('Stats kaydetme hatası:', err);
     }
@@ -57,7 +84,7 @@ const recordCacheHit = async () => {
     try {
         const stats = await getUsageStats();
         stats.totals.cacheHits++;
-        await chrome.storage.local.set({ [STATS_STORAGE_KEY]: stats });
+        await chrome.storage.sync.set({ [STATS_STORAGE_KEY]: stats });
     } catch (err) {
         console.warn('Cache hit kaydetme hatası:', err);
     }
@@ -69,7 +96,10 @@ const recordCacheHit = async () => {
  */
 const getUsageStats = async () => {
     try {
-        const result = await chrome.storage.local.get(STATS_STORAGE_KEY);
+        // İlk çağrıda migration yap
+        await migrateStatsToSync();
+        
+        const result = await chrome.storage.sync.get(STATS_STORAGE_KEY);
         return result[STATS_STORAGE_KEY] || {
             totals: {
                 apiCalls: 0,
@@ -92,6 +122,8 @@ const getUsageStats = async () => {
  */
 const clearUsageStats = async () => {
     try {
+        await chrome.storage.sync.remove(STATS_STORAGE_KEY);
+        // Local'de eski veri varsa onu da temizle (migration sonrası)
         await chrome.storage.local.remove(STATS_STORAGE_KEY);
     } catch (err) {
         console.warn('Stats silme hatası:', err);
