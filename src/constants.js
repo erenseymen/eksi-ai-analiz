@@ -69,7 +69,7 @@ const MODELS = [
         description: 'Maksimum hız, basit görevler için',
         cost: '✅ Ücretsiz (En hızlı)',
         contextWindow: 1048576,
-        responseTime: '~5-10 saniye',
+        responseTime: '~10 saniye',
         isFree: true,
         apiVersion: 'v1'
     }
