@@ -223,3 +223,5 @@ const checkModelAvailability = async (apiKey, modelId, checkQuota = true) => {
         return { available: false, error: error.message };
     }
 };
+
+// Test commit için eklenen yorum satırı
