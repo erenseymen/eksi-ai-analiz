@@ -894,11 +894,48 @@ const setupThemeSelector = () => {
 };
 
 /**
+ * Tab geçişlerini ayarlar.
+ */
+const setupTabs = () => {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Remove active from all
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            // Add active to clicked
+            btn.classList.add('active');
+            const tabContent = document.getElementById('tab-' + btn.dataset.tab);
+            if (tabContent) {
+                tabContent.classList.add('active');
+            }
+        });
+    });
+};
+
+/**
+ * Collapsible section'ları ayarlar.
+ */
+const setupCollapsibleSections = () => {
+    document.querySelectorAll('.section-header').forEach(header => {
+        header.addEventListener('click', () => {
+            const section = header.parentElement;
+            if (section && section.classList.contains('section')) {
+                section.classList.toggle('collapsed');
+            }
+        });
+    });
+};
+
+/**
  * Sayfa yüklendiğinde ayarları geri yükle ve system prompt'u göster.
  */
 document.addEventListener('DOMContentLoaded', () => {
     // Önce temayı yükle (sayfa yüklenirken hemen uygulanması için)
     restoreTheme();
+    // Tab ve section ayarlarını yap
+    setupTabs();
+    setupCollapsibleSections();
     // Sonra diğer ayarları yükle
     restoreOptions();
     displaySystemPrompt();

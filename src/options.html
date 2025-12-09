@@ -6,14 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ekşi Sözlük AI Analiz Ayarları</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f4f4f4;
             color: #333;
-            padding: 20px;
-            max-width: 800px;
-            /* Increased width for better editing experience */
+            padding: 15px;
+            max-width: 900px;
             margin: 0 auto;
+            font-size: 14px;
         }
 
         .header-row {
@@ -21,65 +25,171 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 2px solid #ddd;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
         }
 
         h1 {
             color: #81c14b;
-            /* Ekşi green-ish */
             margin: 0;
-            flex: 1;
+            font-size: 1.5em;
         }
 
         .theme-selector-wrapper {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
 
         .theme-selector-wrapper label {
             margin: 0;
             white-space: nowrap;
+            font-size: 0.9em;
         }
 
         #themeSelect {
             width: auto;
-            min-width: 200px;
-            padding: 8px 10px;
+            min-width: 160px;
+            padding: 6px 8px;
             margin: 0;
-        }
-
-        h2 {
-            color: #81c14b;
-            border-bottom: 2px solid #ddd;
-            padding-bottom: 10px;
+            font-size: 0.9em;
         }
 
         .container {
             background: white;
-            padding: 20px;
+            padding: 15px;
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
 
+        /* Tabs */
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #ddd;
+            margin-bottom: 15px;
+            gap: 5px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 500;
+            color: #666;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .tab-btn:hover {
+            background: rgba(129, 193, 75, 0.1);
+            color: #81c14b;
+        }
+
+        .tab-btn.active {
+            background: white;
+            color: #81c14b;
+            border-bottom: 2px solid #81c14b;
+            margin-bottom: -2px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Collapsible Sections */
+        .section {
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        .section-header:hover {
+            background: #f0f0f0;
+        }
+
+        .section-header h3 {
+            margin: 0;
+            font-size: 0.95em;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-toggle {
+            transition: transform 0.2s;
+            font-size: 0.8em;
+        }
+
+        .section.collapsed .section-toggle {
+            transform: rotate(-90deg);
+        }
+
+        .section-content {
+            padding: 12px 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .section.collapsed .section-content {
+            display: none;
+        }
+
+        /* Form Elements */
         label {
             display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
+            margin-bottom: 5px;
+            font-weight: 600;
             color: #333;
+            font-size: 0.9em;
         }
 
         input[type="text"] {
             width: 100%;
-            padding: 10px;
+            padding: 8px 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            box-sizing: border-box;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             background-color: #ffffff;
             color: #333;
-            transition: border-color 0.3s ease;
+            font-size: 0.9em;
+            transition: border-color 0.2s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #81c14b;
         }
 
         input[type="text"].valid {
@@ -94,29 +204,46 @@
             background-color: #ffffff;
             color: #333;
             border: 1px solid #ddd;
+            padding: 8px 10px;
+            border-radius: 4px;
+            font-size: 0.9em;
         }
 
         button {
             background-color: #81c14b;
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 8px 16px;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.2s;
+            font-size: 0.9em;
+            transition: all 0.2s;
         }
 
         button:hover {
             background-color: #6da53e;
+            transform: translateY(-1px);
         }
 
+        /* Inline form groups */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
 
+        .form-group {
+            margin-bottom: 10px;
+        }
+
+        /* Status */
         .status {
-            margin-top: 10px;
-            padding: 10px;
+            margin-top: 8px;
+            padding: 8px 12px;
             border-radius: 4px;
             display: none;
+            font-size: 0.9em;
         }
 
         .status.success {
@@ -131,11 +258,30 @@
             display: block;
         }
 
+        /* Info box */
         .info {
-            margin-top: 20px;
-            font-size: 14px;
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 0.85em;
             color: #666;
-            line-height: 1.6;
+            line-height: 1.5;
+            margin-top: 10px;
+        }
+
+        .info h4 {
+            margin: 0 0 8px 0;
+            color: #333;
+            font-size: 0.95em;
+        }
+
+        .info ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .info li {
+            margin-bottom: 4px;
         }
 
         a {
@@ -147,23 +293,25 @@
             text-decoration: underline;
         }
 
+        /* Prompt items */
         .prompt-item {
             background: #f9f9f9;
             border: 1px solid #eee;
-            padding: 15px;
-            margin-bottom: 15px;
+            padding: 12px;
+            margin-bottom: 10px;
             border-radius: 4px;
             position: relative;
         }
 
         .prompt-item textarea {
             width: 100%;
-            padding: 10px;
+            padding: 8px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            box-sizing: border-box;
-            font-family: monospace;
+            font-family: 'Consolas', monospace;
+            font-size: 0.85em;
             resize: vertical;
+            min-height: 80px;
             background-color: #ffffff;
             color: #333;
         }
@@ -174,11 +322,16 @@
             border: 1px solid #ddd;
         }
 
+        .prompt-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
         .delete-btn {
             background-color: #d9534f;
             padding: 5px 10px;
-            font-size: 14px;
-            margin-top: 10px;
+            font-size: 0.85em;
         }
 
         .delete-btn:hover {
@@ -188,11 +341,239 @@
         .save-item-btn {
             background-color: #81c14b;
             padding: 5px 10px;
-            font-size: 14px;
+            font-size: 0.85em;
         }
 
         .save-item-btn:hover {
             background-color: #6da53e;
+        }
+
+        /* Model info */
+        #modelInfo {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 0.85em;
+        }
+
+        #allModelsStatus {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            border: 1px solid #dee2e6;
+            display: none;
+        }
+
+        #allModelsStatus h3 {
+            margin-top: 0;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+            color: #333;
+        }
+
+        /* System prompt display */
+        #systemPromptDisplay {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 12px;
+            padding-right: 45px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.8em;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: #495057;
+            max-height: 200px;
+            overflow-y: auto;
+            user-select: text;
+            cursor: text;
+            position: relative;
+        }
+
+        .system-prompt-wrapper {
+            position: relative;
+        }
+
+        #copySystemPromptBtn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #81c14b;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 0.85em;
+            color: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            z-index: 5;
+        }
+
+        .system-prompt-note {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 8px;
+            margin-bottom: 0;
+        }
+
+        /* Stats Overview */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .stat-card {
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-card.purple {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .stat-card.green {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .stat-card.pink {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 0.8em;
+            opacity: 0.9;
+        }
+
+        .stats-secondary {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+
+        .stats-secondary h4 {
+            margin: 0 0 8px 0;
+            font-size: 0.9em;
+            color: #333;
+        }
+
+        .stats-row {
+            display: flex;
+            gap: 20px;
+            font-size: 0.85em;
+            flex-wrap: wrap;
+        }
+
+        /* Stats history table */
+        .stats-table-wrapper {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .stats-table-header {
+            background: #f5f5f5;
+            padding: 8px 12px;
+            border-bottom: 1px solid #ddd;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        #statsHistory {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        #statsHistory table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85em;
+        }
+
+        #statsHistory th,
+        #statsHistory td {
+            padding: 8px 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        #statsHistory thead tr {
+            background: #f9f9f9;
+        }
+
+        #statsHistory tbody tr:hover {
+            background: #f5f5f5;
+        }
+
+        /* Buttons row */
+        .btn-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .btn-row button {
+            flex: 1;
+        }
+
+        .btn-secondary {
+            background-color: #007bff;
+        }
+
+        .btn-secondary:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-danger {
+            background-color: #d9534f;
+        }
+
+        .btn-danger:hover {
+            background-color: #c9302c;
+        }
+
+        .btn-muted {
+            background-color: #666;
+        }
+
+        .btn-muted:hover {
+            background-color: #555;
+        }
+
+        /* Link buttons in header */
+        .header-links {
+            display: flex;
+            gap: 10px;
+            margin-left: 15px;
+        }
+
+        .header-link {
+            color: #666;
+            text-decoration: none;
+            font-size: 0.85em;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .header-link:hover {
+            background: rgba(129, 193, 75, 0.1);
+            color: #81c14b;
+            text-decoration: none;
         }
 
         /* Dark Mode - Manual */
@@ -211,9 +592,46 @@
         }
 
         body.dark-theme h1,
-        body.dark-theme h2,
         body.dark-theme h3 {
             color: #81c14b;
+        }
+
+        body.dark-theme .section {
+            border-color: #444;
+        }
+
+        body.dark-theme .section-header {
+            background: #363636;
+        }
+
+        body.dark-theme .section-header:hover {
+            background: #404040;
+        }
+
+        body.dark-theme .section-header h3 {
+            color: #e0e0e0;
+        }
+
+        body.dark-theme .section-content {
+            border-top-color: #444;
+        }
+
+        body.dark-theme .tabs {
+            border-bottom-color: #444;
+        }
+
+        body.dark-theme .tab-btn {
+            color: #999;
+        }
+
+        body.dark-theme .tab-btn:hover {
+            background: rgba(129, 193, 75, 0.15);
+        }
+
+        body.dark-theme .tab-btn.active {
+            background: #2d2d2d;
+            color: #81c14b;
+            border-bottom-color: #81c14b;
         }
 
         body.dark-theme .theme-selector-wrapper label {
@@ -224,7 +642,8 @@
             color: #e0e0e0;
         }
 
-        body.dark-theme input[type="text"] {
+        body.dark-theme input[type="text"],
+        body.dark-theme select {
             background-color: #363636;
             color: #e0e0e0;
             border-color: #555;
@@ -234,23 +653,12 @@
             border-color: #81c14b;
         }
 
-        body.dark-theme select {
-            background-color: #363636;
-            color: #e0e0e0;
-            border-color: #555;
-        }
-
         body.dark-theme .prompt-item {
             background: #363636;
             border-color: #444;
         }
 
-        body.dark-theme .prompt-item textarea {
-            background-color: #2d2d2d;
-            color: #e0e0e0;
-            border-color: #555;
-        }
-
+        body.dark-theme .prompt-item textarea,
         body.dark-theme .prompt-item input[type="text"] {
             background-color: #2d2d2d;
             color: #e0e0e0;
@@ -268,7 +676,12 @@
         }
 
         body.dark-theme .info {
+            background: #363636;
             color: #999;
+        }
+
+        body.dark-theme .info h4 {
+            color: #e0e0e0;
         }
 
         body.dark-theme a {
@@ -295,26 +708,20 @@
             border-color: #555 !important;
         }
 
-        body.dark-theme hr {
-            border-top-color: #444 !important;
-        }
-
-        body.dark-theme #statsOverview+div,
-        body.dark-theme #statsOverview+div+div {
+        body.dark-theme .stats-secondary {
             background: #363636 !important;
         }
 
-        body.dark-theme #statsOverview+div h4,
-        body.dark-theme #statsOverview+div+div h4 {
+        body.dark-theme .stats-secondary h4 {
             color: #e0e0e0 !important;
         }
 
-        body.dark-theme #statsOverview+div+div+div {
+        body.dark-theme .stats-table-wrapper {
             background: #2d2d2d !important;
             border-color: #444 !important;
         }
 
-        body.dark-theme #statsOverview+div+div+div>div:first-child {
+        body.dark-theme .stats-table-header {
             background: #363636 !important;
             border-bottom-color: #444 !important;
             color: #e0e0e0;
@@ -352,6 +759,14 @@
             color: #ccc !important;
         }
 
+        body.dark-theme .header-link {
+            color: #999;
+        }
+
+        body.dark-theme .header-link:hover {
+            color: #81c14b;
+        }
+
         /* Dark Mode - Automatic detection based on system preference */
         @media (prefers-color-scheme: dark) {
             body:not(.light-theme):not(.dark-theme) {
@@ -369,9 +784,46 @@
             }
 
             body:not(.light-theme):not(.dark-theme) h1,
-            body:not(.light-theme):not(.dark-theme) h2,
             body:not(.light-theme):not(.dark-theme) h3 {
                 color: #81c14b;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .section {
+                border-color: #444;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .section-header {
+                background: #363636;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .section-header:hover {
+                background: #404040;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .section-header h3 {
+                color: #e0e0e0;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .section-content {
+                border-top-color: #444;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .tabs {
+                border-bottom-color: #444;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .tab-btn {
+                color: #999;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .tab-btn:hover {
+                background: rgba(129, 193, 75, 0.15);
+            }
+
+            body:not(.light-theme):not(.dark-theme) .tab-btn.active {
+                background: #2d2d2d;
+                color: #81c14b;
+                border-bottom-color: #81c14b;
             }
 
             body:not(.light-theme):not(.dark-theme) .theme-selector-wrapper label {
@@ -382,7 +834,8 @@
                 color: #e0e0e0;
             }
 
-            body:not(.light-theme):not(.dark-theme) input[type="text"] {
+            body:not(.light-theme):not(.dark-theme) input[type="text"],
+            body:not(.light-theme):not(.dark-theme) select {
                 background-color: #363636;
                 color: #e0e0e0;
                 border-color: #555;
@@ -392,23 +845,12 @@
                 border-color: #81c14b;
             }
 
-            body:not(.light-theme):not(.dark-theme) select {
-                background-color: #363636;
-                color: #e0e0e0;
-                border-color: #555;
-            }
-
             body:not(.light-theme):not(.dark-theme) .prompt-item {
                 background: #363636;
                 border-color: #444;
             }
 
-            body:not(.light-theme):not(.dark-theme) .prompt-item textarea {
-                background-color: #2d2d2d;
-                color: #e0e0e0;
-                border-color: #555;
-            }
-
+            body:not(.light-theme):not(.dark-theme) .prompt-item textarea,
             body:not(.light-theme):not(.dark-theme) .prompt-item input[type="text"] {
                 background-color: #2d2d2d;
                 color: #e0e0e0;
@@ -426,7 +868,12 @@
             }
 
             body:not(.light-theme):not(.dark-theme) .info {
+                background: #363636;
                 color: #999;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .info h4 {
+                color: #e0e0e0;
             }
 
             body:not(.light-theme):not(.dark-theme) a {
@@ -453,26 +900,20 @@
                 border-color: #555 !important;
             }
 
-            body:not(.light-theme):not(.dark-theme) hr {
-                border-top-color: #444 !important;
-            }
-
-            body:not(.light-theme):not(.dark-theme) #statsOverview+div,
-            body:not(.light-theme):not(.dark-theme) #statsOverview+div+div {
+            body:not(.light-theme):not(.dark-theme) .stats-secondary {
                 background: #363636 !important;
             }
 
-            body:not(.light-theme):not(.dark-theme) #statsOverview+div h4,
-            body:not(.light-theme):not(.dark-theme) #statsOverview+div+div h4 {
+            body:not(.light-theme):not(.dark-theme) .stats-secondary h4 {
                 color: #e0e0e0 !important;
             }
 
-            body:not(.light-theme):not(.dark-theme) #statsOverview+div+div+div {
+            body:not(.light-theme):not(.dark-theme) .stats-table-wrapper {
                 background: #2d2d2d !important;
                 border-color: #444 !important;
             }
 
-            body:not(.light-theme):not(.dark-theme) #statsOverview+div+div+div>div:first-child {
+            body:not(.light-theme):not(.dark-theme) .stats-table-header {
                 background: #363636 !important;
                 border-bottom-color: #444 !important;
                 color: #e0e0e0;
@@ -509,6 +950,14 @@
                 background: #404040 !important;
                 color: #ccc !important;
             }
+
+            body:not(.light-theme):not(.dark-theme) .header-link {
+                color: #999;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .header-link:hover {
+                color: #81c14b;
+            }
         }
 
         /* Light theme override - force light mode */
@@ -522,12 +971,44 @@
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1) !important;
         }
 
+        body.light-theme .section {
+            border-color: #e0e0e0 !important;
+        }
+
+        body.light-theme .section-header {
+            background: #f8f9fa !important;
+        }
+
+        body.light-theme .section-header:hover {
+            background: #f0f0f0 !important;
+        }
+
+        body.light-theme .section-header h3 {
+            color: #333 !important;
+        }
+
+        body.light-theme .section-content {
+            border-top-color: #e0e0e0 !important;
+        }
+
+        body.light-theme .tabs {
+            border-bottom-color: #ddd !important;
+        }
+
+        body.light-theme .tab-btn {
+            color: #666 !important;
+        }
+
+        body.light-theme .tab-btn.active {
+            background: white !important;
+            color: #81c14b !important;
+        }
+
         body.light-theme .header-row {
             border-bottom-color: #ddd !important;
         }
 
         body.light-theme h1,
-        body.light-theme h2,
         body.light-theme h3 {
             color: #81c14b !important;
         }
@@ -571,26 +1052,29 @@
             border-color: #ddd !important;
         }
 
-        body.light-theme hr {
-            border-top-color: #eee !important;
-        }
-
-        body.light-theme #statsOverview+div,
-        body.light-theme #statsOverview+div+div {
+        body.light-theme .info {
             background: #f8f9fa !important;
+            color: #666 !important;
         }
 
-        body.light-theme #statsOverview+div h4,
-        body.light-theme #statsOverview+div+div h4 {
+        body.light-theme .info h4 {
             color: #333 !important;
         }
 
-        body.light-theme #statsOverview+div+div+div {
+        body.light-theme .stats-secondary {
+            background: #f8f9fa !important;
+        }
+
+        body.light-theme .stats-secondary h4 {
+            color: #333 !important;
+        }
+
+        body.light-theme .stats-table-wrapper {
             background: #fff !important;
             border-color: #ddd !important;
         }
 
-        body.light-theme #statsOverview+div+div+div>div:first-child {
+        body.light-theme .stats-table-header {
             background: #f5f5f5 !important;
             border-bottom-color: #ddd !important;
             color: #333 !important;
@@ -627,178 +1111,210 @@
             background: #e9ecef !important;
             color: #333 !important;
         }
+
+        body.light-theme .header-link {
+            color: #666 !important;
+        }
+
+        body.light-theme .header-link:hover {
+            color: #81c14b !important;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tabs {
+                flex-wrap: wrap;
+            }
+
+            .tab-btn {
+                padding: 8px 12px;
+                font-size: 0.85em;
+            }
+
+            .header-row {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+
+            .theme-selector-wrapper {
+                width: 100%;
+            }
+
+            #themeSelect {
+                flex: 1;
+            }
+        }
     </style>
 </head>
 
 <body>
     <div class="container">
         <div class="header-row">
-            <h1>Ayarlar</h1>
+            <h1>⚙️ Ayarlar</h1>
             <div class="theme-selector-wrapper">
                 <label for="themeSelect">Tema</label>
                 <select id="themeSelect" style="border: 1px solid #ddd; border-radius: 4px;">
-                    <option value="auto">Otomatik (Sistem Tercihi)</option>
+                    <option value="auto">Otomatik</option>
                     <option value="light">Açık</option>
                     <option value="dark">Koyu</option>
                 </select>
             </div>
         </div>
 
-        <label for="apiKey">Gemini API Key</label>
-        <input type="text" id="apiKey" placeholder="API Key'inizi buraya yapıştırın">
-
-        <label for="modelSelect">Model Seçimi</label>
-        <select id="modelSelect"
-            style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px;">
-            <!-- Options will be populated by JS -->
-        </select>
-        <div id="modelInfo"
-            style="background: #e9ecef; padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 0.9em;">
-            <!-- Model info will be displayed here -->
+        <!-- Tabs Navigation -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="api">🔑 API</button>
+            <button class="tab-btn" data-tab="prompts">📝 Promptlar</button>
+            <button class="tab-btn" data-tab="stats">📊 İstatistikler</button>
         </div>
 
-
-
-        <div id="allModelsStatus"
-            style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin-bottom: 15px; border: 1px solid #dee2e6; display: none;">
-            <h3 style="margin-top: 0; margin-bottom: 10px; font-size: 1.1em; color: #333;">Tüm Modellerin API Durumu
-            </h3>
-            <div id="modelsStatusList" style="font-size: 0.9em;">
-                <!-- Model statuses will be displayed here -->
-            </div>
-        </div>
-
-        <button id="saveBtn">Kaydet</button>
-
-        <div style="margin-top: 15px;">
-            <button id="refreshModelsStatus"
-                style="padding: 8px 15px; font-size: 0.9em; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                🔄 Modellerin API Durumunu Kontrol Et
-            </button>
-        </div>
-
-        <div id="status" class="status"></div>
-
-        <div class="info">
-            <h3>Gemini API Key Nasıl Alınır?</h3>
-            <ol>
-                <li><a href="https://aistudio.google.com/app/api-keys" target="_blank">Google AI Studio</a> sayfasına
-                    gidin.</li>
-                <li>Google hesabınızla giriş yapın.</li>
-                <li>"Create API key" butonuna tıklayın.</li>
-                <li>Oluşturulan anahtarı kopyalayıp yukarıdaki kutucuğa yapıştırın ve Kaydet'e basın.</li>
-            </ol>
-            <p><strong>Not:</strong> API anahtarınız sadece tarayıcınızın yerel hafızasında saklanır ve sadece Google
-                sunucularına istek atmak için kullanılır.</p>
-        </div>
-
-        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
-
-        <h2>Butonlar ve Promptlar</h2>
-
-        <div id="promptsList">
-            <!-- Prompts will be listed here -->
-        </div>
-
-        <button id="addBtn" style="background-color: #666; width: 100%; margin-top: 10px;">+ Yeni Buton Ekle</button>
-        <button id="resetBtn" style="background-color: #d9534f; width: 100%; margin-top: 10px;">Butonları
-            Sıfırla</button>
-
-        <hr style="margin: 30px 0 20px 0; border: 0; border-top: 1px solid #eee;">
-
-        <h2>Sistem Promptu</h2>
-        <div style="position: relative;">
-            <pre id="systemPromptDisplay" style="
-                background: #f8f9fa;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                padding: 15px;
-                padding-right: 50px;
-                font-family: 'Consolas', 'Monaco', monospace;
-                font-size: 13px;
-                line-height: 1.5;
-                white-space: pre-wrap;
-                word-wrap: break-word;
-                color: #495057;
-                max-height: 250px;
-                overflow-y: auto;
-                user-select: text;
-                cursor: text;
-            "></pre>
-            <button id="copySystemPromptBtn" title="Kopyala" style="
-                position: absolute;
-                top: 10px;
-                right: 20px;
-                background: #81c14b;
-                border: none;
-                border-radius: 4px;
-                padding: 6px 10px;
-                cursor: pointer;
-                font-size: 14px;
-                color: white;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                z-index: 5;
-            ">📋</button>
-
-            <p style="font-size: 13px; color: #666; margin-top: 10px; margin-bottom: 0;">
-                Bu prompt sistem tarafından otomatik oluşturulur. Açık kaynaklı olan bu eklentinin <a
-                    href="https://github.com/erenseymen/eksi-ai-analiz/blob/master/src/prompts.js" target="_blank"
-                    style="text-decoration: underline;">src/prompts.js</a> dosyasını inceleyerek veya düzenleyerek
-                değiştirebilirsiniz.
-            </p>
-
-            <hr style="margin: 30px 0 20px 0; border: 0; border-top: 1px solid #eee;">
-
-            <h2>📊 Kullanım İstatistikleri</h2>
-
-            <div id="statsOverview"
-                style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
-                <div
-                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 2em; font-weight: bold;" id="statsTotalCalls">0</div>
-                    <div style="font-size: 0.9em; opacity: 0.9;">Toplam API Çağrısı</div>
+        <!-- Tab: API Settings -->
+        <div id="tab-api" class="tab-content active">
+            <div class="section">
+                <div class="section-header">
+                    <h3>🔑 API Anahtarı</h3>
+                    <span class="section-toggle">▼</span>
                 </div>
-                <div
-                    style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 20px; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 2em; font-weight: bold;" id="statsTotalTokens">0</div>
-                    <div style="font-size: 0.9em; opacity: 0.9;">Toplam Token</div>
-                </div>
-                <div
-                    style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 20px; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 2em; font-weight: bold;" id="statsCacheHits">0</div>
-                    <div style="font-size: 0.9em; opacity: 0.9;">Cache Hit</div>
+                <div class="section-content">
+                    <label for="apiKey">Gemini API Key</label>
+                    <input type="text" id="apiKey" placeholder="API Key'inizi buraya yapıştırın">
+
+                    <div class="info">
+                        <h4>API Key Nasıl Alınır?</h4>
+                        <ol>
+                            <li><a href="https://aistudio.google.com/app/api-keys" target="_blank">Google AI
+                                    Studio</a>'ya gidin</li>
+                            <li>Google hesabınızla giriş yapın</li>
+                            <li>"Create API key" butonuna tıklayın</li>
+                            <li>Anahtarı kopyalayıp yapıştırın</li>
+                        </ol>
+                        <p style="margin-top: 8px; margin-bottom: 0;"><strong>Not:</strong> API anahtarınız sadece
+                            tarayıcınızda saklanır.</p>
+                    </div>
                 </div>
             </div>
 
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                <h4 style="margin: 0 0 10px 0; color: #333;">Son 24 Saat</h4>
-                <div style="display: flex; gap: 30px; font-size: 0.95em;">
+            <div class="section">
+                <div class="section-header">
+                    <h3>🤖 Model Seçimi</h3>
+                    <span class="section-toggle">▼</span>
+                </div>
+                <div class="section-content">
+                    <label for="modelSelect">Model</label>
+                    <select id="modelSelect" style="width: 100%; margin-bottom: 10px;">
+                        <!-- Options will be populated by JS -->
+                    </select>
+                    <div id="modelInfo"></div>
+
+                    <div id="allModelsStatus">
+                        <h3>Tüm Modellerin API Durumu</h3>
+                        <div id="modelsStatusList" style="font-size: 0.85em;"></div>
+                    </div>
+
+                    <button id="refreshModelsStatus" class="btn-secondary" style="width: 100%; margin-top: 8px;">
+                        🔄 API Durumunu Kontrol Et
+                    </button>
+                </div>
+            </div>
+
+            <div class="btn-row">
+                <button id="saveBtn">💾 Kaydet</button>
+            </div>
+            <div id="status" class="status"></div>
+        </div>
+
+        <!-- Tab: Prompts -->
+        <div id="tab-prompts" class="tab-content">
+            <div class="section">
+                <div class="section-header">
+                    <h3>🎯 Butonlar ve Promptlar</h3>
+                    <span class="section-toggle">▼</span>
+                </div>
+                <div class="section-content">
+                    <div id="promptsList">
+                        <!-- Prompts will be listed here -->
+                    </div>
+
+                    <div class="btn-row" style="margin-top: 10px;">
+                        <button id="addBtn" class="btn-muted">+ Yeni Buton</button>
+                        <button id="resetBtn" class="btn-danger">Sıfırla</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <h3>⚙️ Sistem Promptu</h3>
+                    <span class="section-toggle">▼</span>
+                </div>
+                <div class="section-content">
+                    <div class="system-prompt-wrapper">
+                        <pre id="systemPromptDisplay"></pre>
+                        <button id="copySystemPromptBtn" title="Kopyala">📋</button>
+                    </div>
+                    <p class="system-prompt-note">
+                        Bu prompt sistem tarafından otomatik oluşturulur. Açık kaynaklı olan bu eklentinin
+                        <a href="https://github.com/erenseymen/eksi-ai-analiz/blob/master/src/prompts.js"
+                            target="_blank" style="text-decoration: underline;">src/prompts.js</a>
+                        dosyasını inceleyerek veya düzenleyerek değiştirebilirsiniz.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Stats -->
+        <div id="tab-stats" class="tab-content">
+            <div class="stats-grid" id="statsOverview">
+                <div class="stat-card purple">
+                    <div class="stat-value" id="statsTotalCalls">0</div>
+                    <div class="stat-label">Toplam API Çağrısı</div>
+                </div>
+                <div class="stat-card green">
+                    <div class="stat-value" id="statsTotalTokens">0</div>
+                    <div class="stat-label">Toplam Token</div>
+                </div>
+                <div class="stat-card pink">
+                    <div class="stat-value" id="statsCacheHits">0</div>
+                    <div class="stat-label">Cache Hit</div>
+                </div>
+            </div>
+
+            <div class="stats-secondary">
+                <h4>📆 Son 24 Saat</h4>
+                <div class="stats-row">
                     <span>🔄 API: <strong id="stats24hCalls">0</strong></span>
                     <span>💾 Cache: <strong id="stats24hCache">0</strong></span>
                     <span>📝 Token: <strong id="stats24hTokens">0</strong></span>
                 </div>
             </div>
 
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                <h4 style="margin: 0 0 10px 0; color: #333;">Model Kullanımı</h4>
-                <div id="statsModelUsage" style="display: flex; flex-wrap: wrap; gap: 10px; font-size: 0.9em;">
+            <div class="stats-secondary">
+                <h4>🤖 Model Kullanımı</h4>
+                <div id="statsModelUsage" style="display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.85em;">
                     <!-- Model usage will be displayed here -->
                 </div>
             </div>
 
-            <div
-                style="background: #fff; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; margin-bottom: 15px;">
-                <div style="background: #f5f5f5; padding: 10px 15px; border-bottom: 1px solid #ddd; font-weight: bold;">
-                    Son 10 Çağrı</div>
-                <div id="statsHistory" style="max-height: 300px; overflow-y: auto;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+            <div class="stats-table-wrapper">
+                <div class="stats-table-header">📋 Son 10 Çağrı</div>
+                <div id="statsHistory">
+                    <table>
                         <thead>
-                            <tr style="background: #f9f9f9;">
-                                <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Zaman</th>
-                                <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Model</th>
-                                <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Token</th>
-                                <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Süre</th>
-                                <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Kaynak</th>
+                            <tr>
+                                <th>Zaman</th>
+                                <th>Model</th>
+                                <th>Token</th>
+                                <th>Süre</th>
+                                <th>Kaynak</th>
                             </tr>
                         </thead>
                         <tbody id="statsHistoryBody">
@@ -808,14 +1324,14 @@
                 </div>
             </div>
 
-            <button id="clearStatsBtn" style="background-color: #d9534f; width: 100%;">🗑️ İstatistikleri
-                Sıfırla</button>
-
+            <button id="clearStatsBtn" class="btn-danger" style="width: 100%;">🗑️ İstatistikleri Sıfırla</button>
         </div>
-        <script src="prompts.js"></script>
-        <script src="constants.js"></script>
-        <script src="stats.js"></script>
-        <script src="options.js"></script>
+    </div>
+
+    <script src="prompts.js"></script>
+    <script src="constants.js"></script>
+    <script src="stats.js"></script>
+    <script src="options.js"></script>
 </body>
 
 </html>

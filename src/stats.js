@@ -10,11 +10,17 @@
 const STATS_STORAGE_KEY = 'eksi_ai_usage_stats';
 const MAX_STATS_HISTORY = 100; // Son 100 çağrıyı sakla
 
+// Chrome API mevcut mu kontrol et (file:// protokolünde çalışmaz)
+const isChromeApiAvailable = () => {
+    return typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync;
+};
+
 /**
  * Mevcut local storage'daki istatistikleri sync storage'a taşır (migration).
  * Sadece bir kez çalışır, sonraki çağrılarda hiçbir şey yapmaz.
  */
 const migrateStatsToSync = async () => {
+    if (!isChromeApiAvailable()) return;
     try {
         // Sync'te zaten veri varsa migration yapma
         const syncResult = await chrome.storage.sync.get(STATS_STORAGE_KEY);
@@ -45,6 +51,7 @@ const migrateStatsToSync = async () => {
  * @param {string} callData.topicTitle - Başlık adı
  */
 const recordApiCall = async (callData) => {
+    if (!isChromeApiAvailable()) return;
     try {
         const stats = await getUsageStats();
 
@@ -81,6 +88,7 @@ const recordApiCall = async (callData) => {
  * Cache hit kaydeder (API çağrısı olmadan cache'den sonuç gösterildiğinde).
  */
 const recordCacheHit = async () => {
+    if (!isChromeApiAvailable()) return;
     try {
         const stats = await getUsageStats();
         stats.totals.cacheHits++;
@@ -95,6 +103,9 @@ const recordCacheHit = async () => {
  * @returns {Promise<Object>} İstatistik objesi
  */
 const getUsageStats = async () => {
+    if (!isChromeApiAvailable()) {
+        return { totals: { apiCalls: 0, totalTokens: 0, cacheHits: 0 }, history: [] };
+    }
     try {
         // İlk çağrıda migration yap
         await migrateStatsToSync();
@@ -121,6 +132,7 @@ const getUsageStats = async () => {
  * İstatistikleri sıfırlar.
  */
 const clearUsageStats = async () => {
+    if (!isChromeApiAvailable()) return;
     try {
         await chrome.storage.sync.remove(STATS_STORAGE_KEY);
         // Local'de eski veri varsa onu da temizle (migration sonrası)
