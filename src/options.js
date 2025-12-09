@@ -727,17 +727,19 @@ const callGeminiApiStreamingForTest = async (apiKey, modelId, prompt, signal, on
 /**
  * Streaming kullanarak tüm modelleri karşılaştırır.
  * Her model için aynı prompt'u gönderir ve yanıtları gerçek zamanlı yan yana gösterir.
+ * Sonuçlar modal pencerede gösterilir. Hata alan modeller grid'den çıkarılır.
  */
 const compareModelsWithStreaming = async () => {
-    const statusDiv = document.getElementById('allModelsStatus');
-    const statusList = document.getElementById('modelsStatusList');
+    const modal = document.getElementById('modelComparisonModal');
+    const modalBody = document.getElementById('modalBody');
+    const modalStatusSummary = document.getElementById('modalStatusSummary');
     const testPromptInput = document.getElementById('modelTestPrompt');
     const apiKey = document.getElementById('apiKey').value;
 
-    if (!statusDiv || !statusList) return;
+    if (!modal || !modalBody) return;
 
     if (!apiKey || !apiKey.trim()) {
-        statusDiv.style.display = 'none';
+        alert('Lütfen API anahtarını girin.');
         return;
     }
 
@@ -755,11 +757,16 @@ const compareModelsWithStreaming = async () => {
     }
 
     isCheckingModels = true;
-    statusDiv.style.display = 'block';
-
+    
+    // Modal'ı göster
+    modal.classList.add('active');
+    
     // Grid layout için container oluştur
-    statusList.innerHTML = '<div class="models-comparison-grid" id="modelsComparisonGrid"></div>';
+    modalBody.innerHTML = '<div class="models-comparison-grid" id="modelsComparisonGrid"></div>';
     const gridContainer = document.getElementById('modelsComparisonGrid');
+    
+    // Başlangıç durumu
+    modalStatusSummary.textContent = '⏳ Kontrol ediliyor...';
 
     // Her model için bir kart oluştur
     const modelCards = {};
@@ -794,7 +801,8 @@ const compareModelsWithStreaming = async () => {
             responseDiv,
             metaDiv,
             startTime: null,
-            fullText: ''
+            fullText: '',
+            hasError: false
         };
     });
 
@@ -845,11 +853,9 @@ const compareModelsWithStreaming = async () => {
         } catch (error) {
             if (!isCheckingModels) return; // İptal edildiyse güncelleme yapma
             
-            // Hata durumu
-            cardData.statusDiv.className = 'model-comparison-status error';
-            cardData.statusDiv.textContent = '❌ Hata oluştu';
-            cardData.responseDiv.textContent = `Hata: ${escapeHtml(error.message)}`;
-            cardData.metaDiv.textContent = 'Süre: - | Token: -';
+            // Hata durumu - kartı grid'den çıkar
+            cardData.hasError = true;
+            cardData.card.remove();
         }
     });
 
@@ -858,6 +864,17 @@ const compareModelsWithStreaming = async () => {
     
     // Kontrol tamamlandı
     isCheckingModels = false;
+    
+    // Başarılı ve başarısız model sayılarını hesapla
+    const successfulModels = Object.values(modelCards).filter(card => !card.hasError);
+    const failedModels = Object.values(modelCards).filter(card => card.hasError);
+    
+    // Başlık satırını güncelle
+    if (failedModels.length === 0) {
+        modalStatusSummary.textContent = `✅ ${successfulModels.length} model başarıyla test edildi`;
+    } else {
+        modalStatusSummary.textContent = `✅ ${successfulModels.length} başarılı, ❌ ${failedModels.length} hata`;
+    }
 };
 
 /**
@@ -1232,6 +1249,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Tab ve section ayarlarını yap
     setupTabs();
     setupCollapsibleSections();
+    // Modal ayarlarını yap
+    setupModal();
     // Sonra diğer ayarları yükle
     restoreOptions();
     displaySystemPrompt();
@@ -1339,6 +1358,39 @@ const setupRefreshButton = () => {
         refreshBtn.replaceWith(refreshBtn.cloneNode(true));
         document.getElementById('refreshModelsStatus').addEventListener('click', refreshAllModelsStatus);
     }
+};
+
+/**
+ * Modal kapatma işlevlerini ayarlar.
+ */
+const setupModal = () => {
+    const modal = document.getElementById('modelComparisonModal');
+    const closeBtn = document.getElementById('modalCloseBtn');
+    
+    if (!modal || !closeBtn) return;
+    
+    // Kapat butonuna tıklandığında
+    closeBtn.addEventListener('click', () => {
+        modal.classList.remove('active');
+        // İptal et
+        isCheckingModels = false;
+    });
+    
+    // Modal overlay'e tıklandığında (modal içeriğine değil)
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.classList.remove('active');
+            isCheckingModels = false;
+        }
+    });
+    
+    // ESC tuşu ile kapat
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            modal.classList.remove('active');
+            isCheckingModels = false;
+        }
+    });
 };
 
 // =============================================================================

@@ -462,6 +462,92 @@
             border-top: 1px solid #eee;
         }
 
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            max-width: 95vw;
+            max-height: 90vh;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 2px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.2em;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-header .status-summary {
+            font-size: 0.9em;
+            color: #666;
+            font-weight: normal;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #666;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-body .models-comparison-grid {
+            margin-top: 0;
+        }
+
         /* System prompt display */
         #systemPromptDisplay {
             background: #f8f9fa;
@@ -827,6 +913,32 @@
             border-top-color: #444 !important;
         }
 
+        body.dark-theme .modal-container {
+            background: #2d2d2d !important;
+        }
+
+        body.dark-theme .modal-header {
+            background: #363636 !important;
+            border-bottom-color: #444 !important;
+        }
+
+        body.dark-theme .modal-header h2 {
+            color: #e0e0e0 !important;
+        }
+
+        body.dark-theme .modal-header .status-summary {
+            color: #999 !important;
+        }
+
+        body.dark-theme .modal-close {
+            color: #999 !important;
+        }
+
+        body.dark-theme .modal-close:hover {
+            background: #404040 !important;
+            color: #e0e0e0 !important;
+        }
+
         body.dark-theme #systemPromptDisplay {
             background: #363636 !important;
             color: #d4d4d4 !important;
@@ -1069,6 +1181,32 @@
             body:not(.light-theme):not(.dark-theme) .model-comparison-meta {
                 color: #999 !important;
                 border-top-color: #444 !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .modal-container {
+                background: #2d2d2d !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .modal-header {
+                background: #363636 !important;
+                border-bottom-color: #444 !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .modal-header h2 {
+                color: #e0e0e0 !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .modal-header .status-summary {
+                color: #999 !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .modal-close {
+                color: #999 !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .modal-close:hover {
+                background: #404040 !important;
+                color: #e0e0e0 !important;
             }
 
             body:not(.light-theme):not(.dark-theme) #systemPromptDisplay {
@@ -1510,6 +1648,22 @@ bu yeni satırlı bir prompt</textarea>
             </div>
 
             <button id="clearStatsBtn" class="btn-danger" style="width: 100%;">🗑️ İstatistikleri Sıfırla</button>
+        </div>
+    </div>
+
+    <!-- Model Comparison Modal -->
+    <div id="modelComparisonModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>
+                    🤖 Model Karşılaştırması
+                    <span class="status-summary" id="modalStatusSummary"></span>
+                </h2>
+                <button class="modal-close" id="modalCloseBtn" title="Kapat">×</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Model comparison grid will be inserted here -->
+            </div>
         </div>
     </div>
 
