@@ -176,7 +176,7 @@ interface FlatHistoryItem {
 ## Veri Boyutları ve Limitler
 
 - **Sync Storage:** ~100 KB (tüm cihazlarda senkronize)
-- **Local Storage:** ~10 MB (cihaz bazlı)
+- **Local Storage:** Sınırsız (`unlimitedStorage` izni ile)
 - **Stats History:** Max 100 kayıt (FIFO)
 - **History Retention:** Varsayılan 30 gün (kullanıcı ayarlanabilir)
 
