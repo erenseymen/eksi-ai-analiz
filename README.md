@@ -85,15 +85,29 @@ Tek entry sayfasında sadece o entry analiz edilir.
 ```
 ├── manifest.json           # Chrome/Edge/Brave manifest (MV3)
 ├── manifest.firefox.json   # Firefox manifest (MV2)
+├── generate-icons.sh       # İkon oluşturma scripti
+├── package.sh             # Paketleme scripti
 ├── src/
-│   ├── content.js         # Ana içerik scripti (entry analiz, UI)
-│   ├── constants.js       # Sabitler, promptlar ve model listesi
-│   ├── options.html       # Ayarlar sayfası HTML
-│   ├── options.js         # Ayarlar sayfası JS
+│   ├── analysis-history.js # Geçmiş ve depolama yönetimi
+│   ├── api.js             # Gemini API servisi
+│   ├── constants.js       # Sabitler ve yapılandırma
+│   ├── content.js         # Ana içerik scripti (Entry point)
+│   ├── history.html       # Geçmiş sayfası HTML
+│   ├── history.js         # Geçmiş sayfası JS
+│   ├── markdown.js        # Markdown işleyicisi
 │   ├── model-select.html  # Model seçim popup HTML
 │   ├── model-select.js    # Model seçim popup JS
-│   └── styles.css         # Stiller
-├── icons/                 # Eklenti ikonları (16, 48, 128px)
+│   ├── options.html       # Ayarlar sayfası HTML
+│   ├── options.js         # Ayarlar sayfası JS
+│   ├── page-detector.js   # Sayfa tipi tespiti
+│   ├── prompts.js         # Prompt şablonları
+│   ├── scraper.js         # Sayfa veri kazıyıcısı
+│   ├── settings.js        # Ayar yönetimi
+│   ├── stats.js           # İstatistik ve kullanım takibi
+│   ├── styles.css         # UI stilleri
+│   ├── ui.js              # Arayüz ve etkileşim mantığı
+│   └── utils.js           # Yardımcı fonksiyonlar
+├── icons/                 # Eklenti ikonları
 ├── images/                # Promosyon görselleri
 └── docs/                  # Dökümanlar
 ```
