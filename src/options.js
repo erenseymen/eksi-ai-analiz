@@ -391,7 +391,7 @@ const populateModelSelect = async (savedModelId) => {
         `;
 
         // Model seçme fonksiyonu
-        const selectModel = () => {
+        const selectModel = async () => {
             // Tüm kartlardan selected sınıfını ve aria-selected'ı kaldır
             cardsGrid.querySelectorAll('.model-select-card').forEach(c => {
                 c.classList.remove('selected');
@@ -402,6 +402,34 @@ const populateModelSelect = async (savedModelId) => {
             card.setAttribute('aria-selected', 'true');
             // Dropdown değerini güncelle
             select.value = model.id;
+
+            // Model seçimini hemen kaydet
+            const apiKey = document.getElementById('apiKey').value;
+            updatePromptsFromDOM();
+            const themeSelect = document.getElementById('themeSelect');
+            const selectedTheme = themeSelect ? themeSelect.value : 'auto';
+
+            const settings = {
+                geminiApiKey: apiKey,
+                selectedModel: model.id,
+                prompts: prompts,
+                theme: selectedTheme
+            };
+
+            chrome.storage.sync.set(settings, () => {
+                // Kullanıcıya geri bildirim ver (modellerin altında)
+                const modelSelectionStatus = document.getElementById('modelSelectionStatus');
+                if (modelSelectionStatus) {
+                    modelSelectionStatus.textContent = `Model "${model.name}" seçildi ve kaydedildi.`;
+                    modelSelectionStatus.className = 'status success';
+                    modelSelectionStatus.style.display = 'block';
+                    setTimeout(() => {
+                        modelSelectionStatus.textContent = '';
+                        modelSelectionStatus.className = 'status';
+                        modelSelectionStatus.style.display = 'none';
+                    }, 2000);
+                }
+            });
         };
 
         // Tıklama event listener
