@@ -1297,6 +1297,20 @@ const autoResizeTextarea = (textarea) => {
 };
 
 /**
+ * Tüm prompt textarea'larının yüksekliklerini yeniden ayarlar.
+ * Sekme değiştiğinde veya sayfa görünür hale geldiğinde çağrılır.
+ */
+const resizeAllPromptTextareas = () => {
+    const textareas = document.querySelectorAll('.prompt-item .prompt-text');
+    textareas.forEach(textarea => {
+        // Kısa bir gecikme ile çağır ki DOM tamamen render olsun
+        setTimeout(() => {
+            autoResizeTextarea(textarea);
+        }, 10);
+    });
+};
+
+/**
  * Prompt listesini DOM'a render eder.
  * 
  * Her prompt için düzenlenebilir bir kart oluşturur:
@@ -1503,6 +1517,11 @@ const setupTabs = () => {
                 tabContent.classList.add('active');
             }
 
+            // Promptlar sekmesine geçildiğinde textarea yüksekliklerini yeniden ayarla
+            if (tabId === 'prompts') {
+                resizeAllPromptTextareas();
+            }
+
             // Aktif tab'ı storage'a kaydet
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
                 chrome.storage.sync.set({ optionsActiveTab: tabId });
@@ -1543,6 +1562,11 @@ const restoreActiveTab = async () => {
         // Doğru tab'ı aktif yap
         tabBtn.classList.add('active');
         tabContent.classList.add('active');
+
+        // Promptlar sekmesi aktifse textarea yüksekliklerini yeniden ayarla
+        if (savedTab === 'prompts') {
+            resizeAllPromptTextareas();
+        }
     }
 };
 
@@ -1577,6 +1601,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     restoreOptions();
     displaySystemPrompt();
     setupThemeSelector();
+
+    // Sayfa görünür hale geldiğinde (başka sekmeden dönüldüğünde) textarea'ları yeniden boyutlandır
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            // Promptlar sekmesi aktifse textarea'ları yeniden boyutlandır
+            const activeTab = document.querySelector('.tab-btn.active');
+            if (activeTab && activeTab.dataset.tab === 'prompts') {
+                resizeAllPromptTextareas();
+            }
+        }
+    });
+
+    // Window focus olduğunda da textarea'ları yeniden boyutlandır
+    window.addEventListener('focus', () => {
+        const activeTab = document.querySelector('.tab-btn.active');
+        if (activeTab && activeTab.dataset.tab === 'prompts') {
+            resizeAllPromptTextareas();
+        }
+    });
 });
 
 /**
