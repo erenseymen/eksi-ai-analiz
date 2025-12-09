@@ -435,24 +435,11 @@ const renderHistory = (scrapes, append = false) => {
         // Başlık gösterimi
         const titleHtml = `<a href="${escapeHtml(scrape.topicUrl)}" target="_blank" class="history-title">${escapeHtml(scrape.topicTitle)}</a>`;
 
-        // Artifact'leri oluştur
-        let artifactsHtml = '';
-        
-        // SourceEntries JSON
+        // JSON butonu için (Tümünü İndir'in solunda gösterilecek)
+        let jsonButtonHtml = '';
         if (hasSourceEntries) {
-            artifactsHtml += `<span class="artifact-badge" data-type="json" data-scrape-id="${escapeHtml(scrape.id)}" data-artifact="sourceEntries">📄 JSON</span>`;
+            jsonButtonHtml = `<button class="btn-secondary btn-json" data-scrape-id="${escapeHtml(scrape.id)}" data-artifact="sourceEntries">📄 JSON</button>`;
         }
-
-        // Her analiz için artifact'ler
-        scrape.analyses.forEach((analysis, idx) => {
-            if (analysis.response) {
-                artifactsHtml += `<span class="artifact-badge" data-type="markdown" data-scrape-id="${escapeHtml(scrape.id)}" data-analysis-idx="${idx}">📝 MD</span>`;
-                artifactsHtml += `<span class="artifact-badge" data-type="text" data-scrape-id="${escapeHtml(scrape.id)}" data-analysis-idx="${idx}">📄 TXT</span>`;
-            }
-            if (analysis.prompt) {
-                artifactsHtml += `<span class="artifact-badge" data-type="json" data-scrape-id="${escapeHtml(scrape.id)}" data-analysis-idx="${idx}" data-artifact="prompt">💬 Prompt</span>`;
-            }
-        });
 
         // Analizler listesi
         let analysesHtml = '';
@@ -467,6 +454,16 @@ const renderHistory = (scrapes, append = false) => {
                     hour: '2-digit',
                     minute: '2-digit'
                 });
+                
+                // Her analiz için MD ve Prompt butonları
+                let analysisArtifactsHtml = '';
+                if (analysis.prompt) {
+                    analysisArtifactsHtml += `<span class="artifact-badge" data-type="json" data-scrape-id="${escapeHtml(scrape.id)}" data-analysis-idx="${idx}" data-artifact="prompt">💬 Prompt</span>`;
+                }
+                if (analysis.response) {
+                    analysisArtifactsHtml += `<span class="artifact-badge" data-type="markdown" data-scrape-id="${escapeHtml(scrape.id)}" data-analysis-idx="${idx}">📝 MD</span>`;
+                }
+                
                 analysesHtml += `
                     <div class="analysis-item">
                         <div class="analysis-header">
@@ -475,6 +472,7 @@ const renderHistory = (scrapes, append = false) => {
                             <span class="analysis-time">⏱️ ${analysis.responseTime ? (analysis.responseTime / 1000).toFixed(1) + 's' : '-'}</span>
                         </div>
                         <div class="analysis-prompt-preview">${escapeHtml(analysis.promptPreview || analysis.prompt?.substring(0, 100) || '')}</div>
+                        ${analysisArtifactsHtml ? `<div class="analysis-artifacts">${analysisArtifactsHtml}</div>` : ''}
                     </div>
                 `;
             });
@@ -491,10 +489,8 @@ const renderHistory = (scrapes, append = false) => {
                     ${metaHtml}
                 </div>
                 ${analysesHtml}
-                <div class="artifacts-container">
-                    ${artifactsHtml || '<span style="opacity: 0.5;">Artifact yok</span>'}
-                </div>
                 <div class="history-actions">
+                    ${jsonButtonHtml}
                     <button class="btn-secondary btn-download-all" data-scrape-id="${escapeHtml(scrape.id)}">📥 Tümünü İndir</button>
                     <button class="btn-danger btn-delete" data-scrape-id="${escapeHtml(scrape.id)}">Sil</button>
                 </div>
@@ -535,7 +531,8 @@ const attachEventListeners = (scrapes) => {
                 e.target.closest('.history-title') || 
                 e.target.closest('.history-title-link') ||
                 e.target.closest('.artifact-badge') ||
-                e.target.closest('.analyses-list')) {
+                e.target.closest('.analyses-list') ||
+                e.target.closest('.analysis-artifacts')) {
                 return;
             }
 
@@ -551,7 +548,23 @@ const attachEventListeners = (scrapes) => {
         });
     });
 
-    // Artifact badge'lerine tıklama
+    // JSON butonu (Tümünü İndir'in solunda)
+    document.querySelectorAll('.btn-json').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const scrapeId = btn.getAttribute('data-scrape-id');
+            const scrape = scrapes.find(s => s.id === scrapeId);
+            if (!scrape || !scrape.sourceEntries) return;
+
+            const content = JSON.stringify(scrape.sourceEntries, null, 2);
+            const filename = `${scrape.topicTitle.replace(/[^a-z0-9]/gi, '_')}_sourceEntries.json`;
+            const mimeType = 'application/json';
+            
+            showArtifactPreview(content, filename, mimeType, 'json');
+        });
+    });
+
+    // Artifact badge'lerine tıklama (MD ve Prompt)
     document.querySelectorAll('.artifact-badge').forEach(badge => {
         badge.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -567,12 +580,7 @@ const attachEventListeners = (scrapes) => {
             let filename = '';
             let mimeType = '';
 
-            if (artifact === 'sourceEntries') {
-                // SourceEntries JSON
-                content = JSON.stringify(scrape.sourceEntries, null, 2);
-                filename = `${scrape.topicTitle.replace(/[^a-z0-9]/gi, '_')}_sourceEntries.json`;
-                mimeType = 'application/json';
-            } else if (analysisIdx !== null) {
+            if (analysisIdx !== null) {
                 const analysis = scrape.analyses[parseInt(analysisIdx)];
                 if (!analysis) return;
 
@@ -580,11 +588,6 @@ const attachEventListeners = (scrapes) => {
                     content = analysis.response || '';
                     filename = `${scrape.topicTitle.replace(/[^a-z0-9]/gi, '_')}_analysis_${analysisIdx + 1}.md`;
                     mimeType = 'text/markdown';
-                } else if (type === 'text') {
-                    // Markdown'dan text'e çevir (basit)
-                    content = analysis.response || '';
-                    filename = `${scrape.topicTitle.replace(/[^a-z0-9]/gi, '_')}_analysis_${analysisIdx + 1}.txt`;
-                    mimeType = 'text/plain';
                 } else if (artifact === 'prompt') {
                     content = analysis.prompt || '';
                     filename = `${scrape.topicTitle.replace(/[^a-z0-9]/gi, '_')}_prompt_${analysisIdx + 1}.txt`;
@@ -746,12 +749,6 @@ const downloadAllArtifacts = async (scrape) => {
                 filename: `${scrape.topicTitle.replace(/[^a-z0-9]/gi, '_')}_analysis_${idx + 1}.md`,
                 content: analysis.response,
                 mimeType: 'text/markdown'
-            });
-            // Text
-            artifacts.push({
-                filename: `${scrape.topicTitle.replace(/[^a-z0-9]/gi, '_')}_analysis_${idx + 1}.txt`,
-                content: analysis.response,
-                mimeType: 'text/plain'
             });
         }
         if (analysis.prompt) {
