@@ -44,7 +44,7 @@ const createAnalysisButton = async (h1Element, topicId = null, useCurrentPage = 
  */
 const showCachedResultsInContainer = (cachedResults, container) => {
     let html = `<h3>${cachedResults.length} kayıtlı analiz bulundu</h3>`;
-    html += '<div class="eksi-ai-cached-content">';
+    html += '<div class="eksi-ai-cached-content" style="display: flex; flex-direction: column; gap: 20px;">';
 
     cachedResults.forEach((item, index) => {
         const date = new Date(item.timestamp);
@@ -58,15 +58,15 @@ const showCachedResultsInContainer = (cachedResults, container) => {
         const timeStr = item.responseTime ? `${(item.responseTime / 1000).toFixed(2)}s` : '-';
 
         html += `
-            <div class="eksi-ai-cached-item">
-                <div class="eksi-ai-cached-header" data-index="${index}">
+            <div class="eksi-ai-cached-item" style="border: 1px solid var(--eksi-ai-border); border-radius: 8px; overflow: hidden;">
+                <div class="eksi-ai-cached-header" style="padding: 12px 15px; background: var(--eksi-ai-input-bg); cursor: pointer; display: flex; justify-content: space-between; align-items: center;" data-index="${index}">
                     <div>
                         <div style="font-weight: 600; margin-bottom: 4px;">${escapeHtml(item.promptPreview || item.prompt.substring(0, 80) + '...')}</div>
                         <div style="font-size: 12px; opacity: 0.7;">📝 ${escapeHtml(item.modelId)} | ⏱️ ${timeStr} | 📊 ${item.entryCount} entry | 📅 ${dateStr}</div>
                     </div>
-                    <span class="eksi-ai-cached-toggle">▼</span>
+                    <span class="eksi-ai-cached-toggle" style="font-size: 18px;">▼</span>
                 </div>
-                <div class="eksi-ai-cached-body">
+                <div class="eksi-ai-cached-body" style="display: none; padding: 15px; border-top: 1px solid var(--eksi-ai-border);">
                     <div class="eksi-ai-markdown">${parseMarkdown(item.response)}</div>
                 </div>
             </div>
