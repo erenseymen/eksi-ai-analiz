@@ -1878,52 +1878,38 @@
 
         <!-- Tab: API Settings -->
         <div id="tab-api" class="tab-content">
-            <div class="section">
-                <div class="section-header">
-                    <h3>🔑 API Anahtarı</h3>
-                    <span class="section-toggle">▼</span>
-                </div>
-                <div class="section-content">
-                    <label for="apiKey">Gemini API Key</label>
-                    <input type="text" id="apiKey" placeholder="API Key'inizi buraya yapıştırın">
-                    <div id="apiKeyError" class="api-key-error" style="display: none;"></div>
+            <h3 style="margin-top: 0; margin-bottom: 15px;">🔑 API Anahtarı</h3>
+            <label for="apiKey">Gemini API Key</label>
+            <input type="text" id="apiKey" placeholder="API Key'inizi buraya yapıştırın">
+            <div id="apiKeyError" class="api-key-error" style="display: none;"></div>
 
-                    <div class="info">
-                        <h4>API Key Nasıl Alınır?</h4>
-                        <ol>
-                            <li><a href="https://aistudio.google.com/app/api-keys" target="_blank">Google AI
-                                    Studio</a>'ya gidin</li>
-                            <li>Google hesabınızla giriş yapın</li>
-                            <li>"Create API key" butonuna tıklayın</li>
-                            <li>Anahtarı kopyalayıp yapıştırın</li>
-                        </ol>
-                        <p style="margin-top: 8px; margin-bottom: 0;"><strong>Not:</strong> API anahtarınız sadece
-                            tarayıcınızda saklanır.</p>
-                    </div>
-                </div>
+            <div class="info">
+                <h4>API Key Nasıl Alınır?</h4>
+                <ol>
+                    <li><a href="https://aistudio.google.com/app/api-keys" target="_blank">Google AI
+                            Studio</a>'ya gidin</li>
+                    <li>Google hesabınızla giriş yapın</li>
+                    <li>"Create API key" butonuna tıklayın</li>
+                    <li>Anahtarı kopyalayıp yapıştırın</li>
+                </ol>
+                <p style="margin-top: 8px; margin-bottom: 0;"><strong>Not:</strong> API anahtarınız sadece
+                    tarayıcınızda saklanır.</p>
             </div>
 
-            <div class="section">
-                <div class="section-header">
-                    <h3>🤖 Model Seçimi</h3>
-                    <span class="section-toggle">▼</span>
-                </div>
-                <div class="section-content">
-                    <!-- Dropdown gizli, kartlar için JS kullanılacak -->
-                    <select id="modelSelect" style="display: none;">
-                        <!-- Options will be populated by JS -->
-                    </select>
-                    <div id="modelCardsGrid" class="model-cards-grid">
-                        <!-- Model kartları JS tarafından doldurulacak -->
-                    </div>
-                    <div id="modelSelectionStatus" class="status" style="display: none; margin-top: 10px;"></div>
-                    <div id="modelInfo" style="display: none;"></div>
+            <h3 style="margin-top: 30px; margin-bottom: 15px;">🤖 Model Seçimi</h3>
+            <!-- Dropdown gizli, kartlar için JS kullanılacak -->
+            <select id="modelSelect" style="display: none;">
+                <!-- Options will be populated by JS -->
+            </select>
+            <div id="modelCardsGrid" class="model-cards-grid">
+                <!-- Model kartları JS tarafından doldurulacak -->
+            </div>
+            <div id="modelSelectionStatus" class="status" style="display: none; margin-top: 10px;"></div>
+            <div id="modelInfo" style="display: none;"></div>
 
-                    <div id="allModelsStatus">
-                        <h3>Tüm Modellerin API Durumu</h3>
-                        <div id="modelsStatusList" style="font-size: 0.85em;"></div>
-                    </div>
-                </div>
+            <div id="allModelsStatus">
+                <h3>Tüm Modellerin API Durumu</h3>
+                <div id="modelsStatusList" style="font-size: 0.85em;"></div>
             </div>
 
             <div class="btn-row">
@@ -1934,41 +1920,27 @@
 
         <!-- Tab: Prompts -->
         <div id="tab-prompts" class="tab-content">
-            <div class="section">
-                <div class="section-header">
-                    <h3>🎯 Butonlar ve Promptlar</h3>
-                    <span class="section-toggle">▼</span>
-                </div>
-                <div class="section-content">
-                    <div id="promptsList">
-                        <!-- Prompts will be listed here -->
-                    </div>
-
-                    <div class="btn-row" style="margin-top: 10px;">
-                        <button id="addBtn" class="btn-muted">+ Yeni Buton</button>
-                        <button id="resetBtn" class="btn-danger">Sıfırla</button>
-                    </div>
-                </div>
+            <h3 style="margin-top: 0; margin-bottom: 15px;">🎯 Butonlar ve Promptlar</h3>
+            <div id="promptsList">
+                <!-- Prompts will be listed here -->
             </div>
 
-            <div class="section">
-                <div class="section-header">
-                    <h3>⚙️ Sistem Promptu</h3>
-                    <span class="section-toggle">▼</span>
-                </div>
-                <div class="section-content">
-                    <div class="system-prompt-wrapper">
-                        <pre id="systemPromptDisplay"></pre>
-                        <button id="copySystemPromptBtn" class="btn-secondary" title="Kopyala">📋 Kopyala</button>
-                    </div>
-                    <p class="system-prompt-note">
-                        Bu prompt sistem tarafından otomatik oluşturulur. Açık kaynaklı olan bu eklentinin
-                        <a href="https://github.com/erenseymen/eksi-ai-analiz/blob/master/src/prompts.js"
-                            target="_blank" style="text-decoration: underline;">src/prompts.js</a>
-                        dosyasını inceleyerek veya düzenleyerek değiştirebilirsiniz.
-                    </p>
-                </div>
+            <div class="btn-row" style="margin-top: 10px;">
+                <button id="addBtn" class="btn-muted">+ Yeni Buton</button>
+                <button id="resetBtn" class="btn-danger">Sıfırla</button>
             </div>
+
+            <h3 style="margin-top: 30px; margin-bottom: 15px;">⚙️ Sistem Promptu</h3>
+            <div class="system-prompt-wrapper">
+                <pre id="systemPromptDisplay"></pre>
+                <button id="copySystemPromptBtn" class="btn-secondary" title="Kopyala">📋 Kopyala</button>
+            </div>
+            <p class="system-prompt-note">
+                Bu prompt sistem tarafından otomatik oluşturulur. Açık kaynaklı olan bu eklentinin
+                <a href="https://github.com/erenseymen/eksi-ai-analiz/blob/master/src/prompts.js"
+                    target="_blank" style="text-decoration: underline;">src/prompts.js</a>
+                dosyasını inceleyerek veya düzenleyerek değiştirebilirsiniz.
+            </p>
         </div>
 
         <!-- Tab: Stats -->
