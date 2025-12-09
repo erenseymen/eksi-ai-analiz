@@ -256,7 +256,6 @@ const saveOptions = async () => {
             });
         }
 
-        setupRefreshButton();
     });
 };
 
@@ -334,8 +333,6 @@ const restoreOptions = async () => {
                 // Tüm modellerin durumunu gösterme - artık sadece buton ile yapılıyor
             }
 
-            // Yenile butonunu ayarla
-            setupRefreshButton();
         }
     );
 };
@@ -445,6 +442,36 @@ const populateModelSelect = async (savedModelId) => {
 
         cardsGrid.appendChild(card);
     });
+
+    // "Modelleri Karşılaştır" card'ını ekle
+    const comparisonCard = document.createElement('div');
+    comparisonCard.className = 'model-select-card';
+    comparisonCard.setAttribute('role', 'button');
+    comparisonCard.setAttribute('tabindex', '0');
+    comparisonCard.setAttribute('aria-label', 'Tüm modelleri karşılaştır ve test et');
+
+    comparisonCard.innerHTML = `
+        <div class="model-card-name">🔄 Modelleri Karşılaştır</div>
+        <div class="model-card-description">Tüm modelleri son scrape edilen veriyle test et ve karşılaştır</div>
+        <div class="model-card-meta">
+            <span>⚡ Hızlı Test</span>
+        </div>
+    `;
+
+    // Tıklama event listener
+    comparisonCard.addEventListener('click', async () => {
+        await compareModelsWithStreaming();
+    });
+
+    // Klavye navigasyonu (Enter ve Space)
+    comparisonCard.addEventListener('keydown', async (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            await compareModelsWithStreaming();
+        }
+    });
+
+    cardsGrid.appendChild(comparisonCard);
 };
 
 /**
@@ -821,7 +848,6 @@ const compareModelsWithStreaming = async () => {
     const modal = document.getElementById('modelComparisonModal');
     const modalBody = document.getElementById('modalBody');
     const modalStatusSummary = document.getElementById('modalStatusSummary');
-    const testPromptInput = document.getElementById('modelTestPrompt');
     const apiKey = document.getElementById('apiKey').value;
 
     if (!modal || !modalBody) return;
@@ -831,12 +857,38 @@ const compareModelsWithStreaming = async () => {
         return;
     }
 
-    // Test prompt'unu al
-    const testPrompt = testPromptInput ? testPromptInput.value.trim() : 'naber?\n\nbu yeni satırlı bir prompt';
+    // Son scrape edilen veriyi al
+    let testPrompt = '';
+    try {
+        // getHistory fonksiyonunu kullan (history.js'den import edilmeli veya global olmalı)
+        // Şimdilik direkt chrome.storage.local'den alıyoruz
+        const historyData = await new Promise((resolve) => {
+            chrome.storage.local.get({ scrapedData: [] }, (result) => {
+                const scrapedData = result.scrapedData;
+                // scrapedAt'e göre sırala (descending - en yeni en üstte)
+                scrapedData.sort((a, b) => {
+                    const dateA = new Date(a.scrapedAt);
+                    const dateB = new Date(b.scrapedAt);
+                    return dateB - dateA;
+                });
+                resolve(scrapedData);
+            });
+        });
 
-    if (!testPrompt) {
-        alert('Lütfen test promptu girin.');
-        return;
+        if (historyData && historyData.length > 0 && historyData[0].sourceEntries && historyData[0].sourceEntries.length > 0) {
+            // Son scrape edilen entry'lerden test promptu oluştur
+            const lastScrape = historyData[0];
+            const entries = lastScrape.sourceEntries;
+            // Entry içeriklerini birleştir
+            testPrompt = entries.map(entry => entry.content || '').filter(content => content.trim()).join('\n\n');
+        }
+    } catch (error) {
+        console.warn('Son scrape edilen veri alınamadı:', error);
+    }
+
+    // Eğer scrape edilen veri yoksa varsayılan prompt kullan
+    if (!testPrompt || testPrompt.trim() === '') {
+        testPrompt = 'Merhaba! Sen Google Gemini API\'sinin bir modelisin. Kendini kısaca tanıt ve bana kısa bir şaka yap.';
     }
 
     // Eğer kontrol zaten devam ediyorsa, yeni kontrol başlatma
@@ -1102,15 +1154,6 @@ const compareModelsWithStreaming = async () => {
     } else {
         modalStatusSummary.textContent = `✅ ${selectedSuccessfulModels.length} başarılı, ❌ ${selectedFailedModels.length} hata`;
     }
-};
-
-/**
- * Yenile butonuna tıklandığında streaming ile modelleri karşılaştırır.
- */
-const refreshAllModelsStatus = async () => {
-    // Önceki kontrolü iptal et
-    isCheckingModels = false;
-    await compareModelsWithStreaming();
 };
 
 /**
@@ -1574,18 +1617,6 @@ document.getElementById('apiKey').addEventListener('blur', async (e) => {
  * Sistem promptu kopyalama butonuna tıklandığında panoya kopyala.
  */
 document.getElementById('copySystemPromptBtn').addEventListener('click', copySystemPrompt);
-
-/**
- * Tüm modellerin durumunu yenile butonuna tıklandığında durumu yeniden kontrol et.
- */
-const setupRefreshButton = () => {
-    const refreshBtn = document.getElementById('refreshModelsStatus');
-    if (refreshBtn) {
-        // Önceki listener'ı kaldır (varsa)
-        refreshBtn.replaceWith(refreshBtn.cloneNode(true));
-        document.getElementById('refreshModelsStatus').addEventListener('click', refreshAllModelsStatus);
-    }
-};
 
 /**
  * Modal kapatma işlevlerini ayarlar.
