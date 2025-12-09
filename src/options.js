@@ -825,6 +825,36 @@ const compareModelsWithStreaming = async () => {
 
     // Her model için bir kart oluştur (başlangıçta başarılı modeller bölümünde)
     const modelCards = {};
+    
+    /**
+     * Model kartını başarılı modeller bölümünden hatalı modeller bölümüne taşır veya tersini yapar
+     */
+    const moveCardBetweenSections = (cardData, targetSection) => {
+        const currentContainer = cardData.gridContainer;
+        const targetContainer = targetSection === 'success' ? successGridContainer : failedGridContainer;
+        const targetTitle = targetSection === 'success' ? successfulModelsTitle : failedModelsTitle;
+        
+        if (currentContainer !== targetContainer) {
+            currentContainer.removeChild(cardData.card);
+            targetContainer.appendChild(cardData.card);
+            cardData.gridContainer = targetContainer;
+            
+            // Başlıkları göster/gizle
+            if (targetTitle) {
+                const hasModels = targetContainer.children.length > 0;
+                targetTitle.style.display = hasModels ? 'block' : 'none';
+            }
+            
+            // Eski bölümün başlığını kontrol et
+            const oldTitle = targetSection === 'success' ? failedModelsTitle : successfulModelsTitle;
+            const oldContainer = targetSection === 'success' ? failedGridContainer : successGridContainer;
+            if (oldTitle) {
+                const hasModels = oldContainer.children.length > 0;
+                oldTitle.style.display = hasModels ? 'block' : 'none';
+            }
+        }
+    };
+    
     MODELS.forEach((model) => {
         const cardId = `model-card-${model.id}`;
         const card = document.createElement('div');
@@ -842,25 +872,77 @@ const compareModelsWithStreaming = async () => {
         metaDiv.className = 'model-comparison-meta';
         metaDiv.textContent = 'Süre: - | Token: -';
         
-        card.innerHTML = `
-            <h4>${model.name}</h4>
-        `;
+        // Checkbox oluştur
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'model-comparison-checkbox';
+        checkbox.checked = true; // Başlangıçta seçili
+        checkbox.id = `checkbox-${model.id}`;
+        
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'model-comparison-card-header';
+        headerDiv.textContent = model.name;
+        
+        const h4 = document.createElement('h4');
+        h4.appendChild(headerDiv);
+        h4.appendChild(checkbox);
+        
+        card.appendChild(h4);
         card.appendChild(statusDiv);
         card.appendChild(responseDiv);
         card.appendChild(metaDiv);
         
         successGridContainer.appendChild(card);
-        modelCards[model.id] = {
+        const cardData = {
             card,
             statusDiv,
             responseDiv,
             metaDiv,
+            checkbox,
             startTime: null,
             fullText: '',
             hasError: false,
+            isSelected: true,
             gridContainer: successGridContainer // Başlangıçta başarılı modeller grid'inde
         };
+        modelCards[model.id] = cardData;
+        
+        // Checkbox değişikliği event listener
+        checkbox.addEventListener('change', () => {
+            const isSelected = checkbox.checked;
+            cardData.isSelected = isSelected;
+            
+            if (isSelected) {
+                // Seçildi - eğer hata yoksa başarılı modeller bölümüne taşı
+                card.classList.remove('unselected');
+                if (!cardData.hasError) {
+                    moveCardBetweenSections(cardData, 'success');
+                } else {
+                    // Hata varsa hatalı modeller bölümünde kal
+                    moveCardBetweenSections(cardData, 'failed');
+                }
+            } else {
+                // Seçilmedi - hatalı modeller bölümüne taşı
+                card.classList.add('unselected');
+                moveCardBetweenSections(cardData, 'failed');
+            }
+            
+            // Başlık satırını güncelle
+            const selectedSuccessfulModels = Object.values(modelCards).filter(card => card.isSelected && !card.hasError);
+            const selectedFailedModels = Object.values(modelCards).filter(card => card.isSelected && card.hasError);
+            
+            if (selectedFailedModels.length === 0) {
+                modalStatusSummary.textContent = `✅ ${selectedSuccessfulModels.length} model başarıyla test edildi`;
+            } else {
+                modalStatusSummary.textContent = `✅ ${selectedSuccessfulModels.length} başarılı, ❌ ${selectedFailedModels.length} hata`;
+            }
+        });
     });
+    
+    // Başlangıçta başarılı modeller başlığını göster
+    if (successfulModelsTitle && successGridContainer.children.length > 0) {
+        successfulModelsTitle.style.display = 'block';
+    }
 
     // Her model için streaming çağrısı yap (paralel)
     const abortController = new AbortController();
@@ -906,6 +988,13 @@ const compareModelsWithStreaming = async () => {
             cardData.statusDiv.textContent = '✅ Tamamlandı';
             cardData.metaDiv.textContent = `Süre: ${responseTime}s | Tahmini Token: ~${estimatedTokens}`;
             
+            // Eğer seçiliyse başarılı modeller bölümüne taşı, değilse hatalı modeller bölümünde tut
+            if (cardData.isSelected) {
+                moveCardBetweenSections(cardData, 'success');
+            } else {
+                moveCardBetweenSections(cardData, 'failed');
+            }
+            
         } catch (error) {
             if (!isCheckingModels) return; // İptal edildiyse güncelleme yapma
             
@@ -914,19 +1003,8 @@ const compareModelsWithStreaming = async () => {
             const errorType = getErrorType(error.message);
             const formattedError = formatErrorMessage(error.message, errorType);
             
-            // Kartı başarılı modeller grid'inden çıkar ve hatalı modeller grid'ine taşı
-            const failedGridContainer = document.getElementById('failedModelsGrid');
-            const failedModelsTitle = document.getElementById('failedModelsTitle');
-            if (failedGridContainer && cardData.gridContainer !== failedGridContainer) {
-                cardData.gridContainer.removeChild(cardData.card);
-                failedGridContainer.appendChild(cardData.card);
-                cardData.gridContainer = failedGridContainer;
-                
-                // Hatalı modeller başlığını göster
-                if (failedModelsTitle) {
-                    failedModelsTitle.style.display = 'block';
-                }
-            }
+            // Kartı hatalı modeller bölümüne taşı
+            moveCardBetweenSections(cardData, 'failed');
             
             // Kartı hata stili ile işaretle
             cardData.card.classList.add('has-error');
@@ -955,20 +1033,15 @@ const compareModelsWithStreaming = async () => {
     // Kontrol tamamlandı
     isCheckingModels = false;
     
-    // Başarılı ve başarısız model sayılarını hesapla
-    const successfulModels = Object.values(modelCards).filter(card => !card.hasError);
-    const failedModels = Object.values(modelCards).filter(card => card.hasError);
+    // Seçili modelleri say (karşılaştırmaya dahil olanlar)
+    const selectedSuccessfulModels = Object.values(modelCards).filter(card => card.isSelected && !card.hasError);
+    const selectedFailedModels = Object.values(modelCards).filter(card => card.isSelected && card.hasError);
     
-    // Başarılı modeller başlığını göster/gizle
-    if (successfulModels.length > 0 && successfulModelsTitle) {
-        successfulModelsTitle.style.display = 'block';
-    }
-    
-    // Başlık satırını güncelle
-    if (failedModels.length === 0) {
-        modalStatusSummary.textContent = `✅ ${successfulModels.length} model başarıyla test edildi`;
+    // Başlık satırını güncelle (sadece seçili modelleri say)
+    if (selectedFailedModels.length === 0) {
+        modalStatusSummary.textContent = `✅ ${selectedSuccessfulModels.length} model başarıyla test edildi`;
     } else {
-        modalStatusSummary.textContent = `✅ ${successfulModels.length} başarılı, ❌ ${failedModels.length} hata`;
+        modalStatusSummary.textContent = `✅ ${selectedSuccessfulModels.length} başarılı, ❌ ${selectedFailedModels.length} hata`;
     }
 };
 
