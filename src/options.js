@@ -1272,15 +1272,28 @@ const useModelInSettings = async (modelId) => {
  * @param {HTMLTextAreaElement} textarea - Yüksekliği ayarlanacak textarea elementi
  */
 const autoResizeTextarea = (textarea) => {
+    if (!textarea) return;
+    
+    // rows attribute'unu kaldır (sabit yükseklik vermesin)
+    textarea.removeAttribute('rows');
+    
     // Önce yüksekliği sıfırla ki scrollHeight doğru hesaplansın
     textarea.style.height = 'auto';
+    textarea.style.overflowY = 'hidden';
     
     // scrollHeight'ı al ve max-height ile karşılaştır
     const scrollHeight = textarea.scrollHeight;
     const maxHeight = 400; // CSS'teki max-height ile aynı
     
-    // scrollHeight max-height'tan küçükse scrollHeight kullan, değilse max-height kullan
-    textarea.style.height = Math.min(scrollHeight, maxHeight) + 'px';
+    if (scrollHeight > maxHeight) {
+        // Max height aşıldıysa scroll göster
+        textarea.style.height = maxHeight + 'px';
+        textarea.style.overflowY = 'auto';
+    } else {
+        // İçeriğe göre ayarla
+        textarea.style.height = scrollHeight + 'px';
+        textarea.style.overflowY = 'hidden';
+    }
 };
 
 /**
@@ -1316,7 +1329,7 @@ const renderPrompts = () => {
             <input type="text" class="prompt-name" value="${escapeHtml(item.name)}" placeholder="Buton Adı">
             
             <label>Prompt</label>
-            <textarea class="prompt-text" rows="4" placeholder="Prompt içeriği...">${escapeHtml(item.prompt)}</textarea>
+            <textarea class="prompt-text" placeholder="Prompt içeriği...">${escapeHtml(item.prompt)}</textarea>
             
             <div style="margin-top: 10px;">
                 <button class="save-item-btn" style="margin-right: 5px;">Kaydet</button>
@@ -1328,19 +1341,29 @@ const renderPrompts = () => {
         div.querySelector('.save-item-btn').onclick = saveOptions;
         div.querySelector('.delete-btn').onclick = () => removePrompt(index);
 
-        // Textarea'yı al ve auto-resize özelliğini ekle
+        // Önce DOM'a ekle
+        list.appendChild(div);
+
+        // Textarea'yı al ve auto-resize özelliğini ekle (DOM'a eklendikten sonra)
         const textarea = div.querySelector('.prompt-text');
         if (textarea) {
-            // İlk render'da yüksekliği ayarla
-            autoResizeTextarea(textarea);
+            // İlk render'da yüksekliği ayarla (bir sonraki tick'te, DOM tamamen hazır olduktan sonra)
+            setTimeout(() => {
+                autoResizeTextarea(textarea);
+            }, 0);
             
             // İçerik değiştiğinde yüksekliği güncelle
             textarea.addEventListener('input', () => {
                 autoResizeTextarea(textarea);
             });
+            
+            // Paste event'i için de dinle
+            textarea.addEventListener('paste', () => {
+                setTimeout(() => {
+                    autoResizeTextarea(textarea);
+                }, 0);
+            });
         }
-
-        list.appendChild(div);
     });
 
     // prompts dizisini güncelle (eğer DEFAULT_PROMPTS kullanıldıysa)
