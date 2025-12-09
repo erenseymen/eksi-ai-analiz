@@ -18,10 +18,10 @@ Bu proje Google Gemini API kullanarak Ekşi Sözlük entry'lerini analiz eder.
 
 | Model ID | İsim | Açıklama | API Version |
 |----------|------|----------|-------------|
-| `gemini-2.5-pro` | Gemini 2.5 Pro | Güçlü muhakeme, 1M token | v1 |
-| `gemini-2.5-flash` | Gemini 2.5 Flash | Hızlı ve verimli | v1 |
-| `gemini-2.5-flash-lite` | Gemini 2.5 Flash-Lite | En hızlı, basit görevler | v1 |
-| `gemini-3-pro-preview` | Gemini 3 Pro Preview | Beta, ücretli | v1beta |
+| `gemini-2.5-pro` | Gemini 2.5 Pro | Güçlü muhakeme, Free Tier'da kısıtlı/ücretli | v1 |
+| `gemini-2.5-flash` | Gemini 2.5 Flash | Muhakeme yeteneği olan en iyi ücretsiz seçenek | v1 |
+| `gemini-2.5-flash-lite` | Gemini 2.5 Flash-Lite | En hızlı, düşük maliyet, basit görevler | v1 |
+| `gemini-3-pro-preview` | Gemini 3 Pro Preview | Beta, ücretli, yeni nesil muhakeme | v1beta |
 
 ## API Endpoints
 
@@ -113,22 +113,22 @@ if (errorMsg.includes('quota') || errorMsg.includes('RESOURCE_EXHAUSTED') || err
 }
 ```
 
-## Test Sonuçları (2025-12-07)
+## Test Sonuçları (2025-12-09)
 
 ### API Key Test Durumu
 
-| # | API Key (Son 4) | gemini-2.5-flash | gemini-2.5-pro |
-|---|-----------------|------------------|----------------|
-| 1 | ...r1c | ✅ Çalışıyor | ✅ Çalışıyor |
-| 2 | ...TyM | ✅ Çalışıyor | ❌ Quota Aşıldı |
-| 3 | ...Eeg | ✅ Çalışıyor | ❌ Quota Aşıldı |
+| # | API Key (Son 4) | gemini-2.5-flash | gemini-2.5-flash-lite | gemini-2.5-pro |
+|---|-----------------|------------------|-----------------------|----------------|
+| 1 | ...UWIE | ✅ Çalışıyor | ✅ Çalışıyor | ✅ Çalışıyor |
+| 2 | ...TyM | ✅ Çalışıyor | ✅ Çalışıyor | ❌ Quota Aşıldı/Erişim Yok |
 
 ### Quota Limitleri (Free Tier)
 
 Her model için ayrı quota limiti vardır:
-- `gemini-2.5-flash`: Daha yüksek limit, çoğu anahtar için çalışıyor
-- `gemini-2.5-pro`: Daha düşük limit, hızlı tükeniyor
-- Quota mesajı: `"Please retry in X seconds"` formatında süre belirtir
+- `gemini-2.5-flash` ve `flash-lite`: Cömert ücretsiz limit, çoğu anahtar için sorunsuz çalışır.
+- `gemini-2.5-pro`: Free tier kullanıcıları için **kullanılamaz** veya limiti çok düşüktür.
+- Quota mesajı: `"Please retry in X seconds"` veya `"Quota exceeded"` döner.
+
 
 ### Quota Aşıldığında Dönen Hata
 ```json
