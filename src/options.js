@@ -915,14 +915,15 @@ const compareModelsWithStreaming = async () => {
         
         // Checkbox değişikliği event listener
         checkbox.addEventListener('change', () => {
+            // Hata varsa checkbox değişikliğini işleme (checkbox zaten gizli olacak)
+            if (cardData.hasError) {
+                return;
+            }
+            
             const isSelected = checkbox.checked;
             cardData.isSelected = isSelected;
             
-            if (cardData.hasError) {
-                // Hata varsa her zaman hata bölümünde kal
-                card.classList.remove('unselected');
-                moveCardBetweenSections(cardData, 'error');
-            } else if (isSelected) {
+            if (isSelected) {
                 // Seçildi ve hata yok - başarılı modeller bölümüne taşı
                 card.classList.remove('unselected');
                 moveCardBetweenSections(cardData, 'success');
@@ -1007,6 +1008,9 @@ const compareModelsWithStreaming = async () => {
             cardData.hasError = true;
             const errorType = getErrorType(error.message);
             const formattedError = formatErrorMessage(error.message, errorType);
+            
+            // Checkbox'ı gizle (hata alınan modellerde seçme butonu olmasın)
+            cardData.checkbox.style.display = 'none';
             
             // Kartı hata alınan modeller bölümüne taşı (3. satır)
             moveCardBetweenSections(cardData, 'error');
