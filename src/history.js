@@ -730,11 +730,20 @@ const showArtifactPreview = (content, filename, mimeType, type) => {
  * 
  * @param {Object} scrape - Scrape objesi
  */
+/**
+ * Tüm artifact'leri ZIP dosyası olarak indirir.
+ * 
+ * @param {Object} scrape - Scrape objesi
+ */
 const downloadAllArtifacts = async (scrape) => {
     // JSZip kontrolü
     if (typeof JSZip === 'undefined') {
-        alert('ZIP oluşturma kütüphanesi yüklenemedi. Lütfen sayfayı yenileyin.');
-        return;
+        // JSZip'i yüklemeyi dene
+        const loaded = await loadJSZip();
+        if (!loaded || typeof JSZip === 'undefined') {
+            alert('ZIP oluşturma kütüphanesi yüklenemedi. Lütfen sayfayı yenileyin.');
+            return;
+        }
     }
 
     const zip = new JSZip();
@@ -1025,7 +1034,34 @@ const setupThemeStorageListener = () => {
     chrome.storage.onChanged.addListener(window.themeStorageListener);
 };
 
+/**
+ * JSZip script'ini yükler.
+ * 
+ * @returns {Promise<boolean>} JSZip başarıyla yüklendiyse true
+ */
+const loadJSZip = async () => {
+    if (typeof JSZip !== 'undefined') {
+        return true;
+    }
+
+    return new Promise((resolve) => {
+        const script = document.createElement('script');
+        script.src = chrome.runtime.getURL('src/jszip.min.js');
+        script.onload = () => {
+            resolve(typeof JSZip !== 'undefined');
+        };
+        script.onerror = () => {
+            console.error('JSZip yüklenemedi');
+            resolve(false);
+        };
+        document.head.appendChild(script);
+    });
+};
+
 document.addEventListener('DOMContentLoaded', async () => {
+    // JSZip'i yükle
+    await loadJSZip();
+
     // Önce temayı yükle (sayfa yüklenirken hemen uygulanması için)
     await restoreTheme();
     // Storage değişikliklerini dinle (options sayfasından tema değişikliği için)

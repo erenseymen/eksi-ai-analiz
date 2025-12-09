@@ -50,7 +50,8 @@
         {
             "resources": [
                 "src/options.html",
-                "src/history.html"
+                "src/history.html",
+                "src/jszip.min.js"
             ],
             "matches": [
                 "https://eksisozluk.com/*"
