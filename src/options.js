@@ -1103,9 +1103,6 @@ const compareModelsWithStreaming = async () => {
                     cardData.fullText = fullText;
                     // Markdown olarak göster
                     cardData.responseDiv.innerHTML = parseMarkdown(fullText);
-
-                    // Scroll to bottom
-                    cardData.responseDiv.scrollTop = cardData.responseDiv.scrollHeight;
                 }
             );
 
