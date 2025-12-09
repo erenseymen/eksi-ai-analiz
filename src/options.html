@@ -384,6 +384,84 @@
             color: #333;
         }
 
+        /* Model comparison grid */
+        .models-comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .model-comparison-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            min-height: 200px;
+        }
+
+        .model-comparison-card h4 {
+            margin: 0 0 10px 0;
+            font-size: 0.95em;
+            color: #333;
+            border-bottom: 2px solid #81c14b;
+            padding-bottom: 5px;
+        }
+
+        .model-comparison-status {
+            font-size: 0.85em;
+            margin-bottom: 10px;
+            padding: 6px;
+            border-radius: 4px;
+            background: #f0f0f0;
+        }
+
+        .model-comparison-status.loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .model-comparison-status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .model-comparison-status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .model-comparison-response {
+            flex: 1;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            font-size: 0.85em;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-y: auto;
+            max-height: 400px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            color: #333;
+        }
+
+        .model-comparison-response:empty::before {
+            content: 'Yanıt bekleniyor...';
+            color: #999;
+            font-style: italic;
+        }
+
+        .model-comparison-meta {
+            margin-top: 8px;
+            font-size: 0.75em;
+            color: #666;
+            padding-top: 8px;
+            border-top: 1px solid #eee;
+        }
+
         /* System prompt display */
         #systemPromptDisplay {
             background: #f8f9fa;
@@ -710,6 +788,45 @@
             color: #e0e0e0 !important;
         }
 
+        body.dark-theme .model-comparison-card {
+            background: #2d2d2d !important;
+            border-color: #444 !important;
+        }
+
+        body.dark-theme .model-comparison-card h4 {
+            color: #e0e0e0 !important;
+            border-bottom-color: #81c14b !important;
+        }
+
+        body.dark-theme .model-comparison-status {
+            background: #404040 !important;
+        }
+
+        body.dark-theme .model-comparison-status.loading {
+            background: #4a3a1e !important;
+            color: #ffc107 !important;
+        }
+
+        body.dark-theme .model-comparison-status.success {
+            background: #1e4a1e !important;
+            color: #a5d67a !important;
+        }
+
+        body.dark-theme .model-comparison-status.error {
+            background: #4a1e1e !important;
+            color: #ff9999 !important;
+        }
+
+        body.dark-theme .model-comparison-response {
+            background: #363636 !important;
+            color: #e0e0e0 !important;
+        }
+
+        body.dark-theme .model-comparison-meta {
+            color: #999 !important;
+            border-top-color: #444 !important;
+        }
+
         body.dark-theme #systemPromptDisplay {
             background: #363636 !important;
             color: #d4d4d4 !important;
@@ -913,6 +1030,45 @@
 
             body:not(.light-theme):not(.dark-theme) #allModelsStatus h3 {
                 color: #e0e0e0 !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .model-comparison-card {
+                background: #2d2d2d !important;
+                border-color: #444 !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .model-comparison-card h4 {
+                color: #e0e0e0 !important;
+                border-bottom-color: #81c14b !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .model-comparison-status {
+                background: #404040 !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .model-comparison-status.loading {
+                background: #4a3a1e !important;
+                color: #ffc107 !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .model-comparison-status.success {
+                background: #1e4a1e !important;
+                color: #a5d67a !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .model-comparison-status.error {
+                background: #4a1e1e !important;
+                color: #ff9999 !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .model-comparison-response {
+                background: #363636 !important;
+                color: #e0e0e0 !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .model-comparison-meta {
+                color: #999 !important;
+                border-top-color: #444 !important;
             }
 
             body:not(.light-theme):not(.dark-theme) #systemPromptDisplay {
@@ -1242,8 +1398,15 @@
                         <div id="modelsStatusList" style="font-size: 0.85em;"></div>
                     </div>
 
+                    <div style="margin-top: 15px; margin-bottom: 10px;">
+                        <label for="modelTestPrompt">Test Promptu (Özelleştirilebilir)</label>
+                        <textarea id="modelTestPrompt" rows="3" placeholder="Test için kullanılacak prompt..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; font-size: 0.9em; resize: vertical; margin-bottom: 8px;">naber?
+
+bu yeni satırlı bir prompt</textarea>
+                    </div>
+
                     <button id="refreshModelsStatus" class="btn-secondary" style="width: 100%; margin-top: 8px;">
-                        🔄 API Durumunu Kontrol Et
+                        🔄 Modelleri kontrol et ve karşılaştır
                     </button>
                 </div>
             </div>
@@ -1352,6 +1515,8 @@
 
     <script src="prompts.js"></script>
     <script src="constants.js"></script>
+    <script src="utils.js"></script>
+    <script src="api.js"></script>
     <script src="stats.js"></script>
     <script src="options.js"></script>
 </body>

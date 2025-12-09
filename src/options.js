@@ -624,12 +624,249 @@ const updateAllModelsStatus = async () => {
 };
 
 /**
- * Yenile butonuna tıklandığında tüm modellerin durumunu yeniden kontrol eder.
+ * Test için system prompt kullanmadan streaming API çağrısı yapar.
+ * 
+ * @param {string} apiKey - Gemini API anahtarı
+ * @param {string} modelId - Kullanılacak model ID'si
+ * @param {string} prompt - Gönderilecek prompt (system prompt olmadan)
+ * @param {AbortSignal} signal - İstek iptal sinyali
+ * @param {Function} onChunk - Her parça geldiğinde çağrılacak callback (chunk, fullText) => void
+ * @returns {Promise<{text: string, responseTime: number}>} Tam yanıt ve süre
+ */
+const callGeminiApiStreamingForTest = async (apiKey, modelId, prompt, signal, onChunk) => {
+    const startTime = performance.now();
+
+    // Model bazlı API versiyonu belirleme
+    const model = MODELS.find(m => m.id === modelId);
+    const apiVersion = model?.apiVersion || 'v1';
+    const url = `https://generativelanguage.googleapis.com/${apiVersion}/models/${modelId}:streamGenerateContent?alt=sse&key=${apiKey}`;
+
+    try {
+        // Test için system prompt kullanmıyoruz, sadece user prompt
+        const requestBody = {
+            contents: [{
+                parts: [{ text: prompt }]
+            }]
+        };
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody),
+            signal: signal
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            const errorMsg = errorData.error?.message || 'API request failed';
+            const fullError = errorData.error?.details
+                ? `${errorMsg}\n\n${JSON.stringify(errorData.error.details, null, 2)}`
+                : errorMsg;
+            throw new Error(fullError);
+        }
+
+        // SSE stream'ini oku
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let fullText = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = '';
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+
+                if (i === lines.length - 1 && !line.endsWith('\n')) {
+                    buffer = line;
+                    continue;
+                }
+
+                if (line.startsWith('data: ')) {
+                    const jsonStr = line.substring(6).trim();
+
+                    if (jsonStr && jsonStr !== '[DONE]') {
+                        try {
+                            const data = JSON.parse(jsonStr);
+                            const chunk = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+                            if (chunk) {
+                                fullText += chunk;
+                                if (onChunk) {
+                                    onChunk(chunk, fullText);
+                                }
+                            }
+                        } catch (parseErr) {
+                            // JSON parse hatası - devam et
+                        }
+                    }
+                }
+            }
+        }
+
+        const endTime = performance.now();
+        const responseTime = endTime - startTime;
+
+        return { text: fullText, responseTime };
+    } catch (err) {
+        if (err.name === 'AbortError') {
+            throw err;
+        }
+        throw new Error(err.message || 'Streaming hatası oluştu.');
+    }
+};
+
+/**
+ * Streaming kullanarak tüm modelleri karşılaştırır.
+ * Her model için aynı prompt'u gönderir ve yanıtları gerçek zamanlı yan yana gösterir.
+ */
+const compareModelsWithStreaming = async () => {
+    const statusDiv = document.getElementById('allModelsStatus');
+    const statusList = document.getElementById('modelsStatusList');
+    const testPromptInput = document.getElementById('modelTestPrompt');
+    const apiKey = document.getElementById('apiKey').value;
+
+    if (!statusDiv || !statusList) return;
+
+    if (!apiKey || !apiKey.trim()) {
+        statusDiv.style.display = 'none';
+        return;
+    }
+
+    // Test prompt'unu al
+    const testPrompt = testPromptInput ? testPromptInput.value.trim() : 'naber?\n\nbu yeni satırlı bir prompt';
+    
+    if (!testPrompt) {
+        alert('Lütfen test promptu girin.');
+        return;
+    }
+
+    // Eğer kontrol zaten devam ediyorsa, yeni kontrol başlatma
+    if (isCheckingModels) {
+        return;
+    }
+
+    isCheckingModels = true;
+    statusDiv.style.display = 'block';
+
+    // Grid layout için container oluştur
+    statusList.innerHTML = '<div class="models-comparison-grid" id="modelsComparisonGrid"></div>';
+    const gridContainer = document.getElementById('modelsComparisonGrid');
+
+    // Her model için bir kart oluştur
+    const modelCards = {};
+    MODELS.forEach((model) => {
+        const cardId = `model-card-${model.id}`;
+        const card = document.createElement('div');
+        card.id = cardId;
+        card.className = 'model-comparison-card';
+        
+        const statusDiv = document.createElement('div');
+        statusDiv.className = 'model-comparison-status loading';
+        statusDiv.textContent = '⏳ Başlatılıyor...';
+        
+        const responseDiv = document.createElement('div');
+        responseDiv.className = 'model-comparison-response';
+        
+        const metaDiv = document.createElement('div');
+        metaDiv.className = 'model-comparison-meta';
+        metaDiv.textContent = 'Süre: - | Token: -';
+        
+        card.innerHTML = `
+            <h4>${model.name}</h4>
+        `;
+        card.appendChild(statusDiv);
+        card.appendChild(responseDiv);
+        card.appendChild(metaDiv);
+        
+        gridContainer.appendChild(card);
+        modelCards[model.id] = {
+            card,
+            statusDiv,
+            responseDiv,
+            metaDiv,
+            startTime: null,
+            fullText: ''
+        };
+    });
+
+    // Her model için streaming çağrısı yap (paralel)
+    const abortController = new AbortController();
+    const streamingPromises = MODELS.map(async (model) => {
+        const cardData = modelCards[model.id];
+        if (!cardData) return;
+
+        try {
+            cardData.statusDiv.className = 'model-comparison-status loading';
+            cardData.statusDiv.textContent = '🔄 İstek gönderiliyor...';
+            cardData.startTime = performance.now();
+
+            // Streaming API çağrısı (test için system prompt kullanmıyoruz)
+            await callGeminiApiStreamingForTest(
+                apiKey,
+                model.id,
+                testPrompt,
+                abortController.signal,
+                (chunk, fullText) => {
+                    // Her chunk geldiğinde UI'ı güncelle
+                    if (!isCheckingModels) return; // İptal edildiyse güncelleme yapma
+                    
+                    cardData.fullText = fullText;
+                    cardData.responseDiv.textContent = fullText;
+                    cardData.statusDiv.className = 'model-comparison-status loading';
+                    cardData.statusDiv.textContent = '📝 Yanıt alınıyor...';
+                    
+                    // Scroll to bottom
+                    cardData.responseDiv.scrollTop = cardData.responseDiv.scrollHeight;
+                }
+            );
+
+            // Streaming tamamlandı
+            if (!isCheckingModels) return; // İptal edildiyse güncelleme yapma
+
+            const endTime = performance.now();
+            const responseTime = ((endTime - cardData.startTime) / 1000).toFixed(2);
+            
+            // Token tahmini (basit: karakter sayısı / 4)
+            const estimatedTokens = Math.ceil(cardData.fullText.length / 4);
+            
+            cardData.statusDiv.className = 'model-comparison-status success';
+            cardData.statusDiv.textContent = '✅ Tamamlandı';
+            cardData.metaDiv.textContent = `Süre: ${responseTime}s | Tahmini Token: ~${estimatedTokens}`;
+            
+        } catch (error) {
+            if (!isCheckingModels) return; // İptal edildiyse güncelleme yapma
+            
+            // Hata durumu
+            cardData.statusDiv.className = 'model-comparison-status error';
+            cardData.statusDiv.textContent = '❌ Hata oluştu';
+            cardData.responseDiv.textContent = `Hata: ${escapeHtml(error.message)}`;
+            cardData.metaDiv.textContent = 'Süre: - | Token: -';
+        }
+    });
+
+    // Tüm streaming çağrılarını bekle
+    await Promise.all(streamingPromises);
+    
+    // Kontrol tamamlandı
+    isCheckingModels = false;
+};
+
+/**
+ * Yenile butonuna tıklandığında streaming ile modelleri karşılaştırır.
  */
 const refreshAllModelsStatus = async () => {
     // Önceki kontrolü iptal et
     isCheckingModels = false;
-    await updateAllModelsStatus();
+    await compareModelsWithStreaming();
 };
 
 /**
