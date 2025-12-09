@@ -208,6 +208,84 @@
             border-radius: 4px;
         }
 
+        .analyses-list {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            border-left: 3px solid #81c14b;
+        }
+
+        .analysis-item {
+            padding: 8px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 4px;
+        }
+
+        .analysis-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .analysis-header {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 5px;
+            font-size: 12px;
+        }
+
+        .analysis-model {
+            font-weight: 600;
+            color: #81c14b;
+        }
+
+        .analysis-date {
+            color: #666;
+        }
+
+        .analysis-time {
+            color: #666;
+        }
+
+        .analysis-prompt-preview {
+            font-size: 13px;
+            color: #555;
+            font-style: italic;
+            word-break: break-word;
+        }
+
+        .artifacts-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 10px 0;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+
+        .artifact-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            background: #81c14b;
+            color: white;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            user-select: none;
+        }
+
+        .artifact-badge:hover {
+            background: #6da53e;
+            transform: translateY(-1px);
+        }
+
+        .artifact-badge:active {
+            transform: translateY(0);
+        }
+
         .history-actions {
             display: flex;
             gap: 8px;
@@ -564,6 +642,40 @@
                 background: #404040;
             }
 
+            .analyses-list {
+                background: #2d2d2d;
+                border-left-color: #81c14b;
+            }
+
+            .analysis-item {
+                background: #363636;
+            }
+
+            .analysis-model {
+                color: #81c14b;
+            }
+
+            .analysis-date,
+            .analysis-time {
+                color: #999;
+            }
+
+            .analysis-prompt-preview {
+                color: #bbb;
+            }
+
+            .artifacts-container {
+                background: #2d2d2d;
+            }
+
+            .artifact-badge {
+                background: #81c14b;
+            }
+
+            .artifact-badge:hover {
+                background: #6da53e;
+            }
+
             .stats {
                 background: #2e4a1e;
                 color: #a5d67a;
@@ -765,15 +877,18 @@
         </div>
     </div>
 
-    <!-- Detay Modal -->
-    <div id="detailModal" class="detail-modal">
+    <!-- Artifact Preview Modal -->
+    <div id="artifactPreviewModal" class="detail-modal">
         <div class="detail-modal-content">
             <div class="detail-modal-header">
-                <h2 id="detailTitle"></h2>
-                <button class="detail-modal-close" id="detailModalClose">&times;</button>
+                <h2 id="artifactPreviewTitle"></h2>
+                <button class="detail-modal-close" id="artifactPreviewClose">&times;</button>
             </div>
-            <div class="detail-meta" id="detailMeta"></div>
-            <div class="detail-response" id="detailResponse"></div>
+            <div class="detail-response" id="artifactPreviewContent"></div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button id="artifactPreviewCopy" class="btn-secondary">📋 Kopyala</button>
+                <button id="artifactPreviewDownload" class="btn-primary">📥 İndir</button>
+            </div>
         </div>
     </div>
 
