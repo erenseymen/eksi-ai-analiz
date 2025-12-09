@@ -386,8 +386,6 @@
             white-space: pre-wrap;
             word-wrap: break-word;
             color: #495057;
-            max-height: 200px;
-            overflow-y: auto;
             user-select: text;
             cursor: text;
             position: relative;
@@ -403,13 +401,35 @@
             right: 8px;
             background: #81c14b;
             border: none;
-            border-radius: 4px;
-            padding: 4px 8px;
+            border-radius: 6px;
+            padding: 6px 10px;
             cursor: pointer;
-            font-size: 0.85em;
+            font-size: 0.9em;
             color: white;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
             z-index: 5;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            min-height: 32px;
+        }
+
+        #copySystemPromptBtn:hover {
+            background: #6fa83a;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+            transform: translateY(-1px);
+        }
+
+        #copySystemPromptBtn:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+        }
+
+        #copySystemPromptBtn:focus {
+            outline: 2px solid #81c14b;
+            outline-offset: 2px;
         }
 
         .system-prompt-note {
@@ -706,6 +726,18 @@
             background: #363636 !important;
             color: #d4d4d4 !important;
             border-color: #555 !important;
+        }
+
+        body.dark-theme #copySystemPromptBtn {
+            background: #81c14b;
+        }
+
+        body.dark-theme #copySystemPromptBtn:hover {
+            background: #6fa83a;
+        }
+
+        body.dark-theme #copySystemPromptBtn:focus {
+            outline-color: #81c14b;
         }
 
         body.dark-theme .stats-secondary {
