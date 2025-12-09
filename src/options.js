@@ -149,6 +149,7 @@ const saveOptions = async () => {
     const modelSelect = document.getElementById('modelSelect');
     const selectedModel = modelSelect.value;
     const status = document.getElementById('status');
+    const saveBtnStatus = document.getElementById('saveBtnStatus');
 
     // Önceki API key'i al (karşılaştırma için)
     let previousApiKey = '';
@@ -160,6 +161,11 @@ const saveOptions = async () => {
     });
 
     // Kaydetme öncesi API anahtarı doğrulaması
+    if (saveBtnStatus) {
+        saveBtnStatus.textContent = 'API Key doğrulanıyor...';
+        saveBtnStatus.className = 'status';
+        saveBtnStatus.style.display = 'inline-block';
+    }
     status.textContent = 'API Key doğrulanıyor...';
     status.className = 'status';
     status.style.display = 'block';
@@ -169,6 +175,11 @@ const saveOptions = async () => {
     if (!validation.valid) {
         // Hata mesajı zaten API key alanının altında gösteriliyor
         // Genel status alanını temizle
+        if (saveBtnStatus) {
+            saveBtnStatus.textContent = '';
+            saveBtnStatus.className = 'status';
+            saveBtnStatus.style.display = 'none';
+        }
         status.textContent = '';
         status.className = 'status';
         status.style.display = 'none';
@@ -194,6 +205,16 @@ const saveOptions = async () => {
 
     // Chrome storage'a kaydet
     chrome.storage.sync.set(settings, async () => {
+        if (saveBtnStatus) {
+            saveBtnStatus.textContent = 'Ayarlar kaydedildi.';
+            saveBtnStatus.className = 'status success';
+            saveBtnStatus.style.display = 'inline-block';
+            setTimeout(() => {
+                saveBtnStatus.textContent = '';
+                saveBtnStatus.className = 'status';
+                saveBtnStatus.style.display = 'none';
+            }, 3000);
+        }
         status.textContent = 'Ayarlar kaydedildi.';
         status.className = 'status success';
         setTimeout(() => {
@@ -1166,6 +1187,7 @@ const useModelInSettings = async (modelId) => {
     const apiKey = document.getElementById('apiKey').value;
     const modelSelect = document.getElementById('modelSelect');
     const status = document.getElementById('status');
+    const saveBtnStatus = document.getElementById('saveBtnStatus');
 
     // Model seçimini güncelle
     modelSelect.value = modelId;
@@ -1196,7 +1218,18 @@ const useModelInSettings = async (modelId) => {
 
     // Chrome storage'a kaydet
     chrome.storage.sync.set(settings, () => {
-        status.textContent = `Model "${model?.name || modelId}" seçildi ve ayarlar kaydedildi.`;
+        const message = `Model "${model?.name || modelId}" seçildi ve ayarlar kaydedildi.`;
+        if (saveBtnStatus) {
+            saveBtnStatus.textContent = message;
+            saveBtnStatus.className = 'status success';
+            saveBtnStatus.style.display = 'inline-block';
+            setTimeout(() => {
+                saveBtnStatus.textContent = '';
+                saveBtnStatus.className = 'status';
+                saveBtnStatus.style.display = 'none';
+            }, 3000);
+        }
+        status.textContent = message;
         status.className = 'status success';
         status.style.display = 'block';
         setTimeout(() => {
