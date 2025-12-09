@@ -162,6 +162,10 @@ const saveOptions = async () => {
 
     // DOM'dan güncel prompt listesini al
     updatePromptsFromDOM();
+    
+    // Tema seçimini al
+    const themeSelect = document.getElementById('themeSelect');
+    const selectedTheme = themeSelect ? themeSelect.value : 'auto';
 
     // API key değişti mi kontrol et
     const apiKeyChanged = apiKey !== previousApiKey;
@@ -169,7 +173,8 @@ const saveOptions = async () => {
     const settings = {
         geminiApiKey: apiKey,
         selectedModel: selectedModel,
-        prompts: prompts
+        prompts: prompts,
+        theme: selectedTheme
     };
 
     // Chrome storage'a kaydet
@@ -184,6 +189,9 @@ const saveOptions = async () => {
 
         // State tutarlılığı için listeyi yeniden render et
         renderPrompts();
+        
+        // Tema seçimini uygula
+        applyTheme(selectedTheme);
 
         // API key değiştiyse tüm modellerin durumunu güncelleme - artık sadece buton ile yapılıyor
         // Model seçimine göre UI'daki butonları güncelle (eğer modeller kontrol edilmiyorsa)
@@ -238,6 +246,41 @@ const saveOptions = async () => {
 };
 
 /**
+ * Tema seçimini uygular.
+ * 
+ * @param {string} theme - 'auto', 'light', veya 'dark'
+ */
+const applyTheme = (theme) => {
+    const body = document.body;
+    body.classList.remove('light-theme', 'dark-theme');
+    
+    if (theme === 'light') {
+        body.classList.add('light-theme');
+    } else if (theme === 'dark') {
+        body.classList.add('dark-theme');
+    }
+    // 'auto' durumunda class eklenmez, sistem tercihi kullanılır
+};
+
+/**
+ * Tema seçimini yükler ve uygular.
+ */
+const restoreTheme = async () => {
+    chrome.storage.sync.get(
+        {
+            theme: 'auto'
+        },
+        (items) => {
+            const themeSelect = document.getElementById('themeSelect');
+            if (themeSelect) {
+                themeSelect.value = items.theme || 'auto';
+                applyTheme(items.theme || 'auto');
+            }
+        }
+    );
+};
+
+/**
  * Kayıtlı ayarları chrome.storage.sync'den yükler ve UI'a uygular.
  * 
  * Sayfa yüklendiğinde çağrılır. Kaydedilmiş ayar yoksa varsayılan
@@ -249,7 +292,8 @@ const restoreOptions = async () => {
             // Varsayılan değerler (kayıt yoksa kullanılır)
             geminiApiKey: '',
             selectedModel: 'gemini-2.5-pro',
-            prompts: DEFAULT_PROMPTS
+            prompts: DEFAULT_PROMPTS,
+            theme: 'auto'
         },
         async (items) => {
             // API anahtarını input'a yükle
@@ -824,11 +868,41 @@ const resetPrompts = () => {
 // =============================================================================
 
 /**
+ * Tema seçimi değiştiğinde temayı uygula ve kaydet.
+ */
+const setupThemeSelector = () => {
+    const themeSelect = document.getElementById('themeSelect');
+    if (themeSelect) {
+        themeSelect.addEventListener('change', (e) => {
+            const selectedTheme = e.target.value;
+            applyTheme(selectedTheme);
+            
+            // Tema seçimini kaydet
+            chrome.storage.sync.set({ theme: selectedTheme }, () => {
+                const status = document.getElementById('status');
+                status.textContent = 'Tema kaydedildi.';
+                status.className = 'status success';
+                status.style.display = 'block';
+                setTimeout(() => {
+                    status.textContent = '';
+                    status.className = 'status';
+                    status.style.display = 'none';
+                }, 2000);
+            });
+        });
+    }
+};
+
+/**
  * Sayfa yüklendiğinde ayarları geri yükle ve system prompt'u göster.
  */
 document.addEventListener('DOMContentLoaded', () => {
+    // Önce temayı yükle (sayfa yüklenirken hemen uygulanması için)
+    restoreTheme();
+    // Sonra diğer ayarları yükle
     restoreOptions();
     displaySystemPrompt();
+    setupThemeSelector();
 });
 
 /**
