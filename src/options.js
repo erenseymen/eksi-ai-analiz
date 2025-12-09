@@ -94,15 +94,21 @@ const validateApiKey = async (apiKey, updateInputStyle = true) => {
         if (!response.ok) {
             const errorData = await response.json();
             const errorMessage = errorData.error?.message || 'API Key geçersiz';
+            // Hata mesajını kısalt
+            const shortErrorMessage = errorMessage.toLowerCase().includes('not valid') || errorMessage.toLowerCase().includes('invalid')
+                ? 'API Key geçersiz'
+                : errorMessage.length > 50
+                    ? errorMessage.substring(0, 50) + '...'
+                    : errorMessage;
             if (updateInputStyle) {
                 apiKeyInput.classList.remove('valid');
                 apiKeyInput.classList.add('invalid');
                 if (apiKeyError) {
-                    apiKeyError.textContent = `Hata: ${errorMessage}`;
+                    apiKeyError.textContent = `Hata: ${shortErrorMessage}`;
                     apiKeyError.style.display = 'block';
                 }
             }
-            return { valid: false, error: errorMessage };
+            return { valid: false, error: shortErrorMessage };
         }
 
         // Başarılı doğrulama
@@ -117,15 +123,16 @@ const validateApiKey = async (apiKey, updateInputStyle = true) => {
         return { valid: true };
     } catch (error) {
         // Ağ veya beklenmeyen hatalar
+        const shortErrorMessage = 'Bağlantı hatası';
         if (updateInputStyle) {
             apiKeyInput.classList.remove('valid');
             apiKeyInput.classList.add('invalid');
             if (apiKeyError) {
-                apiKeyError.textContent = `Hata: API Key doğrulanırken bir hata oluştu: ${error.message}`;
+                apiKeyError.textContent = `Hata: ${shortErrorMessage}`;
                 apiKeyError.style.display = 'block';
             }
         }
-        return { valid: false, error: 'API Key doğrulanırken bir hata oluştu: ' + error.message };
+        return { valid: false, error: shortErrorMessage };
     }
 };
 
@@ -169,12 +176,17 @@ const saveOptions = async () => {
     const validation = await validateApiKey(apiKey, true);
 
     if (!validation.valid) {
-        // Hata mesajı zaten API key alanının altında gösteriliyor
-        // Buton yanındaki status alanını temizle
+        // Hata mesajını butonun yanında göster
         if (saveBtnStatus) {
-            saveBtnStatus.textContent = '';
-            saveBtnStatus.className = 'status';
-            saveBtnStatus.style.display = 'none';
+            const errorMessage = validation.error || 'API Key geçersiz';
+            saveBtnStatus.textContent = errorMessage;
+            saveBtnStatus.className = 'status error';
+            saveBtnStatus.style.display = 'inline-block';
+            setTimeout(() => {
+                saveBtnStatus.textContent = '';
+                saveBtnStatus.className = 'status';
+                saveBtnStatus.style.display = 'none';
+            }, 5000);
         }
         return;
     }
