@@ -725,9 +725,47 @@ const callGeminiApiStreamingForTest = async (apiKey, modelId, prompt, signal, on
 };
 
 /**
+ * Hata mesajından hata tipini belirler (kota, rate limit, vb.)
+ */
+const getErrorType = (errorMessage) => {
+    const msg = errorMessage.toLowerCase();
+    if (msg.includes('quota') || msg.includes('quota exceeded')) {
+        return 'quota';
+    }
+    if (msg.includes('rate limit') || msg.includes('429')) {
+        return 'rate_limit';
+    }
+    if (msg.includes('permission') || msg.includes('403')) {
+        return 'permission';
+    }
+    if (msg.includes('not found') || msg.includes('404')) {
+        return 'not_found';
+    }
+    return 'unknown';
+};
+
+/**
+ * Hata tipine göre kullanıcı dostu mesaj oluşturur
+ */
+const formatErrorMessage = (errorMessage, errorType) => {
+    switch (errorType) {
+        case 'quota':
+            return '⚠️ Quota Limiti Aşıldı\n\nBu model için ücretsiz quota limiti aşılmış. Lütfen daha sonra tekrar deneyin veya farklı bir model kullanın.';
+        case 'rate_limit':
+            return '⏱️ Rate Limit Aşıldı\n\nÇok fazla istek gönderildi. Lütfen birkaç saniye bekleyip tekrar deneyin.';
+        case 'permission':
+            return '🔒 İzin Hatası\n\nAPI anahtarınız bu modeli kullanmak için yetkili değil.';
+        case 'not_found':
+            return '❓ Model Bulunamadı\n\nBu model mevcut değil veya erişilemiyor.';
+        default:
+            return `❌ Hata\n\n${errorMessage}`;
+    }
+};
+
+/**
  * Streaming kullanarak tüm modelleri karşılaştırır.
  * Her model için aynı prompt'u gönderir ve yanıtları gerçek zamanlı yan yana gösterir.
- * Sonuçlar modal pencerede gösterilir. Hata alan modeller grid'den çıkarılır.
+ * Sonuçlar modal pencerede gösterilir. Hata alan modeller hata bilgileriyle birlikte gösterilir.
  */
 const compareModelsWithStreaming = async () => {
     const modal = document.getElementById('modelComparisonModal');
@@ -853,9 +891,29 @@ const compareModelsWithStreaming = async () => {
         } catch (error) {
             if (!isCheckingModels) return; // İptal edildiyse güncelleme yapma
             
-            // Hata durumu - kartı grid'den çıkar
+            // Hata durumu - hata bilgilerini göster
             cardData.hasError = true;
-            cardData.card.remove();
+            const errorType = getErrorType(error.message);
+            const formattedError = formatErrorMessage(error.message, errorType);
+            
+            // Kartı hata stili ile işaretle
+            cardData.card.classList.add('has-error');
+            
+            // Status ve response alanlarını güncelle
+            cardData.statusDiv.className = 'model-comparison-status error';
+            cardData.statusDiv.textContent = '❌ Hata oluştu';
+            
+            cardData.responseDiv.className = 'model-comparison-response error-message';
+            cardData.responseDiv.textContent = formattedError;
+            
+            // Meta bilgisini güncelle
+            if (cardData.startTime) {
+                const endTime = performance.now();
+                const responseTime = ((endTime - cardData.startTime) / 1000).toFixed(2);
+                cardData.metaDiv.textContent = `Süre: ${responseTime}s | Durum: Hata`;
+            } else {
+                cardData.metaDiv.textContent = 'Süre: - | Durum: Hata';
+            }
         }
     });
 
