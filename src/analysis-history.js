@@ -6,9 +6,10 @@
  * - Geçmişi alma ve temizleme
  * 
  * Veri Yapısı:
- * - scrapedData: Array of { id, topicId, topicTitle, topicUrl, scrapedAt, entryCount, sourceEntries, wasStopped, analyses: [...] }
- * - Her başlık için tek bir scrape kaydı tutulur
- * - Aynı scrape için yapılan tüm analizler analyses array'inde tutulur
+ * - scrapedData: Array of { id, sourceEntriesHash, topicId, topicTitle, topicUrl, scrapedAt, entryCount, sourceEntries, wasStopped, analyses: [...] }
+ * - Her unique sourceEntries için tek bir scrape kaydı tutulur
+ * - Aynı sourceEntries'e sahip scrape'ler aynı kayıt altında toplanır
+ * - Her unique scrape için yapılan tüm analizler analyses array'inde tutulur
  * 
  * Not: Bu dosya popup sayfasındaki history.js'den farklıdır.
  * O dosya geçmiş sayfasının UI'ını yönetirken, bu dosya
@@ -25,10 +26,48 @@
 const DEFAULT_HISTORY_RETENTION_DAYS = 30;
 
 /**
+ * sourceEntries array'inden unique hash oluşturur.
+ * 
+ * Entry ID'lerini sıralayıp birleştirerek hash oluşturur.
+ * Aynı entry'lerden oluşan sourceEntries'ler aynı hash'i üretir.
+ * 
+ * @param {Array} sourceEntries - Entry array'i
+ * @returns {string} Hash string
+ */
+const createSourceEntriesHash = (sourceEntries) => {
+    if (!sourceEntries || sourceEntries.length === 0) {
+        return 'empty';
+    }
+
+    // Entry ID'lerini çıkar ve sırala
+    const entryIds = sourceEntries
+        .map(entry => entry.id)
+        .filter(id => id) // null/undefined kontrolü
+        .sort();
+
+    if (entryIds.length === 0) {
+        return 'empty';
+    }
+
+    // ID'leri birleştir ve basit hash oluştur
+    const combined = entryIds.join(',');
+    
+    // Basit hash fonksiyonu (string hash)
+    let hash = 0;
+    for (let i = 0; i < combined.length; i++) {
+        const char = combined.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // 32bit integer'a çevir
+    }
+    
+    return `hash${Math.abs(hash).toString(36)}`;
+};
+
+/**
  * Scrape edilmiş entry'leri veya analiz sonuçlarını kaydeder.
  * 
- * - Eğer scrapeOnly ise: scrapedData'da aynı başlık için kayıt varsa günceller ve sona taşır, yoksa yeni ekler
- * - Eğer analiz ise: scrapedData'da ilgili scrape'i bulur ve analyses array'ine ekler
+ * - Eğer scrapeOnly ise: scrapedData'da aynı sourceEntries hash'i için kayıt varsa günceller ve sona taşır, yoksa yeni ekler
+ * - Eğer analiz ise: scrapedData'da ilgili sourceEntries hash'ine sahip scrape'i bulur ve analyses array'ine ekler
  * 
  * @param {Object} data - Kaydedilecek veri
  * @param {string} data.topicTitle - Başlık adı
@@ -54,34 +93,39 @@ const saveToHistory = async (data) => {
 
             if (data.scrapeOnly) {
                 // Scrape kaydetme/güncelleme
-                const topicKey = data.topicId || data.topicTitle;
-                const existingIndex = scrapedData.findIndex(item => {
-                    const itemKey = item.topicId || item.topicTitle;
-                    return itemKey === topicKey;
-                });
+                const sourceEntries = data.sourceEntries || [];
+                const sourceEntriesHash = createSourceEntriesHash(sourceEntries);
+                
+                const existingIndex = scrapedData.findIndex(item => 
+                    item.sourceEntriesHash === sourceEntriesHash
+                );
 
                 if (existingIndex >= 0) {
-                    // Mevcut scrape'i güncelle
+                    // Mevcut scrape'i güncelle (aynı sourceEntries)
                     const existing = scrapedData[existingIndex];
                     existing.scrapedAt = new Date().toISOString();
                     existing.entryCount = data.entryCount;
-                    existing.sourceEntries = data.sourceEntries || [];
+                    existing.sourceEntries = sourceEntries;
                     existing.wasStopped = data.wasStopped || false;
                     existing.topicUrl = window.location.href;
+                    // topicId ve topicTitle güncellenebilir (aynı entry'ler farklı başlıktan olabilir)
+                    if (data.topicId) existing.topicId = data.topicId;
+                    if (data.topicTitle) existing.topicTitle = data.topicTitle;
                     
                     // Sona taşı (en yeni en sonda)
                     scrapedData.splice(existingIndex, 1);
                     scrapedData.push(existing);
                 } else {
-                    // Yeni scrape ekle
+                    // Yeni scrape ekle (farklı sourceEntries)
                     const newScrape = {
                         id: `scrape-${Date.now()}`,
+                        sourceEntriesHash: sourceEntriesHash,
                         topicId: data.topicId || '',
                         topicTitle: data.topicTitle,
                         topicUrl: window.location.href,
                         scrapedAt: new Date().toISOString(),
                         entryCount: data.entryCount,
-                        sourceEntries: data.sourceEntries || [],
+                        sourceEntries: sourceEntries,
                         wasStopped: data.wasStopped || false,
                         analyses: []
                     };
@@ -89,11 +133,12 @@ const saveToHistory = async (data) => {
                 }
             } else {
                 // Analiz kaydetme
-                const topicKey = data.topicId || data.topicTitle;
-                const scrapeIndex = scrapedData.findIndex(item => {
-                    const itemKey = item.topicId || item.topicTitle;
-                    return itemKey === topicKey;
-                });
+                const sourceEntries = data.sourceEntries || [];
+                const sourceEntriesHash = createSourceEntriesHash(sourceEntries);
+                
+                const scrapeIndex = scrapedData.findIndex(item => 
+                    item.sourceEntriesHash === sourceEntriesHash
+                );
 
                 if (scrapeIndex >= 0) {
                     // İlgili scrape'i bulduk, analyses'e ekle
@@ -113,12 +158,13 @@ const saveToHistory = async (data) => {
                     // Scrape bulunamadı, önce scrape oluştur sonra analiz ekle
                     const newScrape = {
                         id: `scrape-${Date.now()}`,
+                        sourceEntriesHash: sourceEntriesHash,
                         topicId: data.topicId || '',
                         topicTitle: data.topicTitle,
                         topicUrl: window.location.href,
                         scrapedAt: new Date().toISOString(),
                         entryCount: data.entryCount || 0,
-                        sourceEntries: data.sourceEntries || [],
+                        sourceEntries: sourceEntries,
                         wasStopped: false,
                         analyses: [{
                             id: `analysis-${Date.now()}`,

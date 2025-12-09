@@ -214,9 +214,47 @@ const deleteHistoryItem = async (itemId) => {
 };
 
 /**
+ * sourceEntries array'inden unique hash oluşturur.
+ * 
+ * analysis-history.js'deki fonksiyonla aynı mantık.
+ * 
+ * @param {Array} sourceEntries - Entry array'i
+ * @returns {string} Hash string
+ */
+const createSourceEntriesHash = (sourceEntries) => {
+    if (!sourceEntries || sourceEntries.length === 0) {
+        return 'empty';
+    }
+
+    // Entry ID'lerini çıkar ve sırala
+    const entryIds = sourceEntries
+        .map(entry => entry.id)
+        .filter(id => id) // null/undefined kontrolü
+        .sort();
+
+    if (entryIds.length === 0) {
+        return 'empty';
+    }
+
+    // ID'leri birleştir ve basit hash oluştur
+    const combined = entryIds.join(',');
+    
+    // Basit hash fonksiyonu (string hash)
+    let hash = 0;
+    for (let i = 0; i < combined.length; i++) {
+        const char = combined.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // 32bit integer'a çevir
+    }
+    
+    return `hash${Math.abs(hash).toString(36)}`;
+};
+
+/**
  * Geçmiş sayfasından yapılan analiz sonuçlarını geçmişe kaydeder.
  * 
  * Birden fazla başlık içeren analizler için özel işlem yapar.
+ * sourceEntries hash'ine göre ilgili scrape'i bulur.
  * 
  * @param {Object} analysisData - Kaydedilecek analiz verisi
  * @param {string} analysisData.topicTitle - Başlık adı
@@ -243,54 +281,57 @@ const saveToHistoryFromPage = async (analysisData) => {
             const prompt = analysisData.prompt || '';
             const response = analysisData.response || '';
 
+            // sourceEntries hash'ini oluştur
+            const sourceEntries = analysisData.sourceEntries || [];
+            const sourceEntriesHash = createSourceEntriesHash(sourceEntries);
+
             // Birden fazla başlık içeren analizler için özel işlem
             if (analysisData.topics && analysisData.topics.length > 1) {
-                // Her başlık için ayrı scrape oluştur veya güncelle
-                analysisData.topics.forEach(topic => {
-                    const topicKey = topic.id || topic.title;
-                    const scrapeIndex = scrapedData.findIndex(item => {
-                        const itemKey = item.topicId || item.topicTitle;
-                        return itemKey === topicKey;
-                    });
+                // Birden fazla başlık için, her başlık için aynı sourceEntries hash'ini kullan
+                // Ama her başlık için ayrı scrape kaydı oluşturulabilir (farklı topicId/topicTitle)
+                // Ancak sourceEntries aynı olduğu için, sadece bir tane scrape oluşturup
+                // tüm başlıkları birleştirilmiş şekilde tutabiliriz
+                const scrapeIndex = scrapedData.findIndex(item => 
+                    item.sourceEntriesHash === sourceEntriesHash
+                );
 
-                    const newAnalysis = {
-                        id: `analysis-${Date.now()}-${topicKey}`,
-                        timestamp: new Date().toISOString(),
-                        prompt: prompt,
-                        promptPreview: prompt ? (prompt.substring(0, 100) + (prompt.length > 100 ? '...' : '')) : '',
-                        response: response,
-                        responsePreview: response ? (response.substring(0, 200) + (response.length > 200 ? '...' : '')) : '',
-                        modelId: analysisData.modelId || '',
-                        responseTime: analysisData.responseTime || 0,
-                        fromHistoryPage: true,
-                        topics: analysisData.topics
+                const newAnalysis = {
+                    id: `analysis-${Date.now()}`,
+                    timestamp: new Date().toISOString(),
+                    prompt: prompt,
+                    promptPreview: prompt ? (prompt.substring(0, 100) + (prompt.length > 100 ? '...' : '')) : '',
+                    response: response,
+                    responsePreview: response ? (response.substring(0, 200) + (response.length > 200 ? '...' : '')) : '',
+                    modelId: analysisData.modelId || '',
+                    responseTime: analysisData.responseTime || 0,
+                    fromHistoryPage: true,
+                    topics: analysisData.topics
+                };
+
+                if (scrapeIndex >= 0) {
+                    scrapedData[scrapeIndex].analyses.push(newAnalysis);
+                } else {
+                    // Yeni scrape oluştur (ilk başlığı kullan)
+                    const firstTopic = analysisData.topics[0];
+                    const newScrape = {
+                        id: `scrape-${Date.now()}`,
+                        sourceEntriesHash: sourceEntriesHash,
+                        topicId: firstTopic.id || '',
+                        topicTitle: firstTopic.title,
+                        topicUrl: firstTopic.url,
+                        scrapedAt: new Date().toISOString(),
+                        entryCount: analysisData.entryCount || 0,
+                        sourceEntries: sourceEntries,
+                        wasStopped: false,
+                        analyses: [newAnalysis]
                     };
-
-                    if (scrapeIndex >= 0) {
-                        scrapedData[scrapeIndex].analyses.push(newAnalysis);
-                    } else {
-                        // Yeni scrape oluştur
-                        const newScrape = {
-                            id: `scrape-${Date.now()}-${topicKey}`,
-                            topicId: topic.id || '',
-                            topicTitle: topic.title,
-                            topicUrl: topic.url,
-                            scrapedAt: new Date().toISOString(),
-                            entryCount: 0, // Birden fazla başlık için entry sayısı belirsiz
-                            sourceEntries: [],
-                            wasStopped: false,
-                            analyses: [newAnalysis]
-                        };
-                        scrapedData.push(newScrape);
-                    }
-                });
+                    scrapedData.push(newScrape);
+                }
             } else {
                 // Tek başlık için normal işlem
-                const topicKey = analysisData.topicId || analysisData.topicTitle;
-                const scrapeIndex = scrapedData.findIndex(item => {
-                    const itemKey = item.topicId || item.topicTitle;
-                    return itemKey === topicKey;
-                });
+                const scrapeIndex = scrapedData.findIndex(item => 
+                    item.sourceEntriesHash === sourceEntriesHash
+                );
 
                 const newAnalysis = {
                     id: `analysis-${Date.now()}`,
@@ -310,12 +351,13 @@ const saveToHistoryFromPage = async (analysisData) => {
                     // Yeni scrape oluştur
                     const newScrape = {
                         id: `scrape-${Date.now()}`,
+                        sourceEntriesHash: sourceEntriesHash,
                         topicId: analysisData.topicId || '',
                         topicTitle: analysisData.topicTitle,
                         topicUrl: analysisData.topicUrl,
                         scrapedAt: new Date().toISOString(),
                         entryCount: analysisData.entryCount || 0,
-                        sourceEntries: analysisData.sourceEntries || [],
+                        sourceEntries: sourceEntries,
                         wasStopped: false,
                         analyses: [newAnalysis]
                     };
@@ -753,27 +795,29 @@ const importHistory = async (file) => {
         });
 
         // Yeni kayıtları scrapedData formatına çevir
-        const newItemsMap = new Map(); // topicKey -> scrape object
+        const newItemsMap = new Map(); // sourceEntriesHash -> scrape object
 
         newItems.forEach(item => {
-            const topicKey = item.topicId || item.topicTitle;
+            const sourceEntries = item.sourceEntries || [];
+            const sourceEntriesHash = createSourceEntriesHash(sourceEntries);
             
-            if (!newItemsMap.has(topicKey)) {
+            if (!newItemsMap.has(sourceEntriesHash)) {
                 // Yeni scrape oluştur
-                newItemsMap.set(topicKey, {
-                    id: item.scrapeOnly ? item.id : `scrape-${Date.now()}-${topicKey}`,
+                newItemsMap.set(sourceEntriesHash, {
+                    id: item.scrapeOnly ? item.id : `scrape-${Date.now()}-${sourceEntriesHash}`,
+                    sourceEntriesHash: sourceEntriesHash,
                     topicId: item.topicId || '',
                     topicTitle: item.topicTitle,
                     topicUrl: item.topicUrl,
                     scrapedAt: item.scrapeOnly ? item.timestamp : new Date().toISOString(),
                     entryCount: item.entryCount,
-                    sourceEntries: item.sourceEntries || [],
+                    sourceEntries: sourceEntries,
                     wasStopped: item.wasStopped || false,
                     analyses: []
                 });
             }
 
-            const scrape = newItemsMap.get(topicKey);
+            const scrape = newItemsMap.get(sourceEntriesHash);
             
             if (!item.scrapeOnly) {
                 // Analiz ekle
@@ -793,11 +837,10 @@ const importHistory = async (file) => {
             }
         });
 
-        // Mevcut scrapedData ile birleştir (duplicate kontrolü)
-        const existingKeys = new Set(currentScrapedData.map(s => s.topicId || s.topicTitle));
+        // Mevcut scrapedData ile birleştir (duplicate kontrolü - sourceEntriesHash'e göre)
+        const existingHashes = new Set(currentScrapedData.map(s => s.sourceEntriesHash));
         const newScrapes = Array.from(newItemsMap.values()).filter(scrape => {
-            const key = scrape.topicId || scrape.topicTitle;
-            return !existingKeys.has(key);
+            return !existingHashes.has(scrape.sourceEntriesHash);
         });
 
         // Yeni scrape'leri ekle
