@@ -738,12 +738,28 @@ const callGeminiApiStreamingForTest = async (apiKey, modelId, prompt, signal, on
     const url = `https://generativelanguage.googleapis.com/${apiVersion}/models/${modelId}:streamGenerateContent?alt=sse&key=${apiKey}`;
 
     try {
-        // Test için system prompt kullanmıyoruz, sadece user prompt
-        const requestBody = {
-            contents: [{
-                parts: [{ text: prompt }]
-            }]
-        };
+        // Request body oluştur - sistem prompt'u da ekle
+        let requestBody;
+
+        if (apiVersion === 'v1beta') {
+            // v1beta: systemInstruction alanını kullan
+            requestBody = {
+                systemInstruction: {
+                    parts: [{ text: SYSTEM_PROMPT }]
+                },
+                contents: [{
+                    parts: [{ text: prompt }]
+                }]
+            };
+        } else {
+            // v1: system instruction'ı prompt'un başına ekle
+            const combinedPrompt = `${SYSTEM_PROMPT}\n\n${prompt}`;
+            requestBody = {
+                contents: [{
+                    parts: [{ text: combinedPrompt }]
+                }]
+            };
+        }
 
         const response = await fetch(url, {
             method: 'POST',
