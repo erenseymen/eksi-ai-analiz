@@ -1339,16 +1339,15 @@ const renderPrompts = () => {
 
         // Prompt kartı HTML'i (XSS koruması için escapeHtml kullanılıyor)
         div.innerHTML = `
-            <label>Buton Adı</label>
-            <input type="text" class="prompt-name" value="${escapeHtml(item.name)}" placeholder="Buton Adı">
+            <div class="prompt-name-row">
+                <label>Buton Adı</label>
+                <input type="text" class="prompt-name" value="${escapeHtml(item.name)}" placeholder="Buton Adı">
+                <button class="save-item-btn">Kaydet</button>
+                <button class="delete-btn">Sil</button>
+            </div>
             
             <label>Prompt</label>
             <textarea class="prompt-text" placeholder="Prompt içeriği...">${escapeHtml(item.prompt)}</textarea>
-            
-            <div style="margin-top: 10px;">
-                <button class="save-item-btn" style="margin-right: 5px;">Kaydet</button>
-                <button class="delete-btn">Sil</button>
-            </div>
         `;
 
         // Event listener'ları bağla
