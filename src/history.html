@@ -153,6 +153,38 @@
             text-decoration: underline;
         }
 
+        .history-title-multi {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+        }
+
+        .history-title-count {
+            font-weight: 600;
+            color: #81c14b;
+            font-size: 14px;
+        }
+
+        .history-title-link {
+            font-weight: 500;
+            color: #81c14b;
+            text-decoration: none;
+            font-size: 14px;
+            padding-left: 12px;
+            word-break: break-word;
+        }
+
+        .history-title-link:hover {
+            text-decoration: underline;
+        }
+
+        .history-title-link::before {
+            content: '•';
+            margin-right: 6px;
+            color: #666;
+        }
+
         .history-date {
             font-size: 12px;
             color: #666;
@@ -505,6 +537,18 @@
 
             .history-title {
                 color: #81c14b;
+            }
+
+            .history-title-count {
+                color: #81c14b;
+            }
+
+            .history-title-link {
+                color: #81c14b;
+            }
+
+            .history-title-link::before {
+                color: #888;
             }
 
             .history-date {

@@ -174,6 +174,8 @@ const saveToHistoryFromPage = async (analysisData) => {
                 entryCount: analysisData.entryCount,
                 responseTime: analysisData.responseTime,
                 sourceEntries: analysisData.sourceEntries || [],
+                // Birden fazla başlık içeren analizler için topics dizisi
+                topics: analysisData.topics || null,
                 // Geçmiş sayfasından yapılan analiz
                 fromHistoryPage: true
             };
@@ -287,10 +289,23 @@ const renderHistory = (history, append = false) => {
             ? '<em style="opacity: 0.6;">Henüz analiz yapılmadı - entry\'ler kaydedildi</em>'
             : escapeHtml(item.promptPreview || (item.prompt ? item.prompt.substring(0, 100) + (item.prompt.length > 100 ? '...' : '') : ''));
 
+        // Başlık gösterimi - birden fazla başlık varsa alt alta linklerle göster
+        let titleHtml = '';
+        if (item.topics && item.topics.length > 1) {
+            // Birden fazla başlık - alt alta linkli göster
+            titleHtml = `<div class="history-title-multi">
+                <span class="history-title-count">${item.topics.length} başlık:</span>
+                ${item.topics.map(t => `<a href="${escapeHtml(t.url)}" target="_blank" class="history-title-link">${escapeHtml(t.title)}</a>`).join('')}
+            </div>`;
+        } else {
+            // Tek başlık
+            titleHtml = `<a href="${escapeHtml(item.topicUrl)}" target="_blank" class="history-title">${escapeHtml(item.topicTitle)}</a>`;
+        }
+
         html += `
             <div class="history-item ${selectableClass} ${selectedClass}" data-id="${escapeHtml(item.id)}" data-has-source="${hasSourceEntries}">
                 <div class="history-item-header">
-                    <a href="${escapeHtml(item.topicUrl)}" target="_blank" class="history-title">${escapeHtml(item.topicTitle)}</a>
+                    ${titleHtml}
                     <span class="history-date">${dateStr}</span>
                 </div>
                 <div class="history-meta">
@@ -335,7 +350,7 @@ const attachEventListeners = (history) => {
     document.querySelectorAll('.history-item.selectable').forEach(item => {
         item.addEventListener('click', (e) => {
             // Butonlara veya linklere tıklandığında seçim yapma
-            if (e.target.closest('.history-actions') || e.target.closest('.history-title')) {
+            if (e.target.closest('.history-actions') || e.target.closest('.history-title') || e.target.closest('.history-title-link')) {
                 return;
             }
 
@@ -773,10 +788,26 @@ ${userPrompt}`;
         );
 
         // Sonucu geçmişe kaydet
-        // Birden fazla başlık varsa birleştir
-        const combinedTitle = selectedItemsList.length === 1
-            ? selectedItemsList[0].topicTitle
-            : `${selectedItemsList.length} başlık (${selectedItemsList.map(i => i.topicTitle).join(', ').substring(0, 50)}...)`;
+        // Birden fazla başlık varsa birleştir - iç içe geçmiş "X başlık" ifadelerini çöz
+        // Her öğenin gerçek başlık sayısını hesapla
+        let combinedTopics = [];
+        selectedItemsList.forEach(item => {
+            // Eğer öğe zaten birleştirilmiş bir analiz ise (topics dizisi varsa), onları kullan
+            if (item.topics && item.topics.length > 0) {
+                combinedTopics.push(...item.topics);
+            } else {
+                // Tek başlıklı öğe
+                combinedTopics.push({
+                    title: item.topicTitle,
+                    url: item.topicUrl
+                });
+            }
+        });
+
+        const totalTopicCount = combinedTopics.length;
+        const combinedTitle = totalTopicCount === 1
+            ? combinedTopics[0].title
+            : `${totalTopicCount} başlık`;
 
         // Tüm entry'leri birleştir
         const allSourceEntries = [];
@@ -791,7 +822,9 @@ ${userPrompt}`;
             modelId: modelId,
             entryCount: allSourceEntries.length,
             responseTime: responseTime,
-            sourceEntries: allSourceEntries
+            sourceEntries: allSourceEntries,
+            // Birden fazla başlık varsa topics dizisini kaydet
+            topics: totalTopicCount > 1 ? combinedTopics : null
         });
 
         // Geçmiş listesini yenile (yeni kayıt görünsün)
