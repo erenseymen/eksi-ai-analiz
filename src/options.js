@@ -867,10 +867,6 @@ const compareModelsWithStreaming = async () => {
         card.id = cardId;
         card.className = 'model-comparison-card';
         
-        const statusDiv = document.createElement('div');
-        statusDiv.className = 'model-comparison-status loading';
-        statusDiv.textContent = '⏳ Başlatılıyor...';
-        
         const responseDiv = document.createElement('div');
         responseDiv.className = 'model-comparison-response';
         
@@ -894,14 +890,12 @@ const compareModelsWithStreaming = async () => {
         h4.appendChild(checkbox);
         
         card.appendChild(h4);
-        card.appendChild(statusDiv);
         card.appendChild(responseDiv);
         card.appendChild(metaDiv);
         
         successGridContainer.appendChild(card);
         const cardData = {
             card,
-            statusDiv,
             responseDiv,
             metaDiv,
             checkbox,
@@ -957,8 +951,6 @@ const compareModelsWithStreaming = async () => {
         if (!cardData) return;
 
         try {
-            cardData.statusDiv.className = 'model-comparison-status loading';
-            cardData.statusDiv.textContent = '🔄 İstek gönderiliyor...';
             cardData.startTime = performance.now();
 
             // Streaming API çağrısı (test için system prompt kullanmıyoruz)
@@ -973,8 +965,6 @@ const compareModelsWithStreaming = async () => {
                     
                     cardData.fullText = fullText;
                     cardData.responseDiv.textContent = fullText;
-                    cardData.statusDiv.className = 'model-comparison-status loading';
-                    cardData.statusDiv.textContent = '📝 Yanıt alınıyor...';
                     
                     // Scroll to bottom
                     cardData.responseDiv.scrollTop = cardData.responseDiv.scrollHeight;
@@ -990,8 +980,6 @@ const compareModelsWithStreaming = async () => {
             // Token tahmini (basit: karakter sayısı / 4)
             const estimatedTokens = Math.ceil(cardData.fullText.length / 4);
             
-            cardData.statusDiv.className = 'model-comparison-status success';
-            cardData.statusDiv.textContent = '';
             cardData.metaDiv.textContent = `Süre: ${responseTime}s | Tahmini Token: ~${estimatedTokens}`;
             
             // Başarılı durumda - seçiliyse başarılı modeller bölümüne, değilse seçilmeyen modeller bölümüne taşı
@@ -1018,10 +1006,7 @@ const compareModelsWithStreaming = async () => {
             // Kartı hata stili ile işaretle
             cardData.card.classList.add('has-error');
             
-            // Status ve response alanlarını güncelle
-            cardData.statusDiv.className = 'model-comparison-status error';
-            cardData.statusDiv.textContent = '';
-            
+            // Response alanını güncelle
             cardData.responseDiv.className = 'model-comparison-response error-message';
             cardData.responseDiv.textContent = formattedError;
             
