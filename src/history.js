@@ -225,6 +225,13 @@ const renderHistory = (history, append = false) => {
         statsEl.style.display = 'none';
         clearBtn.style.display = 'none';
         loadMoreContainer.style.display = 'none';
+        
+        // Export/Import butonlarını gizle (boş geçmişte export anlamsız)
+        const exportBtn = document.getElementById('btnExport');
+        const importBtn = document.getElementById('btnImport');
+        if (exportBtn) exportBtn.style.display = 'none';
+        if (importBtn) importBtn.style.display = 'none';
+        
         return;
     }
 
@@ -238,6 +245,12 @@ const renderHistory = (history, append = false) => {
     historyListEl.style.display = 'flex';
     statsEl.style.display = 'block';
     clearBtn.style.display = 'block';
+    
+    // Export/Import butonlarını göster
+    const exportBtn = document.getElementById('btnExport');
+    const importBtn = document.getElementById('btnImport');
+    if (exportBtn) exportBtn.style.display = 'inline-block';
+    if (importBtn) importBtn.style.display = 'inline-block';
 
     // İstatistikleri göster
     const statsTextEl = document.getElementById('statsText');
@@ -495,6 +508,128 @@ const loadHistory = async () => {
 };
 
 // =============================================================================
+// EXPORT/IMPORT
+// =============================================================================
+
+/**
+ * Analiz geçmişini JSON dosyası olarak dışa aktarır.
+ */
+const exportHistory = async () => {
+    try {
+        const history = await getHistory();
+        
+        if (history.length === 0) {
+            alert('Dışa aktarılacak analiz geçmişi bulunamadı.');
+            return;
+        }
+
+        const exportData = {
+            version: '1.0',
+            exportDate: new Date().toISOString(),
+            itemCount: history.length,
+            history: history
+        };
+
+        const dataStr = JSON.stringify(exportData, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const filename = `eksi-ai-analiz-gecmisi-${timestamp}.json`;
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        console.error('Export hatası:', err);
+        alert('Dışa aktarma sırasında bir hata oluştu: ' + err.message);
+    }
+};
+
+/**
+ * JSON dosyasından analiz geçmişini içe aktarır.
+ * 
+ * @param {File} file - Yüklenecek JSON dosyası
+ */
+const importHistory = async (file) => {
+    try {
+        const fileText = await file.text();
+        const importData = JSON.parse(fileText);
+
+        // Veri formatını kontrol et
+        if (!importData.history || !Array.isArray(importData.history)) {
+            throw new Error('Geçersiz dosya formatı. Geçmiş verisi bulunamadı.');
+        }
+
+        // Mevcut geçmişi al
+        const currentHistory = await getHistory();
+        const existingIds = new Set(currentHistory.map(item => item.id));
+
+        // Yeni kayıtları filtrele (duplicate kontrolü)
+        const newItems = importData.history.filter(item => {
+            // ID kontrolü
+            if (existingIds.has(item.id)) {
+                return false;
+            }
+            // Aynı timestamp ve topicTitle kombinasyonu kontrolü
+            const duplicate = currentHistory.find(existing => 
+                existing.timestamp === item.timestamp && 
+                existing.topicTitle === item.topicTitle &&
+                existing.prompt === item.prompt
+            );
+            return !duplicate;
+        });
+
+        if (newItems.length === 0) {
+            alert('İçe aktarılacak yeni kayıt bulunamadı. Tüm kayıtlar zaten mevcut.');
+            return;
+        }
+
+        // Onay al
+        const confirmed = confirm(
+            `${importData.history.length} kayıt bulundu.\n` +
+            `${newItems.length} yeni kayıt eklenecek.\n` +
+            `${importData.history.length - newItems.length} kayıt zaten mevcut (atlanacak).\n\n` +
+            `Devam etmek istiyor musunuz?`
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        // Yeni kayıtları mevcut geçmişe ekle (başa ekle - en yeni en üstte)
+        const updatedHistory = [...newItems, ...currentHistory];
+
+        // Storage'a kaydet
+        await new Promise((resolve) => {
+            chrome.storage.local.set({ analysisHistory: updatedHistory }, resolve);
+        });
+
+        // Listeyi yeniden yükle
+        await loadHistory();
+
+        // Başarı mesajı
+        const statsTextEl = document.getElementById('statsText');
+        if (statsTextEl) {
+            const originalText = statsTextEl.textContent;
+            statsTextEl.textContent = `✅ ${newItems.length} kayıt başarıyla içe aktarıldı`;
+            statsTextEl.style.color = '#28a745';
+            setTimeout(() => {
+                statsTextEl.textContent = originalText;
+                statsTextEl.style.color = '';
+            }, 3000);
+        }
+    } catch (err) {
+        console.error('Import hatası:', err);
+        alert('İçe aktarma sırasında bir hata oluştu: ' + err.message);
+    }
+};
+
+// =============================================================================
 // SAYFA YÜKLENDİĞİNDE
 // =============================================================================
 
@@ -561,6 +696,29 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Yeniden analiz modal event'leri
     setupReanalyzeModal();
+
+    // Export butonu
+    const exportBtn = document.getElementById('btnExport');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', exportHistory);
+    }
+
+    // Import butonu ve file input
+    const importBtn = document.getElementById('btnImport');
+    const importFileInput = document.getElementById('importFileInput');
+    if (importBtn && importFileInput) {
+        importBtn.addEventListener('click', () => {
+            importFileInput.click();
+        });
+        importFileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                await importHistory(file);
+                // Input'u temizle (aynı dosyayı tekrar seçebilmek için)
+                e.target.value = '';
+            }
+        });
+    }
 
     // Geçmişi yükle
     loadHistory();
