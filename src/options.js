@@ -1267,6 +1267,23 @@ const useModelInSettings = async (modelId) => {
 // =============================================================================
 
 /**
+ * Textarea'nın yüksekliğini içeriğe göre otomatik ayarlar.
+ * 
+ * @param {HTMLTextAreaElement} textarea - Yüksekliği ayarlanacak textarea elementi
+ */
+const autoResizeTextarea = (textarea) => {
+    // Önce yüksekliği sıfırla ki scrollHeight doğru hesaplansın
+    textarea.style.height = 'auto';
+    
+    // scrollHeight'ı al ve max-height ile karşılaştır
+    const scrollHeight = textarea.scrollHeight;
+    const maxHeight = 400; // CSS'teki max-height ile aynı
+    
+    // scrollHeight max-height'tan küçükse scrollHeight kullan, değilse max-height kullan
+    textarea.style.height = Math.min(scrollHeight, maxHeight) + 'px';
+};
+
+/**
  * Prompt listesini DOM'a render eder.
  * 
  * Her prompt için düzenlenebilir bir kart oluşturur:
@@ -1310,6 +1327,18 @@ const renderPrompts = () => {
         // Event listener'ları bağla
         div.querySelector('.save-item-btn').onclick = saveOptions;
         div.querySelector('.delete-btn').onclick = () => removePrompt(index);
+
+        // Textarea'yı al ve auto-resize özelliğini ekle
+        const textarea = div.querySelector('.prompt-text');
+        if (textarea) {
+            // İlk render'da yüksekliği ayarla
+            autoResizeTextarea(textarea);
+            
+            // İçerik değiştiğinde yüksekliği güncelle
+            textarea.addEventListener('input', () => {
+                autoResizeTextarea(textarea);
+            });
+        }
 
         list.appendChild(div);
     });
