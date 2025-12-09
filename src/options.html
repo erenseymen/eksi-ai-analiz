@@ -1589,6 +1589,150 @@
                 flex: 1;
             }
         }
+
+        /* Markdown Stilleri */
+        .eksi-ai-code-block {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.85em;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1em;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 1em 0;
+            border: 1px solid #444;
+        }
+
+        .eksi-ai-code-block code {
+            background: none;
+            padding: 0;
+            border: none;
+            color: inherit;
+            font-size: inherit;
+        }
+
+        .eksi-ai-json-block {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            word-break: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .eksi-ai-json-block code {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            word-break: break-word;
+        }
+
+        .eksi-ai-json-key {
+            color: #9cdcfe;
+        }
+
+        .eksi-ai-json-string {
+            color: #ce9178;
+        }
+
+        .eksi-ai-json-number {
+            color: #b5cea8;
+        }
+
+        .eksi-ai-json-boolean {
+            color: #569cd6;
+        }
+
+        .eksi-ai-inline-code {
+            background: rgba(0, 0, 0, 0.1);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.9em;
+        }
+
+        body.dark-theme .eksi-ai-inline-code {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .eksi-ai-table-wrapper {
+            margin: 1em 0;
+            overflow-x: auto;
+        }
+
+        .eksi-ai-markdown-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 1em 0;
+        }
+
+        .eksi-ai-markdown-table th,
+        .eksi-ai-markdown-table td {
+            border: 1px solid #ddd;
+            padding: 0.6em 0.8em;
+            text-align: left;
+        }
+
+        .eksi-ai-markdown-table th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+
+        .eksi-ai-markdown-table tr:nth-child(even) {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        body.dark-theme .eksi-ai-markdown-table th,
+        body.dark-theme .eksi-ai-markdown-table td {
+            border-color: #444;
+        }
+
+        body.dark-theme .eksi-ai-markdown-table th {
+            background: #363636;
+        }
+
+        body.dark-theme .eksi-ai-markdown-table tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .model-comparison-response h1,
+        .model-comparison-response h2,
+        .model-comparison-response h3,
+        .model-comparison-response h4,
+        .model-comparison-response h5,
+        .model-comparison-response h6 {
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+            font-weight: 600;
+        }
+
+        .model-comparison-response p {
+            margin: 0.5em 0;
+        }
+
+        .model-comparison-response ul,
+        .model-comparison-response ol {
+            margin: 0.5em 0;
+            padding-left: 1.5em;
+        }
+
+        .model-comparison-response blockquote {
+            border-left: 3px solid #81c14b;
+            padding-left: 1em;
+            margin: 0.5em 0;
+            color: #666;
+        }
+
+        body.dark-theme .model-comparison-response blockquote {
+            border-left-color: #81c14b;
+            color: #999;
+        }
+
+        .model-comparison-response a {
+            color: #81c14b;
+            text-decoration: underline;
+        }
+
+        .model-comparison-response a:hover {
+            color: #6da53e;
+        }
     </style>
 </head>
 
@@ -1791,6 +1935,7 @@ bu yeni satırlı bir prompt</textarea>
     <script src="prompts.js"></script>
     <script src="constants.js"></script>
     <script src="utils.js"></script>
+    <script src="markdown.js"></script>
     <script src="api.js"></script>
     <script src="stats.js"></script>
     <script src="options.js"></script>

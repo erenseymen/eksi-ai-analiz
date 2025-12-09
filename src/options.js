@@ -767,6 +767,8 @@ const formatErrorMessage = (errorMessage, errorType) => {
  * Her model için aynı prompt'u gönderir ve yanıtları gerçek zamanlı yan yana gösterir.
  * Sonuçlar modal pencerede gösterilir. Hata alan modeller hata bilgileriyle birlikte gösterilir.
  */
+let modelComparisonAbortControllers = []; // Modal kapatıldığında iptal edilecek AbortController'lar
+
 const compareModelsWithStreaming = async () => {
     const modal = document.getElementById('modelComparisonModal');
     const modalBody = document.getElementById('modalBody');
@@ -793,6 +795,16 @@ const compareModelsWithStreaming = async () => {
     if (isCheckingModels) {
         return;
     }
+
+    // Önceki AbortController'ları temizle
+    modelComparisonAbortControllers.forEach(controller => {
+        try {
+            controller.abort();
+        } catch (e) {
+            // Zaten abort edilmiş olabilir
+        }
+    });
+    modelComparisonAbortControllers = [];
 
     isCheckingModels = true;
     
@@ -945,10 +957,14 @@ const compareModelsWithStreaming = async () => {
     }
 
     // Her model için streaming çağrısı yap (paralel)
-    const abortController = new AbortController();
+    // Her model için ayrı AbortController oluştur
     const streamingPromises = MODELS.map(async (model) => {
         const cardData = modelCards[model.id];
         if (!cardData) return;
+
+        // Her model için ayrı AbortController oluştur
+        const abortController = new AbortController();
+        modelComparisonAbortControllers.push(abortController);
 
         try {
             cardData.startTime = performance.now();
@@ -964,7 +980,8 @@ const compareModelsWithStreaming = async () => {
                     if (!isCheckingModels) return; // İptal edildiyse güncelleme yapma
                     
                     cardData.fullText = fullText;
-                    cardData.responseDiv.textContent = fullText;
+                    // Markdown olarak göster
+                    cardData.responseDiv.innerHTML = parseMarkdown(fullText);
                     
                     // Scroll to bottom
                     cardData.responseDiv.scrollTop = cardData.responseDiv.scrollHeight;
@@ -1531,18 +1548,31 @@ const setupModal = () => {
     
     if (!modal || !closeBtn) return;
     
+    // Modal kapatıldığında tüm request'leri iptal et
+    const cancelAllRequests = () => {
+        isCheckingModels = false;
+        // Tüm AbortController'ları abort et
+        modelComparisonAbortControllers.forEach(controller => {
+            try {
+                controller.abort();
+            } catch (e) {
+                // Zaten abort edilmiş olabilir
+            }
+        });
+        modelComparisonAbortControllers = [];
+    };
+    
     // Kapat butonuna tıklandığında
     closeBtn.addEventListener('click', () => {
         modal.classList.remove('active');
-        // İptal et
-        isCheckingModels = false;
+        cancelAllRequests();
     });
     
     // Modal overlay'e tıklandığında (modal içeriğine değil)
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             modal.classList.remove('active');
-            isCheckingModels = false;
+            cancelAllRequests();
         }
     });
     
@@ -1550,7 +1580,7 @@ const setupModal = () => {
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && modal.classList.contains('active')) {
             modal.classList.remove('active');
-            isCheckingModels = false;
+            cancelAllRequests();
         }
     });
 };
