@@ -799,7 +799,7 @@ const compareModelsWithStreaming = async () => {
     // Modal'ı göster
     modal.classList.add('active');
     
-    // İki bölüm oluştur: başarılı modeller ve hatalı modeller
+    // Üç bölüm oluştur: başarılı modeller, seçilmeyen modeller ve hata alınan modeller
     modalBody.innerHTML = `
         <div class="models-comparison-section" id="successfulModelsSection">
             <div class="models-comparison-section-title success" id="successfulModelsTitle" style="display: none;">
@@ -807,13 +807,17 @@ const compareModelsWithStreaming = async () => {
             </div>
             <div class="models-comparison-grid" id="modelsComparisonGrid"></div>
         </div>
-        <div class="models-comparison-section" id="failedModelsSection">
-            <div class="models-comparison-grid" id="failedModelsGrid"></div>
+        <div class="models-comparison-section" id="unselectedModelsSection">
+            <div class="models-comparison-grid" id="unselectedModelsGrid"></div>
+        </div>
+        <div class="models-comparison-section" id="errorModelsSection">
+            <div class="models-comparison-grid" id="errorModelsGrid"></div>
         </div>
     `;
     
     const successGridContainer = document.getElementById('modelsComparisonGrid');
-    const failedGridContainer = document.getElementById('failedModelsGrid');
+    const unselectedGridContainer = document.getElementById('unselectedModelsGrid');
+    const errorGridContainer = document.getElementById('errorModelsGrid');
     const successfulModelsTitle = document.getElementById('successfulModelsTitle');
     
     // Başlangıç durumu
@@ -823,11 +827,26 @@ const compareModelsWithStreaming = async () => {
     const modelCards = {};
     
     /**
-     * Model kartını başarılı modeller bölümünden hatalı modeller bölümüne taşır veya tersini yapar
+     * Model kartını doğru bölüme taşır
+     * targetSection: 'success' (başarılı), 'unselected' (seçilmeyen), 'error' (hata)
      */
     const moveCardBetweenSections = (cardData, targetSection) => {
         const currentContainer = cardData.gridContainer;
-        const targetContainer = targetSection === 'success' ? successGridContainer : failedGridContainer;
+        let targetContainer;
+        
+        switch (targetSection) {
+            case 'success':
+                targetContainer = successGridContainer;
+                break;
+            case 'unselected':
+                targetContainer = unselectedGridContainer;
+                break;
+            case 'error':
+                targetContainer = errorGridContainer;
+                break;
+            default:
+                return;
+        }
         
         if (currentContainer !== targetContainer) {
             currentContainer.removeChild(cardData.card);
@@ -899,19 +918,18 @@ const compareModelsWithStreaming = async () => {
             const isSelected = checkbox.checked;
             cardData.isSelected = isSelected;
             
-            if (isSelected) {
-                // Seçildi - eğer hata yoksa başarılı modeller bölümüne taşı
+            if (cardData.hasError) {
+                // Hata varsa her zaman hata bölümünde kal
                 card.classList.remove('unselected');
-                if (!cardData.hasError) {
-                    moveCardBetweenSections(cardData, 'success');
-                } else {
-                    // Hata varsa hatalı modeller bölümünde kal
-                    moveCardBetweenSections(cardData, 'failed');
-                }
+                moveCardBetweenSections(cardData, 'error');
+            } else if (isSelected) {
+                // Seçildi ve hata yok - başarılı modeller bölümüne taşı
+                card.classList.remove('unselected');
+                moveCardBetweenSections(cardData, 'success');
             } else {
-                // Seçilmedi - hatalı modeller bölümüne taşı
+                // Seçilmedi ve hata yok - seçilmeyen modeller bölümüne taşı
                 card.classList.add('unselected');
-                moveCardBetweenSections(cardData, 'failed');
+                moveCardBetweenSections(cardData, 'unselected');
             }
             
             // Başlık satırını güncelle
@@ -975,11 +993,11 @@ const compareModelsWithStreaming = async () => {
             cardData.statusDiv.textContent = '✅ Tamamlandı';
             cardData.metaDiv.textContent = `Süre: ${responseTime}s | Tahmini Token: ~${estimatedTokens}`;
             
-            // Eğer seçiliyse başarılı modeller bölümüne taşı, değilse hatalı modeller bölümünde tut
+            // Başarılı durumda - seçiliyse başarılı modeller bölümüne, değilse seçilmeyen modeller bölümüne taşı
             if (cardData.isSelected) {
                 moveCardBetweenSections(cardData, 'success');
             } else {
-                moveCardBetweenSections(cardData, 'failed');
+                moveCardBetweenSections(cardData, 'unselected');
             }
             
         } catch (error) {
@@ -990,8 +1008,8 @@ const compareModelsWithStreaming = async () => {
             const errorType = getErrorType(error.message);
             const formattedError = formatErrorMessage(error.message, errorType);
             
-            // Kartı hatalı modeller bölümüne taşı
-            moveCardBetweenSections(cardData, 'failed');
+            // Kartı hata alınan modeller bölümüne taşı (3. satır)
+            moveCardBetweenSections(cardData, 'error');
             
             // Kartı hata stili ile işaretle
             cardData.card.classList.add('has-error');
