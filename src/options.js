@@ -148,7 +148,6 @@ const saveOptions = async () => {
     const apiKey = document.getElementById('apiKey').value;
     const modelSelect = document.getElementById('modelSelect');
     const selectedModel = modelSelect.value;
-    const status = document.getElementById('status');
     const saveBtnStatus = document.getElementById('saveBtnStatus');
 
     // Önceki API key'i al (karşılaştırma için)
@@ -166,23 +165,17 @@ const saveOptions = async () => {
         saveBtnStatus.className = 'status';
         saveBtnStatus.style.display = 'inline-block';
     }
-    status.textContent = 'API Key doğrulanıyor...';
-    status.className = 'status';
-    status.style.display = 'block';
 
     const validation = await validateApiKey(apiKey, true);
 
     if (!validation.valid) {
         // Hata mesajı zaten API key alanının altında gösteriliyor
-        // Genel status alanını temizle
+        // Buton yanındaki status alanını temizle
         if (saveBtnStatus) {
             saveBtnStatus.textContent = '';
             saveBtnStatus.className = 'status';
             saveBtnStatus.style.display = 'none';
         }
-        status.textContent = '';
-        status.className = 'status';
-        status.style.display = 'none';
         return;
     }
 
@@ -215,13 +208,6 @@ const saveOptions = async () => {
                 saveBtnStatus.style.display = 'none';
             }, 3000);
         }
-        status.textContent = 'Ayarlar kaydedildi.';
-        status.className = 'status success';
-        setTimeout(() => {
-            status.textContent = '';
-            status.className = 'status';
-            status.style.display = 'none';
-        }, 3000);
 
         // State tutarlılığı için listeyi yeniden render et
         renderPrompts();
@@ -1186,7 +1172,6 @@ const compareModelsWithStreaming = async () => {
 const useModelInSettings = async (modelId) => {
     const apiKey = document.getElementById('apiKey').value;
     const modelSelect = document.getElementById('modelSelect');
-    const status = document.getElementById('status');
     const saveBtnStatus = document.getElementById('saveBtnStatus');
 
     // Model seçimini güncelle
@@ -1229,14 +1214,6 @@ const useModelInSettings = async (modelId) => {
                 saveBtnStatus.style.display = 'none';
             }, 3000);
         }
-        status.textContent = message;
-        status.className = 'status success';
-        status.style.display = 'block';
-        setTimeout(() => {
-            status.textContent = '';
-            status.className = 'status';
-            status.style.display = 'none';
-        }, 3000);
 
         // Tüm modellerin durumunu yeniden kontrol etme - zaten devam eden kontrol varsa onu bozmamak için
         // Sadece seçilen modelin satırını güncelle (eğer kontrol tamamlandıysa)
