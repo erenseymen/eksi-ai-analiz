@@ -496,6 +496,90 @@
             border-top: 1px solid #eee;
         }
 
+        /* Model Selection Cards Grid */
+        .model-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .model-select-card {
+            background: #f8f9fa;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            outline: none;
+        }
+
+        .model-select-card:focus {
+            outline: 2px solid #81c14b;
+            outline-offset: 2px;
+        }
+
+        .model-select-card:hover {
+            border-color: #81c14b;
+            background: #f0f8f0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(129, 193, 75, 0.15);
+        }
+
+        .model-select-card.selected {
+            border-color: #81c14b;
+            background: linear-gradient(135deg, #f0f8f0 0%, #e8f5e0 100%);
+            box-shadow: 0 2px 8px rgba(129, 193, 75, 0.2);
+        }
+
+        .model-select-card.selected::before {
+            content: '✓';
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #81c14b;
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .model-card-name {
+            font-weight: 600;
+            font-size: 0.95em;
+            color: #333;
+            margin-bottom: 6px;
+        }
+
+        .model-card-description {
+            font-size: 0.8em;
+            color: #666;
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+
+        .model-card-meta {
+            font-size: 0.75em;
+            color: #888;
+            border-top: 1px solid #e0e0e0;
+            padding-top: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .model-card-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+
         /* Modal */
         .modal-overlay {
             display: none;
@@ -987,6 +1071,35 @@
         body.dark-theme .model-comparison-meta {
             color: #999 !important;
             border-top-color: #444 !important;
+        }
+
+        /* Model Selection Cards - Dark Theme */
+        body.dark-theme .model-select-card {
+            background: #363636 !important;
+            border-color: #555 !important;
+        }
+
+        body.dark-theme .model-select-card:hover {
+            border-color: #81c14b !important;
+            background: #3a4a35 !important;
+        }
+
+        body.dark-theme .model-select-card.selected {
+            border-color: #81c14b !important;
+            background: linear-gradient(135deg, #3a4a35 0%, #2d3d28 100%) !important;
+        }
+
+        body.dark-theme .model-card-name {
+            color: #e0e0e0 !important;
+        }
+
+        body.dark-theme .model-card-description {
+            color: #aaa !important;
+        }
+
+        body.dark-theme .model-card-meta {
+            color: #888 !important;
+            border-top-color: #555 !important;
         }
 
         body.dark-theme .modal-container {
@@ -1588,6 +1701,10 @@
             #themeSelect {
                 flex: 1;
             }
+
+            .model-cards-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         /* Markdown Stilleri */
@@ -1790,11 +1907,14 @@
                     <span class="section-toggle">▼</span>
                 </div>
                 <div class="section-content">
-                    <label for="modelSelect">Model</label>
-                    <select id="modelSelect" style="width: 100%; margin-bottom: 10px;">
+                    <!-- Dropdown gizli, kartlar için JS kullanılacak -->
+                    <select id="modelSelect" style="display: none;">
                         <!-- Options will be populated by JS -->
                     </select>
-                    <div id="modelInfo"></div>
+                    <div id="modelCardsGrid" class="model-cards-grid">
+                        <!-- Model kartları JS tarafından doldurulacak -->
+                    </div>
+                    <div id="modelInfo" style="display: none;"></div>
 
                     <div id="allModelsStatus">
                         <h3>Tüm Modellerin API Durumu</h3>
@@ -1803,7 +1923,8 @@
 
                     <div style="margin-top: 15px; margin-bottom: 10px;">
                         <label for="modelTestPrompt">Test Promptu (Özelleştirilebilir)</label>
-                        <textarea id="modelTestPrompt" rows="3" placeholder="Test için kullanılacak prompt..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; font-size: 0.9em; resize: vertical; margin-bottom: 8px;">naber?
+                        <textarea id="modelTestPrompt" rows="3" placeholder="Test için kullanılacak prompt..."
+                            style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; font-size: 0.9em; resize: vertical; margin-bottom: 8px;">naber?
 
 bu yeni satırlı bir prompt</textarea>
                     </div>

@@ -346,21 +346,19 @@ const restoreOptions = async () => {
 
 
 /**
- * Model seçim dropdown'ını MODELS listesiyle doldurur.
+ * Model seçim kartlarını MODELS listesiyle doldurur.
  * 
- * Seçim değiştiğinde model bilgilerini (açıklama, maliyet, yanıt süresi)
- * günceller. Sayfa yüklendiğinde kaydedilmiş modeli seçili olarak işaretler.
- * Model availability durumunu da gösterir.
+ * Kartlar yan yana grid düzeninde gösterilir. Tıklandığında model seçilir.
+ * Sayfa yüklendiğinde kaydedilmiş modeli seçili olarak işaretler.
  * 
  * @param {string} savedModelId - Önceden kaydedilmiş model ID'si
  */
 const populateModelSelect = async (savedModelId) => {
     const select = document.getElementById('modelSelect');
-    const infoDiv = document.getElementById('modelInfo');
+    const cardsGrid = document.getElementById('modelCardsGrid');
 
+    // Dropdown'ı da doldur (kaydetme için kullanılıyor)
     select.innerHTML = '';
-
-    // Model option'larını oluştur
     MODELS.forEach(model => {
         const option = document.createElement('option');
         option.value = model.id;
@@ -371,32 +369,54 @@ const populateModelSelect = async (savedModelId) => {
         select.appendChild(option);
     });
 
-    /**
-     * Model bilgi alanını günceller.
-     * Seçili modelin detaylarını info div'inde gösterir.
-     * Model availability durumunu göstermez, sadece temel bilgileri gösterir.
-     */
-    const updateInfo = () => {
-        const selectedId = select.value;
-        const model = MODELS.find(m => m.id === selectedId);
-        if (!model) return;
+    // Kartları oluştur
+    cardsGrid.innerHTML = '';
+    MODELS.forEach(model => {
+        const card = document.createElement('div');
+        const isSelected = model.id === savedModelId;
+        card.className = 'model-select-card' + (isSelected ? ' selected' : '');
+        card.dataset.modelId = model.id;
+        card.setAttribute('role', 'button');
+        card.setAttribute('tabindex', '0');
+        card.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+        card.setAttribute('aria-label', `${model.name} modelini seç. ${model.description}. Maliyet: ${model.cost}, Yanıt süresi: ${model.responseTime}`);
 
-        infoDiv.innerHTML = `
-            <strong>${model.name}</strong><br>
-            ${model.description}<br>
-            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ccc;">
-                <small><strong>Maliyet:</strong> ${model.cost}</small><br>
-                <small><strong>Yanıt Süresi:</strong> ${model.responseTime}</small><br>
-                <small><strong>Bağlam Penceresi:</strong> ${new Intl.NumberFormat('tr-TR').format(model.contextWindow)} token (yaklaşık 10.000 entry)</small>
+        card.innerHTML = `
+            <div class="model-card-name">${model.name}</div>
+            <div class="model-card-description">${model.description}</div>
+            <div class="model-card-meta">
+                <span>💰 ${model.cost}</span>
+                <span>⏱️ ${model.responseTime}</span>
             </div>
         `;
-    };
 
-    // İlk yükleme
-    updateInfo();
+        // Model seçme fonksiyonu
+        const selectModel = () => {
+            // Tüm kartlardan selected sınıfını ve aria-selected'ı kaldır
+            cardsGrid.querySelectorAll('.model-select-card').forEach(c => {
+                c.classList.remove('selected');
+                c.setAttribute('aria-selected', 'false');
+            });
+            // Bu karta selected sınıfı ve aria-selected ekle
+            card.classList.add('selected');
+            card.setAttribute('aria-selected', 'true');
+            // Dropdown değerini güncelle
+            select.value = model.id;
+        };
 
-    // Seçim değişikliği dinleyicisi
-    select.addEventListener('change', updateInfo);
+        // Tıklama event listener
+        card.addEventListener('click', selectModel);
+
+        // Klavye navigasyonu (Enter ve Space)
+        card.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                selectModel();
+            }
+        });
+
+        cardsGrid.appendChild(card);
+    });
 };
 
 /**
@@ -785,7 +805,7 @@ const compareModelsWithStreaming = async () => {
 
     // Test prompt'unu al
     const testPrompt = testPromptInput ? testPromptInput.value.trim() : 'naber?\n\nbu yeni satırlı bir prompt';
-    
+
     if (!testPrompt) {
         alert('Lütfen test promptu girin.');
         return;
@@ -807,10 +827,10 @@ const compareModelsWithStreaming = async () => {
     modelComparisonAbortControllers = [];
 
     isCheckingModels = true;
-    
+
     // Modal'ı göster
     modal.classList.add('active');
-    
+
     // Üç bölüm oluştur: başarılı modeller, seçilmeyen modeller ve hata alınan modeller
     modalBody.innerHTML = `
         <div class="models-comparison-section" id="successfulModelsSection">
@@ -826,18 +846,18 @@ const compareModelsWithStreaming = async () => {
             <div class="models-comparison-grid" id="errorModelsGrid"></div>
         </div>
     `;
-    
+
     const successGridContainer = document.getElementById('modelsComparisonGrid');
     const unselectedGridContainer = document.getElementById('unselectedModelsGrid');
     const errorGridContainer = document.getElementById('errorModelsGrid');
     const successfulModelsTitle = document.getElementById('successfulModelsTitle');
-    
+
     // Başlangıç durumu
     modalStatusSummary.textContent = '⏳ Kontrol ediliyor...';
 
     // Her model için bir kart oluştur (başlangıçta başarılı modeller bölümünde)
     const modelCards = {};
-    
+
     /**
      * Model kartını doğru bölüme taşır
      * targetSection: 'success' (başarılı), 'unselected' (seçilmeyen), 'error' (hata)
@@ -845,7 +865,7 @@ const compareModelsWithStreaming = async () => {
     const moveCardBetweenSections = (cardData, targetSection) => {
         const currentContainer = cardData.gridContainer;
         let targetContainer;
-        
+
         switch (targetSection) {
             case 'success':
                 targetContainer = successGridContainer;
@@ -859,12 +879,12 @@ const compareModelsWithStreaming = async () => {
             default:
                 return;
         }
-        
+
         if (currentContainer !== targetContainer) {
             currentContainer.removeChild(cardData.card);
             targetContainer.appendChild(cardData.card);
             cardData.gridContainer = targetContainer;
-            
+
             // Başarılı modeller başlığını göster/gizle
             if (successfulModelsTitle) {
                 const hasModels = successGridContainer.children.length > 0;
@@ -872,39 +892,39 @@ const compareModelsWithStreaming = async () => {
             }
         }
     };
-    
+
     MODELS.forEach((model) => {
         const cardId = `model-card-${model.id}`;
         const card = document.createElement('div');
         card.id = cardId;
         card.className = 'model-comparison-card';
-        
+
         const responseDiv = document.createElement('div');
         responseDiv.className = 'model-comparison-response';
-        
+
         const metaDiv = document.createElement('div');
         metaDiv.className = 'model-comparison-meta';
         metaDiv.textContent = 'Süre: - | Token: -';
-        
+
         // Checkbox oluştur
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.className = 'model-comparison-checkbox';
         checkbox.checked = true; // Başlangıçta seçili
         checkbox.id = `checkbox-${model.id}`;
-        
+
         const headerDiv = document.createElement('div');
         headerDiv.className = 'model-comparison-card-header';
         headerDiv.textContent = model.name;
-        
+
         const h4 = document.createElement('h4');
         h4.appendChild(headerDiv);
         h4.appendChild(checkbox);
-        
+
         card.appendChild(h4);
         card.appendChild(responseDiv);
         card.appendChild(metaDiv);
-        
+
         successGridContainer.appendChild(card);
         const cardData = {
             card,
@@ -918,17 +938,17 @@ const compareModelsWithStreaming = async () => {
             gridContainer: successGridContainer // Başlangıçta başarılı modeller grid'inde
         };
         modelCards[model.id] = cardData;
-        
+
         // Checkbox değişikliği event listener
         checkbox.addEventListener('change', () => {
             // Hata varsa checkbox değişikliğini işleme (checkbox zaten gizli olacak)
             if (cardData.hasError) {
                 return;
             }
-            
+
             const isSelected = checkbox.checked;
             cardData.isSelected = isSelected;
-            
+
             if (isSelected) {
                 // Seçildi ve hata yok - başarılı modeller bölümüne taşı
                 card.classList.remove('unselected');
@@ -938,11 +958,11 @@ const compareModelsWithStreaming = async () => {
                 card.classList.add('unselected');
                 moveCardBetweenSections(cardData, 'unselected');
             }
-            
+
             // Başlık satırını güncelle
             const selectedSuccessfulModels = Object.values(modelCards).filter(card => card.isSelected && !card.hasError);
             const selectedFailedModels = Object.values(modelCards).filter(card => card.isSelected && card.hasError);
-            
+
             if (selectedFailedModels.length === 0) {
                 modalStatusSummary.textContent = `✅ ${selectedSuccessfulModels.length} model başarıyla test edildi`;
             } else {
@@ -950,7 +970,7 @@ const compareModelsWithStreaming = async () => {
             }
         });
     });
-    
+
     // Başlangıçta başarılı modeller başlığını göster
     if (successfulModelsTitle && successGridContainer.children.length > 0) {
         successfulModelsTitle.style.display = 'block';
@@ -978,11 +998,11 @@ const compareModelsWithStreaming = async () => {
                 (chunk, fullText) => {
                     // Her chunk geldiğinde UI'ı güncelle
                     if (!isCheckingModels) return; // İptal edildiyse güncelleme yapma
-                    
+
                     cardData.fullText = fullText;
                     // Markdown olarak göster
                     cardData.responseDiv.innerHTML = parseMarkdown(fullText);
-                    
+
                     // Scroll to bottom
                     cardData.responseDiv.scrollTop = cardData.responseDiv.scrollHeight;
                 }
@@ -993,40 +1013,40 @@ const compareModelsWithStreaming = async () => {
 
             const endTime = performance.now();
             const responseTime = ((endTime - cardData.startTime) / 1000).toFixed(2);
-            
+
             // Token tahmini (basit: karakter sayısı / 4)
             const estimatedTokens = Math.ceil(cardData.fullText.length / 4);
-            
+
             cardData.metaDiv.textContent = `Süre: ${responseTime}s | Tahmini Token: ~${estimatedTokens}`;
-            
+
             // Başarılı durumda - seçiliyse başarılı modeller bölümüne, değilse seçilmeyen modeller bölümüne taşı
             if (cardData.isSelected) {
                 moveCardBetweenSections(cardData, 'success');
             } else {
                 moveCardBetweenSections(cardData, 'unselected');
             }
-            
+
         } catch (error) {
             if (!isCheckingModels) return; // İptal edildiyse güncelleme yapma
-            
+
             // Hata durumu - hata bilgilerini göster
             cardData.hasError = true;
             const errorType = getErrorType(error.message);
             const formattedError = formatErrorMessage(error.message, errorType);
-            
+
             // Checkbox'ı gizle (hata alınan modellerde seçme butonu olmasın)
             cardData.checkbox.style.display = 'none';
-            
+
             // Kartı hata alınan modeller bölümüne taşı (3. satır)
             moveCardBetweenSections(cardData, 'error');
-            
+
             // Kartı hata stili ile işaretle
             cardData.card.classList.add('has-error');
-            
+
             // Response alanını güncelle
             cardData.responseDiv.className = 'model-comparison-response error-message';
             cardData.responseDiv.textContent = formattedError;
-            
+
             // Meta bilgisini güncelle
             if (cardData.startTime) {
                 const endTime = performance.now();
@@ -1040,14 +1060,14 @@ const compareModelsWithStreaming = async () => {
 
     // Tüm streaming çağrılarını bekle
     await Promise.all(streamingPromises);
-    
+
     // Kontrol tamamlandı
     isCheckingModels = false;
-    
+
     // Seçili modelleri say (karşılaştırmaya dahil olanlar)
     const selectedSuccessfulModels = Object.values(modelCards).filter(card => card.isSelected && !card.hasError);
     const selectedFailedModels = Object.values(modelCards).filter(card => card.isSelected && card.hasError);
-    
+
     // Başlık satırını güncelle (sadece seçili modelleri say)
     if (selectedFailedModels.length === 0) {
         modalStatusSummary.textContent = `✅ ${selectedSuccessfulModels.length} model başarıyla test edildi`;
@@ -1545,9 +1565,9 @@ const setupRefreshButton = () => {
 const setupModal = () => {
     const modal = document.getElementById('modelComparisonModal');
     const closeBtn = document.getElementById('modalCloseBtn');
-    
+
     if (!modal || !closeBtn) return;
-    
+
     // Modal kapatıldığında tüm request'leri iptal et
     const cancelAllRequests = () => {
         isCheckingModels = false;
@@ -1561,13 +1581,13 @@ const setupModal = () => {
         });
         modelComparisonAbortControllers = [];
     };
-    
+
     // Kapat butonuna tıklandığında
     closeBtn.addEventListener('click', () => {
         modal.classList.remove('active');
         cancelAllRequests();
     });
-    
+
     // Modal overlay'e tıklandığında (modal içeriğine değil)
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
@@ -1575,7 +1595,7 @@ const setupModal = () => {
             cancelAllRequests();
         }
     });
-    
+
     // ESC tuşu ile kapat
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && modal.classList.contains('active')) {
