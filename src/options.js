@@ -1005,18 +1005,18 @@ const copySystemPrompt = async () => {
     try {
         await navigator.clipboard.writeText(SYSTEM_PROMPT);
         const originalText = copyBtn.textContent;
-        copyBtn.textContent = '✓';
+        copyBtn.textContent = '✓ Kopyalandı';
         copyBtn.style.backgroundColor = '#28a745';
         setTimeout(() => {
             copyBtn.textContent = originalText;
-            copyBtn.style.backgroundColor = '#81c14b';
+            copyBtn.style.backgroundColor = ''; // btn-secondary class'ının rengini kullan
         }, 2000);
     } catch (err) {
-        copyBtn.textContent = '✗';
+        copyBtn.textContent = '✗ Hata';
         copyBtn.style.backgroundColor = '#d9534f';
         setTimeout(() => {
-            copyBtn.textContent = '📋';
-            copyBtn.style.backgroundColor = '#81c14b';
+            copyBtn.textContent = originalText;
+            copyBtn.style.backgroundColor = ''; // btn-secondary class'ının rengini kullan
         }, 2000);
     }
 };
