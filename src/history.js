@@ -361,11 +361,12 @@ const renderHistory = (scrapes, append = false) => {
         clearBtn.style.display = 'none';
         loadMoreContainer.style.display = 'none';
 
-        // Export/Import butonlarını gizle (boş geçmişte export anlamsız)
+        // Export butonunu gizle (boş geçmişte export anlamsız)
+        // Import butonunu göster (boş geçmişte de içe aktarılabilir)
         const exportBtn = document.getElementById('btnExport');
         const importBtn = document.getElementById('btnImport');
         if (exportBtn) exportBtn.style.display = 'none';
-        if (importBtn) importBtn.style.display = 'none';
+        if (importBtn) importBtn.style.display = 'inline-block';
 
         return;
     }
@@ -461,7 +462,7 @@ const renderHistory = (scrapes, append = false) => {
                     analysisArtifactsHtml += `<span class="artifact-badge" data-type="json" data-scrape-id="${escapeHtml(scrape.id)}" data-analysis-idx="${idx}" data-artifact="prompt">💬 Prompt</span>`;
                 }
                 if (analysis.response) {
-                    analysisArtifactsHtml += `<span class="artifact-badge" data-type="markdown" data-scrape-id="${escapeHtml(scrape.id)}" data-analysis-idx="${idx}">📝 MD</span>`;
+                    analysisArtifactsHtml += `<span class="artifact-badge" data-type="markdown" data-scrape-id="${escapeHtml(scrape.id)}" data-analysis-idx="${idx}">📝 Cevap</span>`;
                 }
 
                 analysesHtml += `
