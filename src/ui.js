@@ -66,10 +66,17 @@ const showCachedResultsInContainer = (cachedResults, container) => {
         container.appendChild(cachedSection);
     }
     
-    let html = `<h3>${cachedResults.length} kayıtlı analiz bulundu</h3>`;
+    // En yeni analizler en üstte olacak şekilde sırala (timestamp'e göre azalan sırada)
+    const sortedResults = [...cachedResults].sort((a, b) => {
+        const dateA = new Date(a.timestamp);
+        const dateB = new Date(b.timestamp);
+        return dateB - dateA; // Descending order (en yeni en üstte)
+    });
+    
+    let html = `<h3>${sortedResults.length} kayıtlı analiz bulundu</h3>`;
     html += '<div class="eksi-ai-cached-content">';
 
-    cachedResults.forEach((item, index) => {
+    sortedResults.forEach((item, index) => {
         const date = new Date(item.timestamp);
         const dateStr = date.toLocaleDateString('tr-TR', {
             year: 'numeric',
