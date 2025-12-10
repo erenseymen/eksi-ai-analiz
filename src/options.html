@@ -405,6 +405,27 @@
             margin-top: 8px;
         }
 
+        .prompt-item-status {
+            margin-top: 8px;
+            margin-bottom: 8px;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            display: none;
+        }
+
+        .prompt-item-status.success {
+            background-color: #d4edda;
+            color: #155724;
+            display: block;
+        }
+
+        .prompt-item-status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
+
         .delete-btn {
             background-color: #d9534f;
             padding: 5px 10px;
@@ -1103,6 +1124,16 @@
             border-color: #555;
         }
 
+        body.dark-theme .prompt-item-status.success {
+            background-color: #1e4a1e;
+            color: #a5d67a;
+        }
+
+        body.dark-theme .prompt-item-status.error {
+            background-color: #4a1e1e;
+            color: #ff9999;
+        }
+
         body.dark-theme .status.success {
             background-color: #1e4a1e;
             color: #a5d67a;
@@ -1498,6 +1529,16 @@
                 background-color: #2d2d2d;
                 color: #e0e0e0;
                 border-color: #555;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .prompt-item-status.success {
+                background-color: #1e4a1e;
+                color: #a5d67a;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .prompt-item-status.error {
+                background-color: #4a1e1e;
+                color: #ff9999;
             }
 
             body:not(.light-theme):not(.dark-theme) .status.success {
@@ -2149,7 +2190,6 @@
 
         <!-- Tab: Prompts -->
         <div id="tab-prompts" class="tab-content">
-            <h3 style="margin-top: 0; margin-bottom: 15px;">🎯 Butonlar ve Promptlar</h3>
             <div id="promptsList">
                 <!-- Prompts will be listed here -->
             </div>

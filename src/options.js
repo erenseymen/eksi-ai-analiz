@@ -1545,40 +1545,69 @@ const renderPrompts = () => {
         // Prompt kartı HTML'i (XSS koruması için escapeHtml kullanılıyor)
         div.innerHTML = `
             <div class="prompt-name-row">
-                <label>Buton Adı</label>
                 <input type="text" class="prompt-name" value="${escapeHtml(item.name)}" placeholder="Buton Adı">
                 <button class="save-item-btn">Kaydet</button>
                 <button class="delete-btn">Sil</button>
             </div>
-            
-            <label>Prompt</label>
+            <div class="prompt-item-status" style="display: none;"></div>
             <textarea class="prompt-text" placeholder="Prompt içeriği...">${escapeHtml(item.prompt)}</textarea>
         `;
 
         // Event listener'ları bağla
-        div.querySelector('.save-item-btn').onclick = saveOptions;
+        const saveBtn = div.querySelector('.save-item-btn');
+        const statusElement = div.querySelector('.prompt-item-status');
+        
+        saveBtn.onclick = async (e) => {
+            // Önce genel saveOptions'ı çağır
+            await saveOptions();
+            
+            // Bu prompt-item'ın status elementini güncelle
+            if (statusElement) {
+                statusElement.textContent = 'Kaydedildi.';
+                statusElement.className = 'status success';
+                statusElement.style.display = 'block';
+                setTimeout(() => {
+                    statusElement.textContent = '';
+                    statusElement.className = 'status';
+                    statusElement.style.display = 'none';
+                }, 3000);
+            }
+        };
+        
         div.querySelector('.delete-btn').onclick = () => removePrompt(index);
+
+        // TAB tuşu ile buton adından prompt alanına geçiş
+        const nameInput = div.querySelector('.prompt-name');
+        const textarea = div.querySelector('.prompt-text');
+        if (nameInput && textarea) {
+            nameInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Tab' && !e.shiftKey) {
+                    e.preventDefault();
+                    textarea.focus();
+                }
+            });
+        }
 
         // Önce DOM'a ekle
         list.appendChild(div);
 
         // Textarea'yı al ve auto-resize özelliğini ekle (DOM'a eklendikten sonra)
-        const textarea = div.querySelector('.prompt-text');
-        if (textarea) {
+        const textareaForResize = div.querySelector('.prompt-text');
+        if (textareaForResize) {
             // İlk render'da yüksekliği ayarla (bir sonraki tick'te, DOM tamamen hazır olduktan sonra)
             setTimeout(() => {
-                autoResizeTextarea(textarea);
+                autoResizeTextarea(textareaForResize);
             }, 0);
             
             // İçerik değiştiğinde yüksekliği güncelle
-            textarea.addEventListener('input', () => {
-                autoResizeTextarea(textarea);
+            textareaForResize.addEventListener('input', () => {
+                autoResizeTextarea(textareaForResize);
             });
             
             // Paste event'i için de dinle
-            textarea.addEventListener('paste', () => {
+            textareaForResize.addEventListener('paste', () => {
                 setTimeout(() => {
-                    autoResizeTextarea(textarea);
+                    autoResizeTextarea(textareaForResize);
                 }, 0);
             });
         }
@@ -1599,8 +1628,18 @@ const renderPrompts = () => {
 const addPrompt = () => {
     // Eklemeden önce mevcut durumu yakala
     updatePromptsFromDOM();
-    prompts.push({ name: "Yeni Buton", prompt: "" });
+    prompts.push({ name: "", prompt: "" });
     renderPrompts();
+    
+    // Yeni eklenen prompt'un buton adı alanına focus ver
+    const promptItems = document.querySelectorAll('.prompt-item');
+    if (promptItems.length > 0) {
+        const lastItem = promptItems[promptItems.length - 1];
+        const nameInput = lastItem.querySelector('.prompt-name');
+        if (nameInput) {
+            setTimeout(() => nameInput.focus(), 0);
+        }
+    }
 };
 
 /**
@@ -1627,14 +1666,16 @@ const removePrompt = (index) => {
         chrome.storage.sync.set(settings, () => {
             renderPrompts();
 
-            // Kullanıcıya geri bildirim ver
+            // Kullanıcıya geri bildirim ver (genel status elementi)
             const status = document.getElementById('status');
-            status.textContent = 'Buton silindi ve ayarlar kaydedildi.';
-            status.className = 'status success';
-            setTimeout(() => {
-                status.textContent = '';
-                status.className = 'status';
-            }, 3000);
+            if (status) {
+                status.textContent = 'Buton silindi ve ayarlar kaydedildi.';
+                status.className = 'status success';
+                setTimeout(() => {
+                    status.textContent = '';
+                    status.className = 'status';
+                }, 3000);
+            }
         });
     }
 };
@@ -1660,14 +1701,16 @@ const resetPrompts = () => {
         chrome.storage.sync.set(settings, () => {
             renderPrompts();
 
-            // Kullanıcıya geri bildirim ver
+            // Kullanıcıya geri bildirim ver (genel status elementi)
             const status = document.getElementById('status');
-            status.textContent = 'Butonlar varsayılan değerlere sıfırlandı ve ayarlar kaydedildi.';
-            status.className = 'status success';
-            setTimeout(() => {
-                status.textContent = '';
-                status.className = 'status';
-            }, 3000);
+            if (status) {
+                status.textContent = 'Butonlar varsayılan değerlere sıfırlandı ve ayarlar kaydedildi.';
+                status.className = 'status success';
+                setTimeout(() => {
+                    status.textContent = '';
+                    status.className = 'status';
+                }, 3000);
+            }
         });
     }
 };
