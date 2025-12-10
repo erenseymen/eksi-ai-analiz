@@ -1472,6 +1472,17 @@
             background-color: #666;
         }
 
+        /* API Key input - Dark Theme */
+        body.dark-theme #apiKey {
+            background-color: #363636 !important;
+            color: #e0e0e0 !important;
+            border-color: #555 !important;
+        }
+
+        body.dark-theme #apiKey:focus {
+            border-color: #81c14b !important;
+        }
+
         /* Dark Mode - Automatic detection based on system preference */
         @media (prefers-color-scheme: dark) {
             body:not(.light-theme):not(.dark-theme) {
@@ -1811,6 +1822,86 @@
                 background-color: #4a1e1e;
                 color: #ff9999;
                 border-color: #d9534f;
+            }
+
+            /* Model Selection Cards - Auto Dark Mode */
+            body:not(.light-theme):not(.dark-theme) .model-select-card {
+                background: #363636 !important;
+                border-color: #555 !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .model-select-card:hover {
+                border-color: #81c14b !important;
+                background: #3a4a35 !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .model-select-card.selected {
+                border-color: #81c14b !important;
+                background: linear-gradient(135deg, #3a4a35 0%, #2d3d28 100%) !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .model-card-name {
+                color: #e0e0e0 !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .model-card-description {
+                color: #aaa !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .model-card-meta {
+                color: #888 !important;
+                border-top-color: #555 !important;
+            }
+
+            /* Modelleri Karşılaştır kartı - Auto Dark Mode */
+            body:not(.light-theme):not(.dark-theme) .model-select-card-comparison {
+                background: linear-gradient(135deg, #5568d3 0%, #6a3d8a 100%) !important;
+                border-color: #5568d3 !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .model-select-card-comparison .model-card-name {
+                color: white !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .model-select-card-comparison .model-card-description {
+                color: rgba(255, 255, 255, 0.9) !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .model-select-card-comparison .model-card-meta {
+                color: rgba(255, 255, 255, 0.8) !important;
+                border-top-color: rgba(255, 255, 255, 0.3) !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .model-select-card-comparison:hover {
+                border-color: #6a3d8a !important;
+                background: linear-gradient(135deg, #6a3d8a 0%, #5568d3 100%) !important;
+                box-shadow: 0 6px 20px rgba(85, 104, 211, 0.5) !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .model-select-card-comparison:focus {
+                outline-color: #6a3d8a !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .comparison-card-custom-prompt-btn {
+                background-color: rgba(255, 255, 255, 0.2) !important;
+                color: white !important;
+                border-color: rgba(255, 255, 255, 0.3) !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .comparison-card-custom-prompt-btn:hover {
+                background-color: rgba(255, 255, 255, 0.3) !important;
+                border-color: rgba(255, 255, 255, 0.5) !important;
+            }
+
+            /* API Key input - Auto Dark Mode */
+            body:not(.light-theme):not(.dark-theme) #apiKey {
+                background-color: #363636 !important;
+                color: #e0e0e0 !important;
+                border-color: #555 !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) #apiKey:focus {
+                border-color: #81c14b !important;
             }
         }
 
