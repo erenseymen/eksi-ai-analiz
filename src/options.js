@@ -1516,6 +1516,91 @@ const resizeAllPromptTextareas = () => {
 };
 
 /**
+ * Tek bir prompt-item'ı DOM'a render eder.
+ * 
+ * @param {Object} item - Render edilecek prompt objesi {name, prompt}
+ * @param {number} index - Prompt'un dizideki indeksi
+ * @param {HTMLElement} list - Prompt listesinin container elementi
+ * @returns {HTMLElement} Oluşturulan prompt-item div elementi
+ */
+const renderSinglePromptItem = (item, index, list, isNew = false) => {
+    const div = document.createElement('div');
+    div.className = isNew ? 'prompt-item prompt-item-new' : 'prompt-item';
+
+    // Prompt kartı HTML'i (XSS koruması için escapeHtml kullanılıyor)
+    div.innerHTML = `
+        <div class="prompt-name-row">
+            <input type="text" class="prompt-name" value="${escapeHtml(item.name)}" placeholder="Buton Adı">
+            <button class="save-item-btn">Kaydet</button>
+            <button class="delete-btn">Sil</button>
+        </div>
+        <div class="prompt-item-status" style="display: none;"></div>
+        <textarea class="prompt-text" placeholder="Prompt içeriği...">${escapeHtml(item.prompt)}</textarea>
+    `;
+
+    // Event listener'ları bağla
+    const saveBtn = div.querySelector('.save-item-btn');
+    const statusElement = div.querySelector('.prompt-item-status');
+    
+    saveBtn.onclick = async (e) => {
+        // Önce genel saveOptions'ı çağır
+        await saveOptions();
+        
+        // Bu prompt-item'ın status elementini güncelle
+        if (statusElement) {
+            statusElement.textContent = 'Kaydedildi.';
+            statusElement.className = 'status success';
+            statusElement.style.display = 'block';
+            setTimeout(() => {
+                statusElement.textContent = '';
+                statusElement.className = 'status';
+                statusElement.style.display = 'none';
+            }, 3000);
+        }
+    };
+    
+    div.querySelector('.delete-btn').onclick = () => removePrompt(index);
+
+    // TAB tuşu ile buton adından prompt alanına geçiş
+    const nameInput = div.querySelector('.prompt-name');
+    const textarea = div.querySelector('.prompt-text');
+    if (nameInput && textarea) {
+        nameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab' && !e.shiftKey) {
+                e.preventDefault();
+                textarea.focus();
+            }
+        });
+    }
+
+    // Önce DOM'a ekle
+    list.appendChild(div);
+
+    // Textarea'yı al ve auto-resize özelliğini ekle (DOM'a eklendikten sonra)
+    const textareaForResize = div.querySelector('.prompt-text');
+    if (textareaForResize) {
+        // İlk render'da yüksekliği ayarla (bir sonraki tick'te, DOM tamamen hazır olduktan sonra)
+        setTimeout(() => {
+            autoResizeTextarea(textareaForResize);
+        }, 0);
+        
+        // İçerik değiştiğinde yüksekliği güncelle
+        textareaForResize.addEventListener('input', () => {
+            autoResizeTextarea(textareaForResize);
+        });
+        
+        // Paste event'i için de dinle
+        textareaForResize.addEventListener('paste', () => {
+            setTimeout(() => {
+                autoResizeTextarea(textareaForResize);
+            }, 0);
+        });
+    }
+
+    return div;
+};
+
+/**
  * Prompt listesini DOM'a render eder.
  * 
  * Her prompt için düzenlenebilir bir kart oluşturur:
@@ -1539,78 +1624,7 @@ const renderPrompts = () => {
             : [];
 
     promptsToRender.forEach((item, index) => {
-        const div = document.createElement('div');
-        div.className = 'prompt-item';
-
-        // Prompt kartı HTML'i (XSS koruması için escapeHtml kullanılıyor)
-        div.innerHTML = `
-            <div class="prompt-name-row">
-                <input type="text" class="prompt-name" value="${escapeHtml(item.name)}" placeholder="Buton Adı">
-                <button class="save-item-btn">Kaydet</button>
-                <button class="delete-btn">Sil</button>
-            </div>
-            <div class="prompt-item-status" style="display: none;"></div>
-            <textarea class="prompt-text" placeholder="Prompt içeriği...">${escapeHtml(item.prompt)}</textarea>
-        `;
-
-        // Event listener'ları bağla
-        const saveBtn = div.querySelector('.save-item-btn');
-        const statusElement = div.querySelector('.prompt-item-status');
-        
-        saveBtn.onclick = async (e) => {
-            // Önce genel saveOptions'ı çağır
-            await saveOptions();
-            
-            // Bu prompt-item'ın status elementini güncelle
-            if (statusElement) {
-                statusElement.textContent = 'Kaydedildi.';
-                statusElement.className = 'status success';
-                statusElement.style.display = 'block';
-                setTimeout(() => {
-                    statusElement.textContent = '';
-                    statusElement.className = 'status';
-                    statusElement.style.display = 'none';
-                }, 3000);
-            }
-        };
-        
-        div.querySelector('.delete-btn').onclick = () => removePrompt(index);
-
-        // TAB tuşu ile buton adından prompt alanına geçiş
-        const nameInput = div.querySelector('.prompt-name');
-        const textarea = div.querySelector('.prompt-text');
-        if (nameInput && textarea) {
-            nameInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Tab' && !e.shiftKey) {
-                    e.preventDefault();
-                    textarea.focus();
-                }
-            });
-        }
-
-        // Önce DOM'a ekle
-        list.appendChild(div);
-
-        // Textarea'yı al ve auto-resize özelliğini ekle (DOM'a eklendikten sonra)
-        const textareaForResize = div.querySelector('.prompt-text');
-        if (textareaForResize) {
-            // İlk render'da yüksekliği ayarla (bir sonraki tick'te, DOM tamamen hazır olduktan sonra)
-            setTimeout(() => {
-                autoResizeTextarea(textareaForResize);
-            }, 0);
-            
-            // İçerik değiştiğinde yüksekliği güncelle
-            textareaForResize.addEventListener('input', () => {
-                autoResizeTextarea(textareaForResize);
-            });
-            
-            // Paste event'i için de dinle
-            textareaForResize.addEventListener('paste', () => {
-                setTimeout(() => {
-                    autoResizeTextarea(textareaForResize);
-                }, 0);
-            });
-        }
+        renderSinglePromptItem(item, index, list);
     });
 
     // prompts dizisini güncelle (eğer DEFAULT_PROMPTS kullanıldıysa)
@@ -1629,15 +1643,23 @@ const addPrompt = () => {
     // Eklemeden önce mevcut durumu yakala
     updatePromptsFromDOM();
     prompts.push({ name: "", prompt: "" });
-    renderPrompts();
     
-    // Yeni eklenen prompt'un buton adı alanına focus ver
-    const promptItems = document.querySelectorAll('.prompt-item');
-    if (promptItems.length > 0) {
-        const lastItem = promptItems[promptItems.length - 1];
-        const nameInput = lastItem.querySelector('.prompt-name');
+    // Sadece yeni prompt-item'ı ekle, tüm listeyi yeniden render etme
+    const list = document.getElementById('promptsList');
+    if (list) {
+        const newIndex = prompts.length - 1;
+        const newItem = prompts[newIndex];
+        const newDiv = renderSinglePromptItem(newItem, newIndex, list, true);
+        
+        // Animasyon bittikten sonra class'ı kaldır
+        setTimeout(() => {
+            newDiv.classList.remove('prompt-item-new');
+        }, 300);
+        
+        // Yeni eklenen prompt'un buton adı alanına focus ver
+        const nameInput = newDiv.querySelector('.prompt-name');
         if (nameInput) {
-            setTimeout(() => nameInput.focus(), 0);
+            setTimeout(() => nameInput.focus(), 50);
         }
     }
 };

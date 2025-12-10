@@ -355,6 +355,21 @@
             position: relative;
         }
 
+        .prompt-item.prompt-item-new {
+            animation: fadeInPrompt 0.3s ease-in;
+        }
+
+        @keyframes fadeInPrompt {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         .prompt-name-row {
             display: flex;
             align-items: center;
