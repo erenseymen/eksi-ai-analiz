@@ -1122,9 +1122,8 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
                         // Prompt varsa, entry'leri başa ekle (ui.js formatı)
                         testPrompt = `Başlık: "${topicTitle}"\n\nAşağıda Ekşi Sözlük entry'leri JSON formatında verilmiştir:\n${entriesJson}\n\n${userPrompt}`;
                     } else {
-                        // Prompt yoksa, sadece entry içeriklerini kullan
-                        const entries = lastScrapeData.sourceEntries;
-                        testPrompt = entries.map(entry => entry.content || '').filter(content => content.trim()).join('\n\n');
+                        // Prompt yoksa, sadece entry'leri JSON formatında gönder (sistem promptu analiz edecek)
+                        testPrompt = `Başlık: "${topicTitle}"\n\nAşağıda Ekşi Sözlük entry'leri JSON formatında verilmiştir:\n${entriesJson}`;
                     }
                 } else if (userPrompt) {
                     // Entry yok ama prompt var
@@ -1136,9 +1135,9 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
         console.warn('Son scrape edilen veri alınamadı:', error);
     }
 
-    // Eğer hala prompt yoksa varsayılan prompt kullan
+    // Eğer hiç veri yoksa (analiz geçmişinde entry yok), sadece sistem promptu ile basit bir test yap
     if (!testPrompt || testPrompt.trim() === '') {
-        testPrompt = 'Merhaba! Sen Google Gemini API\'sinin bir modelisin. Kendini kısaca tanıt ve bana kısa bir şaka yap.';
+        testPrompt = 'Merhaba! Model karşılaştırma testi. Kısa bir yanıt ver.';
     }
 
     // Eğer kontrol zaten devam ediyorsa, yeni kontrol başlatma
