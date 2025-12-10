@@ -291,6 +291,42 @@
             margin: 0;
         }
 
+        .source-scrapes-list {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+
+        .source-scrapes-header {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #666;
+        }
+
+        .source-scrape-item {
+            margin: 6px 0;
+            padding: 6px;
+            background: white;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+
+        .source-scrape-link {
+            color: #81c14b;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .source-scrape-link:hover {
+            text-decoration: underline;
+        }
+
+        .source-scrape-count {
+            color: #999;
+            margin-left: 8px;
+        }
+
         .artifact-badge {
             display: inline-block;
             padding: 6px 12px;
@@ -714,6 +750,26 @@
             color: #bbb;
         }
 
+        body.dark-theme .source-scrapes-list {
+            background: #2d2d2d;
+        }
+
+        body.dark-theme .source-scrapes-header {
+            color: #999;
+        }
+
+        body.dark-theme .source-scrape-item {
+            background: #363636;
+        }
+
+        body.dark-theme .source-scrape-link {
+            color: #81c14b;
+        }
+
+        body.dark-theme .source-scrape-count {
+            color: #999;
+        }
+
         body.dark-theme .artifact-badge {
             background: #81c14b;
         }
@@ -981,6 +1037,26 @@
 
             body:not(.light-theme):not(.dark-theme) .analysis-prompt-preview {
                 color: #bbb;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .source-scrapes-list {
+                background: #2d2d2d;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .source-scrapes-header {
+                color: #999;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .source-scrape-item {
+                background: #363636;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .source-scrape-link {
+                color: #81c14b;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .source-scrape-count {
+                color: #999;
             }
 
             body:not(.light-theme):not(.dark-theme) .artifact-badge {

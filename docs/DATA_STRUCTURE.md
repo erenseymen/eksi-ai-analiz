@@ -111,7 +111,41 @@ interface Analysis {
 
 **Kaynak:** `src/analysis-history.js`, `src/history.js`
 
-### 2. `historyRetentionDays`
+### 2. `multiScrapeAnalyses`
+**Tip:** `Array<MultiScrapeAnalysis>` | **Varsayılan:** `[]`  
+**Açıklama:** Birden fazla scrape'den birleştirilerek oluşturulan analizler. Entry'ler kopyalanmaz, sadece scrape referansları tutulur.
+
+**Yapı:**
+```typescript
+interface MultiScrapeAnalysis {
+    id: string;                    // "multi-analysis-1704067200000"
+    timestamp: string;             // ISO 8601
+    prompt: string;                // Tam prompt
+    promptPreview: string;         // İlk 100 karakter
+    response: string;              // Tam yanıt
+    responsePreview: string;       // İlk 200 karakter
+    modelId: string;
+    responseTime: number;          // ms
+    sourceScrapes: Array<{
+        scrapeId: string;          // Kaynak scrape ID'si
+        sourceEntriesHash: string; // Kaynak scrape'in hash'i (unique identifier)
+        topicTitle: string;
+        topicUrl: string;
+        topicId: string;
+        entryCount: number;
+    }>;
+}
+```
+
+**Önemli Notlar:**
+- **Referans Bazlı:** Entry'ler kopyalanmaz, sadece scrape referansları tutulur.
+- **Unique Identifier:** Her kaynak scrape için `sourceEntriesHash` ile unique olduğu belli olur.
+- **Temizleme:** `historyRetentionDays`'e göre otomatik (0 = sınırsız).
+- **ZIP İndirme:** Her kaynak scrape için ayrı JSON dosyası oluşturulur.
+
+**Kaynak:** `src/history.js`
+
+### 3. `historyRetentionDays`
 **Tip:** `number` | **Varsayılan:** `30` (gün)  
 **Açıklama:** Analiz geçmişi saklama süresi.  
 **Değerler:** `0` = sınırsız, `1-365` = gün cinsinden  
@@ -129,6 +163,14 @@ ScrapeRecord
     ├── prompt (string)
     ├── response (string)
     └── modelId (string)
+
+MultiScrapeAnalysis
+├── sourceScrapes (SourceScrape[])
+│   ├── scrapeId (string) → ScrapeRecord.id
+│   └── sourceEntriesHash (string) → ScrapeRecord.sourceEntriesHash
+├── prompt (string)
+├── response (string)
+└── modelId (string)
 ```
 
 **Flat History View (UI için):**
@@ -161,11 +203,19 @@ interface FlatHistoryItem {
 2. `analysis-history.js` → `saveToHistory({ scrapeOnly: true })`
 3. `chrome.storage.local` → `scrapedData` güncellenir
 
-**Analiz Yapma:**
+**Analiz Yapma (Tek Scrape):**
 1. Prompt seçimi → `api.js` → Gemini API isteği
 2. `analysis-history.js` → `saveToHistory({ scrapeOnly: false, response: ... })`
 3. `chrome.storage.local` → `scrapedData[].analyses[]` güncellenir
 4. `stats.js` → `recordApiCall()` → `chrome.storage.sync` güncellenir
+
+**Çoklu Scrape Analizi:**
+1. Geçmiş sayfasında birden fazla scrape seçilir
+2. "Yeniden Analiz Et" → `history.js` → `runReanalysis()`
+3. Gemini API isteği yapılır (birleştirilmiş entry'ler ile)
+4. `history.js` → `saveToHistoryFromPage({ sourceScrapes: [...] })`
+5. `chrome.storage.local` → `multiScrapeAnalyses[]` güncellenir (entry'ler kopyalanmaz, sadece referanslar)
+6. `stats.js` → `recordApiCall()` → `chrome.storage.sync` güncellenir
 
 **Ayarları Kaydetme:**
 1. Ayarlar değişikliği → `options.js` → `saveOptions()`
@@ -183,7 +233,9 @@ interface FlatHistoryItem {
 **Optimizasyon:**
 - Preview alanları: `promptPreview` (100 karakter), `responsePreview` (200 karakter)
 - Hash sistemi: Aynı entry setleri için tek kayıt
+- Referans bazlı çoklu scrape: Entry'ler kopyalanmaz, sadece scrape referansları tutulur
 - Otomatik temizleme: `historyRetentionDays`'e göre
+- Sıralama: Analizler en yeniden en eskiye doğru sıralanır (timestamp'e göre)
 
 ---
 
@@ -215,6 +267,7 @@ interface FlatHistoryItem {
 | `geminiApiKey`, `selectedModel`, `prompts`, `theme`, `optionsActiveTab` | `src/settings.js`, `src/options.js`, `src/model-select.js` |
 | `eksi_ai_usage_stats` | `src/stats.js` |
 | `scrapedData`, `historyRetentionDays` | `src/analysis-history.js`, `src/history.js` |
+| `multiScrapeAnalyses` | `src/history.js` |
 | Entry yapısı | `src/scraper.js` |
 | Prompt yapısı | `src/prompts.js` |
 
@@ -234,8 +287,31 @@ await recordApiCall({ modelId: "gemini-2.5-flash", tokenEstimate: response.token
 **Geçmişi Görüntüleme:**
 ```javascript
 const history = await getHistory();
+// history hem ScrapeRecord hem de MultiScrapeAnalysis içerir
 const recent = history.slice(0, 10);
-const withAnalysis = history.filter(item => !item.scrapeOnly);
+const withAnalysis = history.filter(item => !item.scrapeOnly || item.id?.startsWith('multi-analysis-'));
+const multiAnalyses = history.filter(item => item.id?.startsWith('multi-analysis-'));
+```
+
+**Çoklu Scrape Analizi:**
+```javascript
+// Geçmiş sayfasında birden fazla scrape seçilip "Yeniden Analiz Et" yapıldığında
+const selectedScrapes = [scrape1, scrape2, scrape3];
+await saveToHistoryFromPage({
+    prompt: "Bu başlıkları karşılaştır",
+    response: "...",
+    modelId: "gemini-2.5-flash",
+    responseTime: 1500,
+    sourceScrapes: selectedScrapes.map(s => ({
+        scrapeId: s.id,
+        sourceEntriesHash: s.sourceEntriesHash,
+        topicTitle: s.topicTitle,
+        topicUrl: s.topicUrl,
+        topicId: s.topicId,
+        entryCount: s.entryCount
+    }))
+});
+// multiScrapeAnalyses storage'ına kaydedilir
 ```
 
 ---
@@ -259,4 +335,4 @@ const withAnalysis = history.filter(item => !item.scrapeOnly);
 
 ---
 
-**Son Güncelleme:** 2024-01-01 | **Versiyon:** 1.0.0
+**Son Güncelleme:** 2025-12-10 | **Versiyon:** 1.1.0
