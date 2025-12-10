@@ -916,7 +916,14 @@ const showCustomPromptInput = async () => {
     const modal = document.getElementById('modelComparisonModal');
     const modalBody = document.getElementById('modalBody');
     const modalStatusSummary = document.getElementById('modalStatusSummary');
+    const modalContainer = modal?.querySelector('.modal-container');
     if (!modal || !modalBody) return;
+    
+    // Modal container'ın genişliğini normal boyuta ayarla (özel prompt için)
+    if (modalContainer) {
+        modalContainer.style.maxWidth = '500px';
+        modalContainer.style.width = '90%';
+    }
     
     // Modal'ı aç
     modal.classList.add('active');
@@ -1109,6 +1116,13 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
     modelComparisonAbortControllers = [];
 
     isCheckingModels = true;
+
+    // Modal container'ın genişliğini karşılaştırma için geniş yap
+    const modalContainer = modal.querySelector('.modal-container');
+    if (modalContainer) {
+        modalContainer.style.maxWidth = '95vw';
+        modalContainer.style.width = '100%';
+    }
 
     // Modal'ı göster
     modal.classList.add('active');
