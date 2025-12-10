@@ -1193,8 +1193,9 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
     // lastScrapeData veya lastAnalysisFromHistory'den başlık bilgisini al
     const topicData = lastAnalysisFromHistory || lastScrapeData;
     if (topicData) {
-        // Dark theme kontrolü
-        const isDarkTheme = document.body.classList.contains('dark-theme');
+        // Dark theme kontrolü (manuel dark-theme veya otomatik sistem teması)
+        const isDarkTheme = document.body.classList.contains('dark-theme') || 
+            (!document.body.classList.contains('light-theme') && !document.body.classList.contains('dark-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
         const labelColor = isDarkTheme ? '#e0e0e0' : '#333';
         const valueColor = isDarkTheme ? '#ccc' : '#555';
         
@@ -1226,8 +1227,9 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
     // Prompt bilgisini hazırla (sadece kullanıcı prompt'u, entry'ler olmadan)
     let promptInfoHtml = '';
     if (displayPrompt && displayPrompt.trim()) {
-        // Dark theme kontrolü (topic-info-section ile aynı renk paleti)
-        const isDarkTheme = document.body.classList.contains('dark-theme');
+        // Dark theme kontrolü (manuel dark-theme veya otomatik sistem teması)
+        const isDarkTheme = document.body.classList.contains('dark-theme') || 
+            (!document.body.classList.contains('light-theme') && !document.body.classList.contains('dark-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
         const bgColor = isDarkTheme ? '#2d2d2d' : '#f5f5f5';
         const borderColor = isDarkTheme ? '#81c14b' : '#667eea'; // Koyu temada yeşil, açık temada mor
         const titleColor = isDarkTheme ? '#e0e0e0' : '#333';
