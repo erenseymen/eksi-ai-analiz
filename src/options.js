@@ -1200,8 +1200,37 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
     // Modal'ı göster
     modal.classList.add('active');
 
+    // Başlık bilgisini hazırla
+    let topicInfoHtml = '';
+    if (lastScrapeData) {
+        // Birden fazla başlık varsa topics dizisini göster
+        if (lastScrapeData.topics && lastScrapeData.topics.length > 1) {
+            const topicLinks = lastScrapeData.topics.map(topic => 
+                `<a href="${topic.url}" target="_blank" class="topic-link">${topic.title}</a>`
+            ).join(', ');
+            topicInfoHtml = `
+                <div class="topic-info-section">
+                    <span class="topic-info-label">📚 Başlıklar:</span>
+                    <span class="topic-info-value">${topicLinks}</span>
+                </div>
+            `;
+        } else if (lastScrapeData.topicTitle) {
+            // Tek başlık varsa
+            const topicLink = lastScrapeData.topicUrl 
+                ? `<a href="${lastScrapeData.topicUrl}" target="_blank" class="topic-link">${lastScrapeData.topicTitle}</a>`
+                : lastScrapeData.topicTitle;
+            topicInfoHtml = `
+                <div class="topic-info-section">
+                    <span class="topic-info-label">📖 Başlık:</span>
+                    <span class="topic-info-value">${topicLink}</span>
+                </div>
+            `;
+        }
+    }
+
     // Üç bölüm oluştur: başarılı modeller, seçilmeyen modeller ve hata alınan modeller
     modalBody.innerHTML = `
+        ${topicInfoHtml}
         <div class="models-comparison-section" id="successfulModelsSection">
             <div class="models-comparison-section-title success" id="successfulModelsTitle" style="display: none;">
                 ✅ Başarılı Modeller
