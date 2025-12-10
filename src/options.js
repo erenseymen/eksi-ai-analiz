@@ -1074,7 +1074,8 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
     }
 
     // Son scrape edilen veriyi al (hem prompt için hem de kayıt için)
-    let testPrompt = customPrompt;
+    let apiPrompt = customPrompt; // API'ye gönderilecek prompt (entry'lerle birlikte)
+    let displayPrompt = customPrompt || ''; // Modal'da gösterilecek prompt (sadece kullanıcı prompt'u, entry'ler olmadan)
     lastScrapeData = null; // Global değişkeni sıfırla
     
     // Son scrape verisini al
@@ -1095,7 +1096,7 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
             lastScrapeData = historyData[0]; // Kayıt için sakla
             
             // Eğer custom prompt verilmemişse, son scrape için kullanılan son prompt'u kullan
-            if (!testPrompt) {
+            if (!apiPrompt) {
                 let userPrompt = '';
                 
                 // Son scrape'in son analizinde kullanılan prompt'u bul
@@ -1120,15 +1121,23 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
                     
                     if (userPrompt) {
                         // Prompt varsa, entry'leri başa ekle (ui.js formatı)
-                        testPrompt = `Başlık: "${topicTitle}"\n\nAşağıda Ekşi Sözlük entry'leri JSON formatında verilmiştir:\n${entriesJson}\n\n${userPrompt}`;
+                        // API'ye gönderilecek prompt (entry'lerle birlikte)
+                        apiPrompt = `Analiz Edilen Başlık: "${topicTitle}"\n\nAşağıda Ekşi Sözlük entry'leri JSON formatında verilmiştir:\n${entriesJson}\n\n${userPrompt}`;
+                        // Modal'da gösterilecek prompt (sadece kullanıcı prompt'u)
+                        displayPrompt = userPrompt;
                     } else {
                         // Prompt yoksa, sadece entry'leri JSON formatında gönder (sistem promptu analiz edecek)
-                        testPrompt = `Başlık: "${topicTitle}"\n\nAşağıda Ekşi Sözlük entry'leri JSON formatında verilmiştir:\n${entriesJson}`;
+                        apiPrompt = `Analiz Edilen Başlık: "${topicTitle}"\n\nAşağıda Ekşi Sözlük entry'leri JSON formatında verilmiştir:\n${entriesJson}`;
+                        displayPrompt = ''; // Entry'ler gösterilmeyecek
                     }
                 } else if (userPrompt) {
                     // Entry yok ama prompt var
-                    testPrompt = userPrompt;
+                    apiPrompt = userPrompt;
+                    displayPrompt = userPrompt;
                 }
+            } else {
+                // Custom prompt verilmişse, hem API hem de display için aynı prompt'u kullan
+                displayPrompt = customPrompt;
             }
         }
     } catch (error) {
@@ -1136,8 +1145,9 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
     }
 
     // Eğer hiç veri yoksa (analiz geçmişinde entry yok), sadece sistem promptu ile basit bir test yap
-    if (!testPrompt || testPrompt.trim() === '') {
-        testPrompt = 'Merhaba! Model karşılaştırma testi. Kısa bir yanıt ver.';
+    if (!apiPrompt || apiPrompt.trim() === '') {
+        apiPrompt = 'Merhaba! Model karşılaştırma testi. Kısa bir yanıt ver.';
+        displayPrompt = apiPrompt;
     }
 
     // Eğer kontrol zaten devam ediyorsa, yeni kontrol başlatma
@@ -1170,34 +1180,58 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
     // Başlık bilgisini hazırla
     let topicInfoHtml = '';
     if (lastScrapeData) {
+        // Dark theme kontrolü
+        const isDarkTheme = document.body.classList.contains('dark-theme');
+        const labelColor = isDarkTheme ? '#e0e0e0' : '#333';
+        const valueColor = isDarkTheme ? '#ccc' : '#555';
+        
         // Birden fazla başlık varsa topics dizisini göster
         if (lastScrapeData.topics && lastScrapeData.topics.length > 1) {
             const topicLinks = lastScrapeData.topics.map(topic => 
-                `<a href="${topic.url}" target="_blank" class="topic-link">${topic.title}</a>`
+                `<a href="${topic.url}" target="_blank" class="topic-link" style="color: ${isDarkTheme ? '#81c14b' : '#667eea'}; text-decoration: none;">${topic.title}</a>`
             ).join(', ');
             topicInfoHtml = `
-                <div class="topic-info-section">
-                    <span class="topic-info-label">📚 Başlıklar:</span>
-                    <span class="topic-info-value">${topicLinks}</span>
+                <div class="topic-info-section" style="margin-bottom: 10px; padding: 10px; background: ${isDarkTheme ? '#2d2d2d' : '#f9f9f9'}; border-radius: 6px;">
+                    <span class="topic-info-label" style="font-weight: bold; color: ${labelColor};">📚 Analiz Edilen Başlıklar:</span>
+                    <span class="topic-info-value" style="color: ${valueColor}; margin-left: 8px;">${topicLinks}</span>
                 </div>
             `;
         } else if (lastScrapeData.topicTitle) {
             // Tek başlık varsa
             const topicLink = lastScrapeData.topicUrl 
-                ? `<a href="${lastScrapeData.topicUrl}" target="_blank" class="topic-link">${lastScrapeData.topicTitle}</a>`
-                : lastScrapeData.topicTitle;
+                ? `<a href="${lastScrapeData.topicUrl}" target="_blank" class="topic-link" style="color: ${isDarkTheme ? '#81c14b' : '#667eea'}; text-decoration: none;">${lastScrapeData.topicTitle}</a>`
+                : `<span style="color: ${valueColor};">${lastScrapeData.topicTitle}</span>`;
             topicInfoHtml = `
-                <div class="topic-info-section">
-                    <span class="topic-info-label">📖 Başlık:</span>
-                    <span class="topic-info-value">${topicLink}</span>
+                <div class="topic-info-section" style="margin-bottom: 10px; padding: 10px; background: ${isDarkTheme ? '#2d2d2d' : '#f9f9f9'}; border-radius: 6px;">
+                    <span class="topic-info-label" style="font-weight: bold; color: ${labelColor};">📖 Analiz Edilen Başlık:</span>
+                    <span class="topic-info-value" style="color: ${valueColor}; margin-left: 8px;">${topicLink}</span>
                 </div>
             `;
         }
     }
 
+    // Prompt bilgisini hazırla (sadece kullanıcı prompt'u, entry'ler olmadan)
+    let promptInfoHtml = '';
+    if (displayPrompt && displayPrompt.trim()) {
+        // Dark theme kontrolü
+        const isDarkTheme = document.body.classList.contains('dark-theme');
+        const bgColor = isDarkTheme ? '#2d2d2d' : '#f5f5f5';
+        const borderColor = isDarkTheme ? '#667eea' : '#667eea';
+        const titleColor = isDarkTheme ? '#e0e0e0' : '#333';
+        const textColor = isDarkTheme ? '#ccc' : '#555';
+        
+        promptInfoHtml = `
+            <div class="prompt-info-section" style="margin-top: 15px; padding: 12px; background: ${bgColor}; border-radius: 6px; border-left: 3px solid ${borderColor};">
+                <div style="font-weight: bold; margin-bottom: 8px; color: ${titleColor};">💬 Kullanılan Prompt:</div>
+                <div style="color: ${textColor}; white-space: pre-wrap; word-wrap: break-word; font-family: monospace; font-size: 13px; line-height: 1.5;">${escapeHtml(displayPrompt)}</div>
+            </div>
+        `;
+    }
+
     // Üç bölüm oluştur: başarılı modeller, seçilmeyen modeller ve hata alınan modeller
     modalBody.innerHTML = `
         ${topicInfoHtml}
+        ${promptInfoHtml}
         <div class="models-comparison-section" id="successfulModelsSection">
             <div class="models-comparison-section-title success" id="successfulModelsTitle" style="display: none;">
                 ✅ Başarılı Modeller
@@ -1360,7 +1394,7 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
             await callGeminiApiStreamingForTest(
                 apiKey,
                 model.id,
-                testPrompt,
+                apiPrompt,
                 abortController.signal,
                 (chunk, fullText) => {
                     // Her chunk geldiğinde UI'ı güncelle
@@ -1400,7 +1434,7 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
                     
                     await saveModelComparisonResult({
                         sourceEntriesHash: lastScrapeData.sourceEntriesHash,
-                        prompt: testPrompt,
+                        prompt: apiPrompt,
                         response: `**[Model Karşılaştırma] ${modelName}**\n\n${cardData.fullText}`,
                         modelId: model.id,
                         responseTime: responseTimeMs
