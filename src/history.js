@@ -108,6 +108,28 @@ const cleanupOldEntries = async (days) => {
 };
 
 // =============================================================================
+// DOSYA İŞLEMLERİ
+// =============================================================================
+
+/**
+ * Dosya adını geçerli karakterlerle temizler.
+ * 
+ * Windows ve diğer işletim sistemlerinde geçersiz olan karakterleri
+ * alt çizgi ile değiştirir. Türkçe karakterleri korur.
+ * 
+ * @param {string} name - Temizlenecek dosya adı
+ * @returns {string} Güvenli dosya adı
+ */
+const sanitizeFilename = (name) => {
+    if (!name) return '';
+    return name
+        .replace(/[\\/:*?"<>|]/g, '_')  // Windows'ta geçersiz karakterleri değiştir
+        .replace(/_+/g, '_')            // Ardışık alt çizgileri teke indir
+        .replace(/^\s+|\s+$/g, '')      // Baş ve sondaki boşlukları temizle
+        .replace(/^_+|_+$/g, '');       // Baş ve sondaki alt çizgileri temizle
+};
+
+// =============================================================================
 // GEÇMİŞ YÖNETİMİ
 // =============================================================================
 
@@ -767,7 +789,7 @@ const attachEventListeners = (scrapes) => {
             if (!scrape || !scrape.sourceEntries) return;
 
             const content = JSON.stringify(scrape.sourceEntries, null, 2);
-            const filename = `${scrape.topicTitle.replace(/[^a-z0-9]/gi, '_')}_sourceEntries.json`;
+            const filename = `${sanitizeFilename(scrape.topicTitle)}_sourceEntries.json`;
             const mimeType = 'application/json';
 
             showArtifactPreview(content, filename, mimeType, 'json');
@@ -829,11 +851,11 @@ const attachEventListeners = (scrapes) => {
 
                 if (type === 'markdown' && !artifact) {
                     content = analysis.response || '';
-                    filename = `${scrape.topicTitle.replace(/[^a-z0-9]/gi, '_')}_analysis_${analysisIdx + 1}.md`;
+                    filename = `${sanitizeFilename(scrape.topicTitle)}_analysis_${analysisIdx + 1}.md`;
                     mimeType = 'text/markdown';
                 } else if (artifact === 'prompt') {
                     content = analysis.prompt || '';
-                    filename = `${scrape.topicTitle.replace(/[^a-z0-9]/gi, '_')}_prompt_${analysisIdx + 1}.md`;
+                    filename = `${sanitizeFilename(scrape.topicTitle)}_prompt_${analysisIdx + 1}.md`;
                     mimeType = 'text/markdown';
                     previewType = 'markdown'; // Prompt'u markdown olarak göster
                 }
@@ -1016,19 +1038,21 @@ const downloadAllArtifacts = async (scrape) => {
     // SourceEntries JSON
     if (scrape.sourceEntries && scrape.sourceEntries.length > 0) {
         const content = JSON.stringify(scrape.sourceEntries, null, 2);
-        zip.file(`${scrape.topicTitle.replace(/[^a-z0-9]/gi, '_')}_sourceEntries.json`, content);
+        const safeTitle = sanitizeFilename(scrape.topicTitle);
+        zip.file(`${safeTitle}_sourceEntries.json`, content);
         hasFiles = true;
     }
 
     // Her analiz için artifact'ler
     scrape.analyses.forEach((analysis, idx) => {
+        const safeTitle = sanitizeFilename(scrape.topicTitle);
         if (analysis.response) {
             // Markdown
-            zip.file(`${scrape.topicTitle.replace(/[^a-z0-9]/gi, '_')}_analysis_${idx + 1}.md`, analysis.response);
+            zip.file(`${safeTitle}_analysis_${idx + 1}.md`, analysis.response);
             hasFiles = true;
         }
         if (analysis.prompt) {
-            zip.file(`${scrape.topicTitle.replace(/[^a-z0-9]/gi, '_')}_prompt_${idx + 1}.txt`, analysis.prompt);
+            zip.file(`${safeTitle}_prompt_${idx + 1}.txt`, analysis.prompt);
             hasFiles = true;
         }
     });
@@ -1039,12 +1063,16 @@ const downloadAllArtifacts = async (scrape) => {
     }
 
     try {
-        // ZIP dosyasını oluştur
-        const blob = await zip.generateAsync({ type: 'blob' });
+        // ZIP dosyasını oluştur (UTF-8 encoding ile)
+        const blob = await zip.generateAsync({ 
+            type: 'blob',
+            compression: 'DEFLATE',
+            compressionOptions: { level: 6 }
+        });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${scrape.topicTitle.replace(/[^a-z0-9]/gi, '_')}_artifacts.zip`;
+        a.download = `${sanitizeFilename(scrape.topicTitle)}_artifacts.zip`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -1092,7 +1120,7 @@ const downloadMultiScrapeArtifacts = async (multiAnalysis, allScrapes) => {
         );
         if (originalScrape && originalScrape.sourceEntries && originalScrape.sourceEntries.length > 0) {
             const content = JSON.stringify(originalScrape.sourceEntries, null, 2);
-            const safeTitle = sourceScrape.topicTitle.replace(/[^a-z0-9]/gi, '_');
+            const safeTitle = sanitizeFilename(sourceScrape.topicTitle);
             zip.file(`${safeTitle}_sourceEntries.json`, content);
             hasFiles = true;
         }
@@ -1122,8 +1150,12 @@ const downloadMultiScrapeArtifacts = async (multiAnalysis, allScrapes) => {
     }
 
     try {
-        // ZIP dosyasını oluştur
-        const blob = await zip.generateAsync({ type: 'blob' });
+        // ZIP dosyasını oluştur (UTF-8 encoding ile)
+        const blob = await zip.generateAsync({ 
+            type: 'blob',
+            compression: 'DEFLATE',
+            compressionOptions: { level: 6 }
+        });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
