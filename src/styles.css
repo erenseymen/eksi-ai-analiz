@@ -241,6 +241,8 @@
 /**
  * Gemini API yanıtlarının gösterildiği alan
  * Markdown içerik burada render edilir.
+ * Not: max-height kaldırıldı - içerik stream edilirken aşağı doğru uzar,
+ * kullanıcı istediği kadarını okuyabilir (sayfa otomatik kaymaz).
  */
 .eksi-ai-result-area {
     margin-top: 15px;
@@ -249,8 +251,6 @@
     border: 1px solid var(--eksi-ai-border);
     border-radius: 4px;
     display: none;
-    max-height: 500px;
-    overflow-y: auto;
     white-space: pre-wrap;
     color: var(--eksi-ai-text);
 }
