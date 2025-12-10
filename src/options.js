@@ -734,16 +734,17 @@ const updateAllModelsStatus = async () => {
 };
 
 /**
- * Test için system prompt kullanmadan streaming API çağrısı yapar.
+ * Test için streaming API çağrısı yapar.
  * 
  * @param {string} apiKey - Gemini API anahtarı
  * @param {string} modelId - Kullanılacak model ID'si
- * @param {string} prompt - Gönderilecek prompt (system prompt olmadan)
+ * @param {string} prompt - Gönderilecek prompt
  * @param {AbortSignal} signal - İstek iptal sinyali
  * @param {Function} onChunk - Her parça geldiğinde çağrılacak callback (chunk, fullText) => void
+ * @param {boolean} [includeSystemPrompt=true] - Sistem prompt'unu ekleyip eklemeyeceği (varsayılan: true)
  * @returns {Promise<{text: string, responseTime: number}>} Tam yanıt ve süre
  */
-const callGeminiApiStreamingForTest = async (apiKey, modelId, prompt, signal, onChunk) => {
+const callGeminiApiStreamingForTest = async (apiKey, modelId, prompt, signal, onChunk, includeSystemPrompt = true) => {
     const startTime = performance.now();
 
     // Model bazlı API versiyonu belirleme
@@ -752,25 +753,35 @@ const callGeminiApiStreamingForTest = async (apiKey, modelId, prompt, signal, on
     const url = `https://generativelanguage.googleapis.com/${apiVersion}/models/${modelId}:streamGenerateContent?alt=sse&key=${apiKey}`;
 
     try {
-        // Request body oluştur - sistem prompt'u da ekle
+        // Request body oluştur
         let requestBody;
 
-        if (apiVersion === 'v1beta') {
-            // v1beta: systemInstruction alanını kullan
+        if (includeSystemPrompt) {
+            // Sistem prompt'u ekle
+            if (apiVersion === 'v1beta') {
+                // v1beta: systemInstruction alanını kullan
+                requestBody = {
+                    systemInstruction: {
+                        parts: [{ text: SYSTEM_PROMPT }]
+                    },
+                    contents: [{
+                        parts: [{ text: prompt }]
+                    }]
+                };
+            } else {
+                // v1: system instruction'ı prompt'un başına ekle
+                const combinedPrompt = `${SYSTEM_PROMPT}\n\n${prompt}`;
+                requestBody = {
+                    contents: [{
+                        parts: [{ text: combinedPrompt }]
+                    }]
+                };
+            }
+        } else {
+            // Sistem prompt'u ekleme, sadece kullanıcı prompt'unu gönder
             requestBody = {
-                systemInstruction: {
-                    parts: [{ text: SYSTEM_PROMPT }]
-                },
                 contents: [{
                     parts: [{ text: prompt }]
-                }]
-            };
-        } else {
-            // v1: system instruction'ı prompt'un başına ekle
-            const combinedPrompt = `${SYSTEM_PROMPT}\n\n${prompt}`;
-            requestBody = {
-                contents: [{
-                    parts: [{ text: combinedPrompt }]
                 }]
             };
         }
@@ -1260,7 +1271,9 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
         try {
             cardData.startTime = performance.now();
 
-            // Streaming API çağrısı (test için system prompt kullanmıyoruz)
+            // Streaming API çağrısı
+            // Özel prompt kullanılıyorsa (customPrompt parametresi varsa) sistem prompt'unu ekleme
+            const isCustomPrompt = customPrompt !== null && customPrompt !== undefined;
             await callGeminiApiStreamingForTest(
                 apiKey,
                 model.id,
@@ -1273,7 +1286,8 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
                     cardData.fullText = fullText;
                     // Markdown olarak göster
                     cardData.responseDiv.innerHTML = parseMarkdown(fullText);
-                }
+                },
+                !isCustomPrompt // Özel prompt kullanılıyorsa sistem prompt'unu ekleme
             );
 
             // Streaming tamamlandı
