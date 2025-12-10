@@ -897,34 +897,8 @@ const showCustomPromptInput = async () => {
         modalStatusSummary.textContent = '';
     }
 
-    // Son scrape edilen veriyi al (varsayılan prompt olarak kullanılacak)
-    let defaultPrompt = '';
-    try {
-        const historyData = await new Promise((resolve) => {
-            chrome.storage.local.get({ scrapedData: [] }, (result) => {
-                const scrapedData = result.scrapedData;
-                scrapedData.sort((a, b) => {
-                    const dateA = new Date(a.scrapedAt);
-                    const dateB = new Date(b.scrapedAt);
-                    return dateB - dateA;
-                });
-                resolve(scrapedData);
-            });
-        });
-
-        if (historyData && historyData.length > 0 && historyData[0].sourceEntries && historyData[0].sourceEntries.length > 0) {
-            const lastScrape = historyData[0];
-            const entries = lastScrape.sourceEntries;
-            defaultPrompt = entries.map(entry => entry.content || '').filter(content => content.trim()).join('\n\n');
-        }
-    } catch (error) {
-        console.warn('Son scrape edilen veri alınamadı:', error);
-    }
-
-    // Eğer scrape edilen veri yoksa varsayılan prompt kullan
-    if (!defaultPrompt || defaultPrompt.trim() === '') {
-        defaultPrompt = 'Merhaba! Sen Google Gemini API\'sinin bir modelisin. Kendini kısaca tanıt ve bana kısa bir şaka yap.';
-    }
+    // Özel prompt için boş prompt kullan (kullanıcı kendi prompt'unu girecek)
+    const defaultPrompt = '';
 
     // Mevcut içeriği sakla (eğer test devam ediyorsa)
     const currentContent = modalBody.innerHTML;
@@ -992,7 +966,7 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
     // Son scrape edilen veriyi al
     let testPrompt = customPrompt;
     
-    // Eğer custom prompt verilmemişse, son scrape edilen veriyi veya varsayılan prompt'u kullan
+    // Eğer custom prompt verilmemişse, son scrape için kullanılan son prompt'u kullan
     if (!testPrompt) {
         try {
             const historyData = await new Promise((resolve) => {
@@ -1007,16 +981,35 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
                 });
             });
 
-            if (historyData && historyData.length > 0 && historyData[0].sourceEntries && historyData[0].sourceEntries.length > 0) {
+            if (historyData && historyData.length > 0) {
                 const lastScrape = historyData[0];
-                const entries = lastScrape.sourceEntries;
-                testPrompt = entries.map(entry => entry.content || '').filter(content => content.trim()).join('\n\n');
+                
+                // Son scrape'in son analizinde kullanılan prompt'u bul
+                if (lastScrape.analyses && lastScrape.analyses.length > 0) {
+                    // Analizleri timestamp'e göre sırala (en yeni en sonda)
+                    const sortedAnalyses = [...lastScrape.analyses].sort((a, b) => {
+                        const dateA = new Date(a.timestamp);
+                        const dateB = new Date(b.timestamp);
+                        return dateA - dateB; // Ascending order
+                    });
+                    
+                    const lastAnalysis = sortedAnalyses[sortedAnalyses.length - 1];
+                    if (lastAnalysis && lastAnalysis.prompt && lastAnalysis.prompt.trim()) {
+                        testPrompt = lastAnalysis.prompt;
+                    }
+                }
+                
+                // Eğer prompt bulunamadıysa, entry içeriklerini kullan
+                if (!testPrompt && lastScrape.sourceEntries && lastScrape.sourceEntries.length > 0) {
+                    const entries = lastScrape.sourceEntries;
+                    testPrompt = entries.map(entry => entry.content || '').filter(content => content.trim()).join('\n\n');
+                }
             }
         } catch (error) {
             console.warn('Son scrape edilen veri alınamadı:', error);
         }
 
-        // Eğer scrape edilen veri yoksa varsayılan prompt kullan
+        // Eğer hala prompt yoksa varsayılan prompt kullan
         if (!testPrompt || testPrompt.trim() === '') {
             testPrompt = 'Merhaba! Sen Google Gemini API\'sinin bir modelisin. Kendini kısaca tanıt ve bana kısa bir şaka yap.';
         }
