@@ -557,7 +557,11 @@ const renderHistory = (scrapes, append = false) => {
                     });
 
                     let analysisArtifactsHtml = '';
-                    if (analysis.prompt) {
+                    // Prompt butonu - boş olsa bile göster (disabled olarak)
+                    const isPromptEmpty = !analysis.prompt || analysis.prompt.trim() === '';
+                    if (isPromptEmpty) {
+                        analysisArtifactsHtml += `<button class="btn-secondary" disabled title="Boş prompt" style="opacity: 0.5; cursor: not-allowed;">💬 Prompt</button>`;
+                    } else {
                         analysisArtifactsHtml += `<button class="btn-secondary" data-type="markdown" data-multi-analysis-id="${escapeHtml(item.id)}" data-analysis-idx="${idx}" data-artifact="prompt">💬 Prompt</button>`;
                     }
                     if (analysis.response) {
@@ -658,7 +662,11 @@ const renderHistory = (scrapes, append = false) => {
 
                     // Her analiz için Prompt ve Cevap butonları
                     let analysisArtifactsHtml = '';
-                    if (analysis.prompt) {
+                    // Prompt butonu - boş olsa bile göster (disabled olarak)
+                    const isPromptEmpty = !analysis.prompt || analysis.prompt.trim() === '';
+                    if (isPromptEmpty) {
+                        analysisArtifactsHtml += `<button class="btn-secondary" disabled title="Boş prompt" style="opacity: 0.5; cursor: not-allowed;">💬 Prompt</button>`;
+                    } else {
                         analysisArtifactsHtml += `<button class="btn-secondary" data-type="markdown" data-scrape-id="${escapeHtml(scrape.id)}" data-analysis-idx="${idx}" data-artifact="prompt">💬 Prompt</button>`;
                     }
                     if (analysis.response) {

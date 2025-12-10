@@ -1434,7 +1434,7 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
                     
                     await saveModelComparisonResult({
                         sourceEntriesHash: lastScrapeData.sourceEntriesHash,
-                        prompt: displayPrompt || apiPrompt, // Kullanıcı prompt'unu kaydet, yoksa apiPrompt'u kullan
+                        prompt: displayPrompt || '', // Kullanıcı prompt'unu kaydet, yoksa boş string (sadece toplama durumu)
                         response: `**[Model Karşılaştırma] ${modelName}**\n\n${cardData.fullText}`,
                         modelId: model.id,
                         responseTime: responseTimeMs
