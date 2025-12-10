@@ -35,6 +35,8 @@ Cevabında entry'lere referans verebilirsin (alıntı yapabilirsin). Link format
 - URL formatı: https://eksisozluk.com/entry/{entry_id}
 - entry_id değerini JSON verisindeki "id" alanından al
 - Markdown link formatı: [açıklayıcı metin](https://eksisozluk.com/entry/{entry_id})
+- Açıklayıcı metin, entry'nin içeriğinden anlamlı bir kesit veya özetleyici bir ifade olmalıdır
+- "bu entry", "bkz", "link" gibi genel ifadeler yerine, içeriği tanımlayan metinler kullan
 - Örnek: [bu entry](https://eksisozluk.com/entry/000000001)`;
 
 // =============================================================================
