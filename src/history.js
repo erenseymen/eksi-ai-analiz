@@ -220,16 +220,40 @@ const deleteHistoryItem = async (itemId) => {
                 scrapedData = scrapedData.filter(item => item.id !== itemId);
                 chrome.storage.local.set({ scrapedData, multiScrapeAnalyses }, resolve);
             } else {
-                // Analysis ID'si, ilgili scrape'den analizi sil
+                // Analysis ID'si, ilgili scrape veya multi-analysis'den analizi sil
+                // Önce normal scrapes'lerde ara
                 scrapedData = scrapedData.map(scrape => {
-                    if (scrape.analyses.some(a => a.id === itemId)) {
+                    if (scrape.analyses && scrape.analyses.some(a => a.id === itemId)) {
+                        const filteredAnalyses = scrape.analyses.filter(a => a.id !== itemId);
+                        // Eğer tüm analizler silindiyse, scrape'i de sil
+                        if (filteredAnalyses.length === 0) {
+                            return null;
+                        }
                         return {
                             ...scrape,
-                            analyses: scrape.analyses.filter(a => a.id !== itemId)
+                            analyses: filteredAnalyses
                         };
                     }
                     return scrape;
-                });
+                }).filter(scrape => scrape !== null); // null olanları filtrele
+                
+                // Multi-analysis'lerde de ara
+                multiScrapeAnalyses = multiScrapeAnalyses.map(multiAnalysis => {
+                    if (multiAnalysis.analyses && multiAnalysis.analyses.some(a => a.id === itemId)) {
+                        const filteredAnalyses = multiAnalysis.analyses.filter(a => a.id !== itemId);
+                        // Eğer tüm analizler silindiyse, multi-analysis'i de sil
+                        if (filteredAnalyses.length === 0) {
+                            return null;
+                        }
+                        return {
+                            ...multiAnalysis,
+                            analyses: filteredAnalyses,
+                            lastUpdated: new Date().toISOString()
+                        };
+                    }
+                    return multiAnalysis;
+                }).filter(multiAnalysis => multiAnalysis !== null); // null olanları filtrele
+                
                 chrome.storage.local.set({ scrapedData, multiScrapeAnalyses }, resolve);
             }
         });
@@ -589,6 +613,8 @@ const renderHistory = (scrapes, append = false) => {
                     if (analysis.response) {
                         analysisArtifactsHtml += `<button class="btn-secondary" data-type="markdown" data-multi-analysis-id="${escapeHtml(item.id)}" data-analysis-idx="${idx}" data-artifact="response">📝 Cevap</button>`;
                     }
+                    // Sil butonu
+                    analysisArtifactsHtml += `<button class="btn-danger btn-delete-analysis" data-analysis-id="${escapeHtml(analysis.id)}" data-multi-analysis-id="${escapeHtml(item.id)}" style="font-size: 13px; padding: 6px 12px;">🗑️ Sil</button>`;
 
                     analysesHtml += `
                         <div class="analysis-item">
@@ -694,6 +720,8 @@ const renderHistory = (scrapes, append = false) => {
                     if (analysis.response) {
                         analysisArtifactsHtml += `<button class="btn-secondary" data-type="markdown" data-scrape-id="${escapeHtml(scrape.id)}" data-analysis-idx="${idx}">📝 Cevap</button>`;
                     }
+                    // Sil butonu
+                    analysisArtifactsHtml += `<button class="btn-danger btn-delete-analysis" data-analysis-id="${escapeHtml(analysis.id)}" data-scrape-id="${escapeHtml(scrape.id)}" style="font-size: 13px; padding: 6px 12px;">🗑️ Sil</button>`;
 
                     analysesHtml += `
                         <div class="analysis-item">
@@ -891,7 +919,28 @@ const attachEventListeners = (scrapes) => {
         });
     });
 
-    // Sil butonları
+    // Analiz silme butonları (tek analiz silme)
+    document.querySelectorAll('.btn-delete-analysis').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const analysisId = btn.getAttribute('data-analysis-id');
+            const scrapeId = btn.getAttribute('data-scrape-id');
+            const multiAnalysisId = btn.getAttribute('data-multi-analysis-id');
+            
+            if (!analysisId) return;
+            
+            // Onay mesajı
+            const confirmMessage = 'Bu analizi silmek istediğinize emin misiniz?';
+            
+            if (confirm(confirmMessage)) {
+                await deleteHistoryItem(analysisId);
+                await loadHistory(); // Listeyi yeniden yükle
+                updateSelectionToolbar();
+            }
+        });
+    });
+
+    // Sil butonları (tüm scrape/analiz grubu silme)
     document.querySelectorAll('.btn-delete').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             e.stopPropagation();
