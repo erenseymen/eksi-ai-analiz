@@ -1934,14 +1934,14 @@ const restoreActiveTab = async () => {
         tabBtn.classList.add('active');
         tabContent.classList.add('active');
 
-        // TAB sıralamasını güncelle (sayfa ilk yüklendiğinde)
-        updateTabFocusability();
-
         // Promptlar sekmesi aktifse textarea yüksekliklerini yeniden ayarla
         if (savedTab === 'prompts') {
             resizeAllPromptTextareas();
         }
     }
+
+    // TAB sıralamasını güncelle (sayfa ilk yüklendiğinde, her durumda çalışmalı)
+    updateTabFocusability();
 };
 
 /**
