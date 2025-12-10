@@ -326,7 +326,7 @@ const restoreOptions = async () => {
         {
             // Varsayılan değerler (kayıt yoksa kullanılır)
             geminiApiKey: '',
-            selectedModel: 'gemini-2.5-pro',
+            selectedModel: 'gemini-2.5-flash',
             prompts: DEFAULT_PROMPTS,
             theme: 'auto'
         },

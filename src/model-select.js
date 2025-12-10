@@ -99,7 +99,7 @@ const restoreOptions = () => {
     chrome.storage.sync.get(
         {
             // Varsayılan model (kayıt yoksa kullanılır)
-            selectedModel: 'gemini-2.5-pro'
+            selectedModel: 'gemini-2.5-flash'
         },
         (items) => {
             populateModelSelect(items.selectedModel);
