@@ -141,6 +141,27 @@
     margin-bottom: 10px;
 }
 
+/** Kayıtlı analizler butonu (ana butonun yanında, farklı stil) */
+.eksi-ai-cached-btn {
+    margin-top: 5px;
+    margin-bottom: 10px;
+    background-color: #4a90e2 !important;
+    border-left: 3px solid #2e6da4;
+}
+
+.eksi-ai-cached-btn:hover {
+    background-color: #357abd !important;
+}
+
+.eksi-ai-dark .eksi-ai-cached-btn {
+    background-color: #5a9ee2 !important;
+    border-left-color: #4a7dbd;
+}
+
+.eksi-ai-dark .eksi-ai-cached-btn:hover {
+    background-color: #4a8dd2 !important;
+}
+
 /** Buton hover durumu */
 #eksi-ai-container .eksi-ai-btn:hover,
 #eksi-ai-entry-container .eksi-ai-btn:hover {

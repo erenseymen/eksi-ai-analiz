@@ -34,15 +34,15 @@ const createAnalysisButton = async (h1Element, topicId = null, useCurrentPage = 
     updateContainerTheme(container);
     btn.parentNode.insertBefore(container, btn.nextSibling);
 
-    // Cache kontrolü yap - varsa sonuçları hazırla ve toggle butonunu ekle (gizli başlar)
+    // Cache kontrolü yap - varsa sonuçları hazırla ve kayıtlı analizler butonunu ekle (gizli başlar)
     try {
         const currentUrl = window.location.href;
         const cachedResults = await getCachedAnalysisForUrl(currentUrl);
         if (cachedResults && cachedResults.length > 0) {
             // Sonuçları container'da hazırla (gizli)
             showCachedResultsInContainer(cachedResults, container);
-            // Mevcut toggle butonunu ekle - "Göster" olarak başlar
-            addToggleVisibilityButton(existingBtnId, containerId, true);
+            // Kayıtlı analizleri göstermek için ayrı buton ekle
+            addShowCachedResultsButton(existingBtnId, containerId, cachedResults.length);
         }
     } catch (err) {
         // Cache kontrol hatası - sessizce devam et
@@ -121,17 +121,48 @@ const createSingleEntryButton = async (heading) => {
     updateContainerTheme(container);
     btn.parentNode.insertBefore(container, btn.nextSibling);
 
-    // Cache kontrolü yap - varsa sonuçları hazırla ve toggle butonunu ekle (gizli başlar)
+    // Cache kontrolü yap - varsa sonuçları hazırla ve kayıtlı analizler butonunu ekle (gizli başlar)
     try {
         const currentUrl = window.location.href;
         const cachedResults = await getCachedAnalysisForUrl(currentUrl);
         if (cachedResults && cachedResults.length > 0) {
             showCachedResultsInContainer(cachedResults, container);
-            addToggleVisibilityButton('eksi-ai-entry-btn', 'eksi-ai-entry-container', true);
+            addShowCachedResultsButton('eksi-ai-entry-btn', 'eksi-ai-entry-container', cachedResults.length);
         }
     } catch (err) {
         // Cache kontrol hatası - sessizce devam et
     }
+};
+
+/**
+ * Kayıtlı analizleri göstermek için ayrı bir buton ekler.
+ * @param {string} mainBtnId - Ana buton ID'si
+ * @param {string} containerId - Container ID'si
+ * @param {number} cachedCount - Kayıtlı analiz sayısı
+ */
+const addShowCachedResultsButton = (mainBtnId, containerId, cachedCount) => {
+    const cachedBtnId = `${mainBtnId}-cached`;
+    if (document.getElementById(cachedBtnId)) return;
+    const mainBtn = document.getElementById(mainBtnId);
+    const container = document.getElementById(containerId);
+    if (!mainBtn || !container) return;
+    
+    const cachedBtn = document.createElement('button');
+    cachedBtn.id = cachedBtnId;
+    cachedBtn.className = 'eksi-ai-btn secondary eksi-ai-cached-btn';
+    cachedBtn.textContent = `📚 Kayıtlı Analizler (${cachedCount})`;
+    cachedBtn.onclick = () => {
+        if (container.style.display === 'none') {
+            container.style.display = 'block';
+            cachedBtn.textContent = `📚 Kayıtlı Analizleri Gizle (${cachedCount})`;
+        } else {
+            container.style.display = 'none';
+            cachedBtn.textContent = `📚 Kayıtlı Analizler (${cachedCount})`;
+        }
+    };
+    
+    if (mainBtn.nextSibling) mainBtn.parentNode.insertBefore(cachedBtn, mainBtn.nextSibling);
+    else mainBtn.parentNode.appendChild(cachedBtn);
 };
 
 const addToggleVisibilityButton = (mainBtnId, containerId, startHidden = false) => {
