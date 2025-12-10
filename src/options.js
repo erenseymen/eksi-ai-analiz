@@ -1934,6 +1934,12 @@ const restoreActiveTab = async () => {
         tabBtn.classList.add('active');
         tabContent.classList.add('active');
 
+        // Aktif sekme butonuna focus ver (TAB ile sonraki sekmeye geçilebilsin)
+        // setTimeout ile bekle ki DOM tam render olsun
+        setTimeout(() => {
+            tabBtn.focus();
+        }, 0);
+
         // Promptlar sekmesi aktifse textarea yüksekliklerini yeniden ayarla
         if (savedTab === 'prompts') {
             resizeAllPromptTextareas();
