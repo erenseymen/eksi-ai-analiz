@@ -975,6 +975,9 @@ const formatErrorMessage = (errorMessage, errorType) => {
  * @param {string} [customPrompt] - Kullanılacak custom prompt. Verilmezse son scrape edilen veri veya varsayılan prompt kullanılır.
  */
 let modelComparisonAbortControllers = []; // Modal kapatıldığında iptal edilecek AbortController'lar
+let lastComparisonModelCards = null; // Son karşılaştırma sonuçları (kaydetme için)
+let lastComparisonPrompt = null; // Son karşılaştırmada kullanılan prompt
+let lastComparisonTopicTitle = null; // Son karşılaştırmada kullanılan başlık adı
 
 /**
  * Prompt giriş ekranını gösterir ve kullanıcıdan prompt alır.
@@ -1437,6 +1440,39 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
         modalStatusSummary.textContent = `✅ ${selectedSuccessfulModels.length} model başarıyla test edildi`;
     } else {
         modalStatusSummary.textContent = `✅ ${selectedSuccessfulModels.length} başarılı, ❌ ${selectedFailedModels.length} hata`;
+    }
+
+    // Sonuçları kaydet (geçmişe kaydetme butonu için)
+    lastComparisonModelCards = modelCards;
+    lastComparisonPrompt = testPrompt;
+    
+    // Son scrape edilen veriden başlık adını al
+    try {
+        const historyData = await new Promise((resolve) => {
+            chrome.storage.local.get({ scrapedData: [] }, (result) => {
+                const scrapedData = result.scrapedData;
+                scrapedData.sort((a, b) => {
+                    const dateA = new Date(a.scrapedAt);
+                    const dateB = new Date(b.scrapedAt);
+                    return dateB - dateA;
+                });
+                resolve(scrapedData);
+            });
+        });
+
+        if (historyData && historyData.length > 0) {
+            lastComparisonTopicTitle = historyData[0].topicTitle || 'Model Karşılaştırma Testi';
+        } else {
+            lastComparisonTopicTitle = 'Model Karşılaştırma Testi';
+        }
+    } catch (error) {
+        lastComparisonTopicTitle = 'Model Karşılaştırma Testi';
+    }
+
+    // "Geçmişe Kaydet" butonunu göster (en az bir başarılı model varsa)
+    const saveComparisonBtn = document.getElementById('saveComparisonBtn');
+    if (saveComparisonBtn && selectedSuccessfulModels.length > 0) {
+        saveComparisonBtn.style.display = 'inline-block';
     }
 };
 
@@ -2079,10 +2115,11 @@ document.getElementById('copySystemPromptBtn').addEventListener('click', copySys
 const setupModal = () => {
     const modal = document.getElementById('modelComparisonModal');
     const closeBtn = document.getElementById('modalCloseBtn');
+    const saveComparisonBtn = document.getElementById('saveComparisonBtn');
 
     if (!modal || !closeBtn) return;
 
-    // Modal kapatıldığında tüm request'leri iptal et
+    // Modal kapatıldığında tüm request'leri iptal et ve butonu gizle
     const cancelAllRequests = () => {
         isCheckingModels = false;
         // Tüm AbortController'ları abort et
@@ -2094,6 +2131,11 @@ const setupModal = () => {
             }
         });
         modelComparisonAbortControllers = [];
+        
+        // Geçmişe Kaydet butonunu gizle
+        if (saveComparisonBtn) {
+            saveComparisonBtn.style.display = 'none';
+        }
     };
 
     // Kapat butonuna tıklandığında
@@ -2117,7 +2159,171 @@ const setupModal = () => {
             cancelAllRequests();
         }
     });
+
+    // Geçmişe Kaydet butonuna tıklandığında
+    if (saveComparisonBtn) {
+        saveComparisonBtn.addEventListener('click', async () => {
+            await saveComparisonToHistory();
+        });
+    }
 };
+
+/**
+ * Model karşılaştırma sonuçlarını analiz geçmişine kaydeder.
+ * Seçili ve başarılı olan her model için ayrı bir analiz kaydı oluşturur.
+ */
+const saveComparisonToHistory = async () => {
+    if (!lastComparisonModelCards) {
+        showToast('Kaydedilecek karşılaştırma sonucu bulunamadı.', 'error');
+        return;
+    }
+
+    const saveComparisonBtn = document.getElementById('saveComparisonBtn');
+    const originalBtnText = saveComparisonBtn.textContent;
+    
+    // Butonu devre dışı bırak ve loading göster
+    saveComparisonBtn.disabled = true;
+    saveComparisonBtn.textContent = '⏳ Kaydediliyor...';
+
+    try {
+        // Seçili ve başarılı modelleri filtrele
+        const modelsToSave = Object.entries(lastComparisonModelCards)
+            .filter(([modelId, cardData]) => cardData.isSelected && !cardData.hasError && cardData.fullText)
+            .map(([modelId, cardData]) => ({
+                modelId,
+                response: cardData.fullText,
+                responseTime: cardData.startTime ? (performance.now() - cardData.startTime) : 0
+            }));
+
+        if (modelsToSave.length === 0) {
+            showToast('Kaydedilecek başarılı model sonucu bulunamadı.', 'error');
+            saveComparisonBtn.disabled = false;
+            saveComparisonBtn.textContent = originalBtnText;
+            return;
+        }
+
+        // Son scrape edilen veriyi al (sourceEntries için)
+        let sourceEntries = [];
+        let topicId = '';
+        let topicUrl = '';
+        
+        try {
+            const historyData = await new Promise((resolve) => {
+                chrome.storage.local.get({ scrapedData: [] }, (result) => {
+                    const scrapedData = result.scrapedData;
+                    scrapedData.sort((a, b) => {
+                        const dateA = new Date(a.scrapedAt);
+                        const dateB = new Date(b.scrapedAt);
+                        return dateB - dateA;
+                    });
+                    resolve(scrapedData);
+                });
+            });
+
+            if (historyData && historyData.length > 0) {
+                sourceEntries = historyData[0].sourceEntries || [];
+                topicId = historyData[0].topicId || '';
+                topicUrl = historyData[0].topicUrl || '';
+            }
+        } catch (error) {
+            console.warn('Son scrape verisi alınamadı:', error);
+        }
+
+        // Her model için ayrı analiz kaydı oluştur
+        let savedCount = 0;
+        for (const modelData of modelsToSave) {
+            // Model bilgisini al
+            const modelInfo = MODELS.find(m => m.id === modelData.modelId);
+            const modelName = modelInfo ? modelInfo.name : modelData.modelId;
+
+            // Analiz kaydını oluştur
+            await saveComparisonAnalysis({
+                topicTitle: `[Model Karşılaştırma] ${lastComparisonTopicTitle}`,
+                topicId: topicId,
+                topicUrl: topicUrl,
+                entryCount: sourceEntries.length,
+                sourceEntries: sourceEntries,
+                prompt: lastComparisonPrompt,
+                response: `**Model: ${modelName}**\n\n${modelData.response}`,
+                modelId: modelData.modelId,
+                responseTime: modelData.responseTime
+            });
+            savedCount++;
+        }
+
+        // Başarı mesajı göster
+        showToast(`${savedCount} model sonucu geçmişe kaydedildi.`, 'success');
+        
+        // Butonu gizle (tekrar kaydetmeyi önlemek için)
+        saveComparisonBtn.style.display = 'none';
+        
+    } catch (error) {
+        console.error('Karşılaştırma sonuçları kaydedilirken hata:', error);
+        showToast('Kaydetme sırasında bir hata oluştu.', 'error');
+        saveComparisonBtn.disabled = false;
+        saveComparisonBtn.textContent = originalBtnText;
+    }
+};
+
+/**
+ * Model karşılaştırma analizini chrome.storage.local'e kaydeder.
+ * analysis-history.js'deki saveToHistory fonksiyonunun options.js için uyarlanmış hali.
+ * 
+ * @param {Object} data - Kaydedilecek analiz verisi
+ */
+const saveComparisonAnalysis = async (data) => {
+    return new Promise((resolve) => {
+        chrome.storage.local.get({
+            scrapedData: [],
+            historyRetentionDays: 30
+        }, (result) => {
+            let scrapedData = result.scrapedData;
+            const retentionDays = result.historyRetentionDays;
+
+            // Model karşılaştırma için özel bir scrape kaydı oluştur
+            // Her karşılaştırma için yeni bir kayıt oluşturuyoruz (sourceEntries hash'i yerine timestamp bazlı)
+            const comparisonId = `comparison-${Date.now()}-${data.modelId}`;
+            
+            const newScrape = {
+                id: comparisonId,
+                sourceEntriesHash: `comparison-${Date.now()}`, // Her kayıt için benzersiz hash
+                topicId: data.topicId || '',
+                topicTitle: data.topicTitle,
+                topicUrl: data.topicUrl || '',
+                scrapedAt: new Date().toISOString(),
+                entryCount: data.entryCount || 0,
+                sourceEntries: data.sourceEntries || [],
+                wasStopped: false,
+                isModelComparison: true, // Model karşılaştırması olduğunu belirt
+                analyses: [{
+                    id: `analysis-${Date.now()}`,
+                    timestamp: new Date().toISOString(),
+                    prompt: data.prompt || '',
+                    promptPreview: data.prompt ? (data.prompt.substring(0, 100) + (data.prompt.length > 100 ? '...' : '')) : '',
+                    response: data.response || '',
+                    responsePreview: data.response ? (data.response.substring(0, 200) + (data.response.length > 200 ? '...' : '')) : '',
+                    modelId: data.modelId || '',
+                    responseTime: data.responseTime || 0
+                }]
+            };
+            scrapedData.push(newScrape);
+
+            // Eski kayıtları temizle (ayarlanan saklama süresine göre, 0 = sınırsız)
+            if (retentionDays > 0) {
+                const cutoffDate = new Date();
+                cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+                const cutoffTime = cutoffDate.getTime();
+                
+                scrapedData = scrapedData.filter(item => {
+                    const itemDate = new Date(item.scrapedAt);
+                    return itemDate.getTime() >= cutoffTime;
+                });
+            }
+
+            chrome.storage.local.set({ scrapedData }, resolve);
+        });
+    });
+}
 
 // =============================================================================
 // İSTATİSTİK FONKSİYONLARI
