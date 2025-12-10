@@ -1639,8 +1639,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // Sayfa yüklendiğinde eski kayıtları temizle
+    const deletedCount = await cleanupOldEntries(currentRetentionDays);
+    
     // Geçmişi yükle
-    loadHistory();
+    await loadHistory();
+    
+    // Eğer kayıt silindiyse kullanıcıya bilgi ver
+    if (deletedCount > 0) {
+        const statsTextEl = document.getElementById('statsText');
+        if (statsTextEl) {
+            const originalText = statsTextEl.textContent;
+            statsTextEl.textContent = `${deletedCount} eski kayıt silindi`;
+            statsTextEl.style.color = '#ff6b6b';
+            setTimeout(() => {
+                statsTextEl.textContent = originalText;
+                statsTextEl.style.color = '';
+            }, 3000);
+        }
+    }
 });
 
 // =============================================================================
