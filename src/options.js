@@ -28,34 +28,6 @@ let prompts = [];
 // =============================================================================
 
 /**
- * Toast bildirimi gösterir.
- * 
- * @param {string} message - Gösterilecek mesaj
- * @param {string} type - Bildirim tipi: 'success' veya 'error'
- * @param {number} duration - Bildirimin gösterileceği süre (ms), varsayılan: 3000
- */
-const showToast = (message, type = 'success', duration = 3000) => {
-    const toast = document.getElementById('toastNotification');
-    if (!toast) return;
-
-    const icon = toast.querySelector('.toast-notification-icon');
-    const messageEl = toast.querySelector('.toast-notification-message');
-
-    // İkon ve mesajı ayarla
-    icon.textContent = type === 'success' ? '✓' : '✕';
-    messageEl.textContent = message;
-
-    // Class'ları ayarla
-    toast.className = `toast-notification ${type}`;
-    toast.classList.add('active');
-
-    // Belirtilen süre sonra kapat
-    setTimeout(() => {
-        toast.classList.remove('active');
-    }, duration);
-};
-
-/**
  * Prompts sekmesi için bottom feedback bar gösterir.
  * 
  * @param {string} message - Gösterilecek mesaj
@@ -248,8 +220,6 @@ const saveOptions = async () => {
                 saveBtnStatus.style.display = 'none';
             }, 5000);
         }
-        // Toast bildirimi göster
-        showToast(errorMessage, 'error', 4000);
         return;
     }
 
@@ -283,12 +253,10 @@ const saveOptions = async () => {
             }, 3000);
         }
 
-        // Prompts sekmesi aktifse bottom feedback bar göster, değilse toast göster
+        // Prompts sekmesi aktifse bottom feedback bar göster
         const activeTab = document.querySelector('.tab-btn.active');
         if (activeTab && activeTab.dataset.tab === 'prompts') {
             showPromptsFeedback('Ayarlar kaydedildi.', 'success', 2000);
-        } else {
-            showToast('Ayarlar kaydedildi.', 'success', 2000);
         }
 
         // State tutarlılığı için listeyi yeniden render etme - DOM zaten güncel
