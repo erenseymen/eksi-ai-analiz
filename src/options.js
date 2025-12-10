@@ -72,16 +72,11 @@ const updatePromptsFromDOM = () => {
  */
 const validateApiKey = async (apiKey, updateInputStyle = true) => {
     const apiKeyInput = document.getElementById('apiKey');
-    const apiKeyError = document.getElementById('apiKeyError');
 
     // Boş API Key geçerli kabul edilir
     if (!apiKey || apiKey.trim() === '') {
         if (updateInputStyle) {
             apiKeyInput.classList.remove('valid', 'invalid');
-            if (apiKeyError) {
-                apiKeyError.style.display = 'none';
-                apiKeyError.textContent = '';
-            }
         }
         return { valid: true };
     }
@@ -103,11 +98,6 @@ const validateApiKey = async (apiKey, updateInputStyle = true) => {
             if (updateInputStyle) {
                 apiKeyInput.classList.remove('valid');
                 apiKeyInput.classList.add('invalid');
-                // Hata mesajı sadece butonun yanında gösterilecek, sayfa içinde gösterme
-                if (apiKeyError) {
-                    apiKeyError.style.display = 'none';
-                    apiKeyError.textContent = '';
-                }
             }
             return { valid: false, error: shortErrorMessage };
         }
@@ -116,10 +106,6 @@ const validateApiKey = async (apiKey, updateInputStyle = true) => {
         if (updateInputStyle) {
             apiKeyInput.classList.remove('invalid');
             apiKeyInput.classList.add('valid');
-            if (apiKeyError) {
-                apiKeyError.style.display = 'none';
-                apiKeyError.textContent = '';
-            }
         }
         return { valid: true };
     } catch (error) {
@@ -128,11 +114,6 @@ const validateApiKey = async (apiKey, updateInputStyle = true) => {
         if (updateInputStyle) {
             apiKeyInput.classList.remove('valid');
             apiKeyInput.classList.add('invalid');
-            // Hata mesajı sadece butonun yanında gösterilecek, sayfa içinde gösterme
-            if (apiKeyError) {
-                apiKeyError.style.display = 'none';
-                apiKeyError.textContent = '';
-            }
         }
         return { valid: false, error: shortErrorMessage };
     }
@@ -435,17 +416,17 @@ const populateModelSelect = async (savedModelId) => {
             };
 
             chrome.storage.sync.set(settings, () => {
-                // Kullanıcıya geri bildirim ver (modellerin altında)
-                const modelSelectionStatus = document.getElementById('modelSelectionStatus');
-                if (modelSelectionStatus) {
-                    modelSelectionStatus.textContent = `Model "${model.name}" seçildi ve kaydedildi.`;
-                    modelSelectionStatus.className = 'status success';
-                    modelSelectionStatus.style.display = 'block';
+                // Kullanıcıya geri bildirim ver (Kaydet butonunun yanında)
+                const saveBtnStatus = document.getElementById('saveBtnStatus');
+                if (saveBtnStatus) {
+                    saveBtnStatus.textContent = `Model "${model.name}" seçildi ve kaydedildi.`;
+                    saveBtnStatus.className = 'status success';
+                    saveBtnStatus.style.display = 'inline-block';
                     setTimeout(() => {
-                        modelSelectionStatus.textContent = '';
-                        modelSelectionStatus.className = 'status';
-                        modelSelectionStatus.style.display = 'none';
-                    }, 2000);
+                        saveBtnStatus.textContent = '';
+                        saveBtnStatus.className = 'status';
+                        saveBtnStatus.style.display = 'none';
+                    }, 3000);
                 }
             });
         };
@@ -1904,11 +1885,6 @@ document.getElementById('apiKey').addEventListener('blur', async (e) => {
     } else {
         // Boş input'ta doğrulama sınıflarını kaldır ve modeller durumunu gizle
         e.target.classList.remove('valid', 'invalid');
-        const apiKeyError = document.getElementById('apiKeyError');
-        if (apiKeyError) {
-            apiKeyError.style.display = 'none';
-            apiKeyError.textContent = '';
-        }
         const statusDiv = document.getElementById('allModelsStatus');
         if (statusDiv) {
             statusDiv.style.display = 'none';
