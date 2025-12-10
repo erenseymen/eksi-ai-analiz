@@ -199,6 +199,11 @@ const addShowCachedResultsButton = (mainBtnId, containerId, cachedCount) => {
         : `📚 Kayıtlı Analizler (${cachedCount})`;
     
     cachedBtn.onclick = () => {
+        // Container'ı göster (eğer gizliyse)
+        if (container.style.display === 'none') {
+            container.style.display = 'block';
+        }
+        
         // cachedSection'ı dinamik olarak bul (renderActions sonrası yeniden oluşturulmuş olabilir)
         const currentCachedSection = container.querySelector('.eksi-ai-cached-results-section');
         if (!currentCachedSection) return;
