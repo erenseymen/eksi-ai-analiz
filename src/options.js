@@ -1839,6 +1839,34 @@ const setupThemeSelector = () => {
 };
 
 /**
+ * Gizli sekmelerdeki focusable elemanları TAB sırasından çıkarır,
+ * aktif sekmedeki elemanları TAB sırasına dahil eder.
+ * Bu sayede TAB tuşuyla sadece aktif sekmedeki alanlar arasında gezinilir.
+ */
+const updateTabFocusability = () => {
+    const focusableSelectors = 'input, textarea, select, button:not(.tab-btn), [tabindex]:not([tabindex="-1"])';
+    
+    // Tüm tab content'leri gez
+    document.querySelectorAll('.tab-content').forEach(tabContent => {
+        const isActive = tabContent.classList.contains('active');
+        const focusableElements = tabContent.querySelectorAll(focusableSelectors);
+        
+        focusableElements.forEach(el => {
+            if (isActive) {
+                // Aktif sekmedeki elemanları TAB sırasına dahil et
+                // Önceden -1 yapılmışsa 0'a çevir, yoksa dokunma
+                if (el.getAttribute('tabindex') === '-1') {
+                    el.removeAttribute('tabindex');
+                }
+            } else {
+                // Gizli sekmelerdeki elemanları TAB sırasından çıkar
+                el.setAttribute('tabindex', '-1');
+            }
+        });
+    });
+};
+
+/**
  * Tab geçişlerini ayarlar ve aktif tab'ı storage'a kaydeder.
  */
 const setupTabs = () => {
@@ -1856,6 +1884,9 @@ const setupTabs = () => {
             if (tabContent) {
                 tabContent.classList.add('active');
             }
+
+            // TAB sıralamasını güncelle (aktif sekme için)
+            updateTabFocusability();
 
             // Promptlar sekmesine geçildiğinde textarea yüksekliklerini yeniden ayarla
             if (tabId === 'prompts') {
@@ -1902,6 +1933,9 @@ const restoreActiveTab = async () => {
         // Doğru tab'ı aktif yap
         tabBtn.classList.add('active');
         tabContent.classList.add('active');
+
+        // TAB sıralamasını güncelle (sayfa ilk yüklendiğinde)
+        updateTabFocusability();
 
         // Promptlar sekmesi aktifse textarea yüksekliklerini yeniden ayarla
         if (savedTab === 'prompts') {
