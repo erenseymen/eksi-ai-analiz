@@ -28,6 +28,34 @@ let prompts = [];
 // =============================================================================
 
 /**
+ * Toast bildirimi gösterir.
+ * 
+ * @param {string} message - Gösterilecek mesaj
+ * @param {string} type - Bildirim tipi: 'success' veya 'error'
+ * @param {number} duration - Bildirimin gösterileceği süre (ms), varsayılan: 3000
+ */
+const showToast = (message, type = 'success', duration = 3000) => {
+    const toast = document.getElementById('toastNotification');
+    if (!toast) return;
+
+    const icon = toast.querySelector('.toast-notification-icon');
+    const messageEl = toast.querySelector('.toast-notification-message');
+
+    // İkon ve mesajı ayarla
+    icon.textContent = type === 'success' ? '✓' : '✕';
+    messageEl.textContent = message;
+
+    // Class'ları ayarla
+    toast.className = `toast-notification ${type}`;
+    toast.classList.add('active');
+
+    // Belirtilen süre sonra kapat
+    setTimeout(() => {
+        toast.classList.remove('active');
+    }, duration);
+};
+
+/**
  * DOM'daki prompt input alanlarından güncel prompt listesini oluşturur.
  * Her kaydetme işleminden önce çağrılarak DOM state'i ile prompts dizisini senkronize eder.
  */
@@ -160,8 +188,8 @@ const saveOptions = async () => {
 
     if (!validation.valid) {
         // Hata mesajını butonun yanında göster
+        const errorMessage = validation.error || 'API Key geçersiz';
         if (saveBtnStatus) {
-            const errorMessage = validation.error || 'API Key geçersiz';
             saveBtnStatus.textContent = errorMessage;
             saveBtnStatus.className = 'status error';
             saveBtnStatus.style.display = 'inline-block';
@@ -171,6 +199,8 @@ const saveOptions = async () => {
                 saveBtnStatus.style.display = 'none';
             }, 5000);
         }
+        // Toast bildirimi göster
+        showToast(errorMessage, 'error', 4000);
         return;
     }
 
@@ -203,6 +233,9 @@ const saveOptions = async () => {
                 saveBtnStatus.style.display = 'none';
             }, 3000);
         }
+
+        // Toast bildirimi göster
+        showToast('Ayarlar kaydedildi.', 'success', 2000);
 
         // State tutarlılığı için listeyi yeniden render et
         renderPrompts();
@@ -1562,6 +1595,7 @@ const renderSinglePromptItem = (item, index, list, isNew = false) => {
     div.querySelector('.delete-btn').onclick = () => removePrompt(index);
 
     // TAB tuşu ile buton adından prompt alanına geçiş
+    // Ctrl+Enter ile kaydetme
     const nameInput = div.querySelector('.prompt-name');
     const textarea = div.querySelector('.prompt-text');
     if (nameInput && textarea) {
@@ -1569,6 +1603,16 @@ const renderSinglePromptItem = (item, index, list, isNew = false) => {
             if (e.key === 'Tab' && !e.shiftKey) {
                 e.preventDefault();
                 textarea.focus();
+            } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                saveBtn.click();
+            }
+        });
+
+        textarea.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                saveBtn.click();
             }
         });
     }
