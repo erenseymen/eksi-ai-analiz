@@ -111,12 +111,15 @@ const showCachedResultsInContainer = (cachedResults, container) => {
         header.onclick = () => {
             const body = header.nextElementSibling;
             const toggle = header.querySelector('.eksi-ai-cached-toggle');
-            if (body.style.display === 'none') {
-                body.style.display = 'block';
-                toggle.textContent = '▲';
-            } else {
+            // getComputedStyle ile gerçek display değerini kontrol et
+            const computedDisplay = window.getComputedStyle(body).display;
+            const isVisible = computedDisplay !== 'none';
+            if (isVisible) {
                 body.style.display = 'none';
                 toggle.textContent = '▼';
+            } else {
+                body.style.display = 'block';
+                toggle.textContent = '▲';
             }
         };
     });
@@ -350,12 +353,15 @@ const renderActions = async (container, wasStopped = false) => {
                 header.onclick = () => {
                     const body = header.nextElementSibling;
                     const toggle = header.querySelector('.eksi-ai-cached-toggle');
-                    if (body.style.display === 'none') {
-                        body.style.display = 'block';
-                        toggle.textContent = '▲';
-                    } else {
+                    // getComputedStyle ile gerçek display değerini kontrol et
+                    const computedDisplay = window.getComputedStyle(body).display;
+                    const isVisible = computedDisplay !== 'none';
+                    if (isVisible) {
                         body.style.display = 'none';
                         toggle.textContent = '▼';
+                    } else {
+                        body.style.display = 'block';
+                        toggle.textContent = '▲';
                     }
                 };
             });
