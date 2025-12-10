@@ -692,7 +692,7 @@ const renderHistory = (scrapes, append = false) => {
                     ${analysesHtml}
                     <div class="history-actions">
                         ${jsonButtonHtml}
-                        <button class="btn-secondary btn-download-all" data-scrape-id="${escapeHtml(scrape.id)}">📥 Tümünü İndir</button>
+                        <button class="btn-secondary btn-download-all" data-scrape-id="${escapeHtml(scrape.id)}">📥 Tümünü İndir (ZIP)</button>
                         <button class="btn-danger btn-delete" data-scrape-id="${escapeHtml(scrape.id)}">Sil</button>
                     </div>
                 </div>
