@@ -75,8 +75,63 @@ const initEntryPage = () => {
 };
 
 // =============================================================================
+// TEMA GÖZLEMCİSİ
+// =============================================================================
+
+/**
+ * Tema değişikliklerini izler ve UI elementlerini günceller.
+ * Sayfa yüklendikten sonra tema değişirse tüm eklenti UI'ları otomatik güncellenir.
+ */
+const setupThemeObserver = () => {
+    // Tüm eklenti container'larını bul ve tema sınıfını güncelle
+    const updateAllContainersTheme = () => {
+        const isDark = detectTheme();
+        document.querySelectorAll('.eksi-ai-container, .eksi-ai-modal-overlay').forEach(el => {
+            if (isDark) {
+                el.classList.add('eksi-ai-dark');
+            } else {
+                el.classList.remove('eksi-ai-dark');
+            }
+        });
+    };
+
+    // İlk güncelleme
+    updateAllContainersTheme();
+
+    // Body'nin stil değişikliklerini izle
+    const observer = new MutationObserver(() => {
+        updateAllContainersTheme();
+    });
+
+    // Body'nin style ve class değişikliklerini izle
+    if (document.body) {
+        observer.observe(document.body, {
+            attributes: true,
+            attributeFilter: ['style', 'class'],
+            subtree: false
+        });
+    }
+
+    // Sayfa yüklendiğinde tekrar kontrol et
+    window.addEventListener('load', updateAllContainersTheme);
+    
+    // Media query değişikliklerini de izle (sistem teması değişirse)
+    if (window.matchMedia) {
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        mediaQuery.addEventListener('change', updateAllContainersTheme);
+    }
+};
+
+// =============================================================================
 // BAŞLATMA
 // =============================================================================
 
 // Sayfa yüklendiğinde eklentiyi başlat
 init();
+
+// Tema gözlemcisini başlat
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupThemeObserver);
+} else {
+    setupThemeObserver();
+}

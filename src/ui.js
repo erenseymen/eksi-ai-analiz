@@ -2,6 +2,19 @@
  * @fileoverview Ekşi Sözlük AI Analiz - UI Bileşenleri
  */
 
+/**
+ * Bir container'ın tema sınıfını günceller.
+ * @param {HTMLElement} container - Güncellenecek container elementi
+ */
+const updateContainerTheme = (container) => {
+    if (!container) return;
+    if (detectTheme()) {
+        container.classList.add('eksi-ai-dark');
+    } else {
+        container.classList.remove('eksi-ai-dark');
+    }
+};
+
 const createAnalysisButton = async (h1Element, topicId = null, useCurrentPage = false) => {
     if (!h1Element) return;
     const existingBtnId = topicId ? `eksi-ai-main-btn-${topicId}` : 'eksi-ai-main-btn';
@@ -18,7 +31,7 @@ const createAnalysisButton = async (h1Element, topicId = null, useCurrentPage = 
     container.id = containerId;
     container.className = 'eksi-ai-container';
     container.style.display = 'none';
-    if (detectTheme()) container.classList.add('eksi-ai-dark');
+    updateContainerTheme(container);
     btn.parentNode.insertBefore(container, btn.nextSibling);
 
     // Cache kontrolü yap - varsa sonuçları hazırla ve toggle butonunu ekle (gizli başlar)
@@ -105,7 +118,7 @@ const createSingleEntryButton = async (heading) => {
     container.id = 'eksi-ai-entry-container';
     container.className = 'eksi-ai-container';
     container.style.display = 'none';
-    if (detectTheme()) container.classList.add('eksi-ai-dark');
+    updateContainerTheme(container);
     btn.parentNode.insertBefore(container, btn.nextSibling);
 
     // Cache kontrolü yap - varsa sonuçları hazırla ve toggle butonunu ekle (gizli başlar)
@@ -199,6 +212,9 @@ const addResultActionButtons = (resultArea, markdownContent, userPrompt, showPro
 };
 
 const renderActions = async (container, wasStopped = false) => {
+    // Container'ın tema durumunu güncelle
+    updateContainerTheme(container);
+    
     const settings = await getSettings();
     const { tokenEstimate } = estimateTokens(allEntries);
     const tokenStr = formatTokenCount(tokenEstimate);
@@ -240,7 +256,7 @@ const openCustomPromptModal = (customButton = null, prefillPrompt = null, mainBu
     const overlay = document.createElement('div');
     overlay.id = 'eksi-ai-modal-overlay';
     overlay.className = 'eksi-ai-modal-overlay';
-    if (detectTheme()) overlay.classList.add('eksi-ai-dark');
+    updateContainerTheme(overlay);
     const modal = document.createElement('div');
     modal.className = 'eksi-ai-modal-content';
 
@@ -352,7 +368,7 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
     const apiKey = settings.geminiApiKey;
     const overlay = document.createElement('div');
     overlay.id = 'eksi-ai-quota-modal-overlay'; overlay.className = 'eksi-ai-modal-overlay';
-    if (detectTheme()) overlay.classList.add('eksi-ai-dark');
+    updateContainerTheme(overlay);
     const modal = document.createElement('div'); modal.className = 'eksi-ai-modal-content'; modal.style.maxWidth = '600px';
     let mc = `<h3 class="eksi-ai-modal-title">API Kota Limiti Aşıldı</h3><div class="eksi-ai-quota-modal-message"><p>Model (<strong>${modelId}</strong>) için quota aşıldı.</p></div><div id="eksi-ai-models-check-list">`;
     MODELS.forEach(m => { mc += `<div id="eksi-ai-model-check-${m.id}" class="eksi-ai-model-check-row"><div class="eksi-ai-model-check-info"><div class="eksi-ai-model-check-name">${m.name}</div><div class="eksi-ai-model-check-status checking">⏳ Kontrol ediliyor...</div></div></div>`; });
@@ -404,7 +420,7 @@ const showQuotaErrorWithRetry = async (resultArea, errorMessage, userPrompt, sho
 const showCompareResultsModal = (modelResults, parentOverlay, parentEscapeHandler) => {
     parentOverlay.style.display = 'none';
     const overlay = document.createElement('div'); overlay.className = 'eksi-ai-modal-overlay';
-    if (detectTheme()) overlay.classList.add('eksi-ai-dark');
+    updateContainerTheme(overlay);
     const modal = document.createElement('div'); modal.className = 'eksi-ai-modal-content'; modal.style.cssText = 'max-width:95vw;max-height:90vh;display:flex;flex-direction:column';
     let c = `<h3 class="eksi-ai-modal-title">Model Karşılaştırma</h3><div class="eksi-ai-compare-grid">`;
     MODELS.forEach(m => { const r = modelResults.get(m.id); if (r) { const t = r.responseTime ? ` (${(r.responseTime / 1000).toFixed(2)}s)` : ''; c += `<div class="eksi-ai-compare-card"><div class="eksi-ai-compare-card-header">${m.name}${t}</div><div class="eksi-ai-markdown" style="flex:1;overflow-y:auto">${parseMarkdown(r.response)}</div></div>`; } });
