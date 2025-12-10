@@ -983,6 +983,7 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
 
             if (historyData && historyData.length > 0) {
                 const lastScrape = historyData[0];
+                let userPrompt = '';
                 
                 // Son scrape'in son analizinde kullanılan prompt'u bul
                 if (lastScrape.analyses && lastScrape.analyses.length > 0) {
@@ -995,14 +996,26 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
                     
                     const lastAnalysis = sortedAnalyses[sortedAnalyses.length - 1];
                     if (lastAnalysis && lastAnalysis.prompt && lastAnalysis.prompt.trim()) {
-                        testPrompt = lastAnalysis.prompt;
+                        userPrompt = lastAnalysis.prompt;
                     }
                 }
                 
-                // Eğer prompt bulunamadıysa, entry içeriklerini kullan
-                if (!testPrompt && lastScrape.sourceEntries && lastScrape.sourceEntries.length > 0) {
-                    const entries = lastScrape.sourceEntries;
-                    testPrompt = entries.map(entry => entry.content || '').filter(content => content.trim()).join('\n\n');
+                // Entry'leri JSON formatında hazırla ve prompt'a ekle
+                if (lastScrape.sourceEntries && lastScrape.sourceEntries.length > 0) {
+                    const entriesJson = JSON.stringify(lastScrape.sourceEntries);
+                    const topicTitle = lastScrape.topicTitle || 'Ekşi Sözlük Başlığı';
+                    
+                    if (userPrompt) {
+                        // Prompt varsa, entry'leri başa ekle (ui.js formatı)
+                        testPrompt = `Başlık: "${topicTitle}"\n\nAşağıda Ekşi Sözlük entry'leri JSON formatında verilmiştir:\n${entriesJson}\n\n${userPrompt}`;
+                    } else {
+                        // Prompt yoksa, sadece entry içeriklerini kullan
+                        const entries = lastScrape.sourceEntries;
+                        testPrompt = entries.map(entry => entry.content || '').filter(content => content.trim()).join('\n\n');
+                    }
+                } else if (userPrompt) {
+                    // Entry yok ama prompt var
+                    testPrompt = userPrompt;
                 }
             }
         } catch (error) {
