@@ -1403,11 +1403,16 @@ const useModelInSettings = async (modelId) => {
 
     // DOM'dan güncel prompt listesini al
     updatePromptsFromDOM();
+    
+    // Tema seçimini al
+    const themeSelect = document.getElementById('themeSelect');
+    const selectedTheme = themeSelect ? themeSelect.value : 'auto';
 
     const settings = {
         geminiApiKey: apiKey,
         selectedModel: modelId,
-        prompts: prompts
+        prompts: prompts,
+        theme: selectedTheme
     };
 
     // Chrome storage'a kaydet
@@ -1789,20 +1794,6 @@ const restoreActiveTab = async () => {
 };
 
 /**
- * Collapsible section'ları ayarlar.
- */
-const setupCollapsibleSections = () => {
-    document.querySelectorAll('.section-header').forEach(header => {
-        header.addEventListener('click', () => {
-            const section = header.parentElement;
-            if (section && section.classList.contains('section')) {
-                section.classList.toggle('collapsed');
-            }
-        });
-    });
-};
-
-/**
  * Sayfa yüklendiğinde ayarları geri yükle ve system prompt'u göster.
  */
 document.addEventListener('DOMContentLoaded', async () => {
@@ -1810,9 +1801,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     restoreTheme();
     // Önce kaydedilmiş tab'ı geri yükle (flash önlemek için)
     await restoreActiveTab();
-    // Tab ve section ayarlarını yap
+    // Tab ayarlarını yap
     setupTabs();
-    setupCollapsibleSections();
     // Modal ayarlarını yap
     setupModal();
     // Sonra diğer ayarları yükle
