@@ -51,11 +51,21 @@ const createAnalysisButton = async (h1Element, topicId = null, useCurrentPage = 
 
 /**
  * Cache'teki sonuçları container içinde gösterir.
+ * Kayıtlı analizler ayrı bir div içinde tutulur, böylece renderActions içeriği değiştiğinde korunur.
  * 
  * @param {Array} cachedResults - Cache'teki analiz sonuçları
  * @param {HTMLElement} container - Ana container
  */
 const showCachedResultsInContainer = (cachedResults, container) => {
+    // Kayıtlı analizler için ayrı bir div oluştur (eğer yoksa)
+    let cachedSection = container.querySelector('.eksi-ai-cached-results-section');
+    if (!cachedSection) {
+        cachedSection = document.createElement('div');
+        cachedSection.className = 'eksi-ai-cached-results-section';
+        cachedSection.style.display = 'none'; // Başlangıçta gizli
+        container.appendChild(cachedSection);
+    }
+    
     let html = `<h3>${cachedResults.length} kayıtlı analiz bulundu</h3>`;
     html += '<div class="eksi-ai-cached-content">';
 
@@ -87,10 +97,10 @@ const showCachedResultsInContainer = (cachedResults, container) => {
     });
 
     html += '</div>';
-    container.innerHTML = html;
+    cachedSection.innerHTML = html;
 
     // Toggle event'leri ekle
-    container.querySelectorAll('.eksi-ai-cached-header').forEach(header => {
+    cachedSection.querySelectorAll('.eksi-ai-cached-header').forEach(header => {
         header.onclick = () => {
             const body = header.nextElementSibling;
             const toggle = header.querySelector('.eksi-ai-cached-toggle');
@@ -135,6 +145,30 @@ const createSingleEntryButton = async (heading) => {
 };
 
 /**
+ * Kayıtlı analizler butonunun state'ini günceller.
+ * @param {string} mainBtnId - Ana buton ID'si
+ * @param {string} containerId - Container ID'si
+ */
+const updateCachedResultsButtonState = (mainBtnId, containerId) => {
+    const cachedBtnId = `${mainBtnId}-cached`;
+    const cachedBtn = document.getElementById(cachedBtnId);
+    if (!cachedBtn) return;
+    
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    const cachedSection = container.querySelector('.eksi-ai-cached-results-section');
+    if (!cachedSection) return;
+    
+    const cachedCount = cachedSection.querySelectorAll('.eksi-ai-cached-item').length;
+    const isVisible = cachedSection.style.display !== 'none';
+    
+    cachedBtn.textContent = isVisible 
+        ? `📚 Kayıtlı Analizleri Gizle (${cachedCount})`
+        : `📚 Kayıtlı Analizler (${cachedCount})`;
+};
+
+/**
  * Kayıtlı analizleri göstermek için ayrı bir buton ekler.
  * @param {string} mainBtnId - Ana buton ID'si
  * @param {string} containerId - Container ID'si
@@ -142,27 +176,42 @@ const createSingleEntryButton = async (heading) => {
  */
 const addShowCachedResultsButton = (mainBtnId, containerId, cachedCount) => {
     const cachedBtnId = `${mainBtnId}-cached`;
-    if (document.getElementById(cachedBtnId)) return;
+    // Eğer buton zaten varsa, sadece güncelle
+    let cachedBtn = document.getElementById(cachedBtnId);
     const mainBtn = document.getElementById(mainBtnId);
     const container = document.getElementById(containerId);
     if (!mainBtn || !container) return;
     
-    const cachedBtn = document.createElement('button');
-    cachedBtn.id = cachedBtnId;
-    cachedBtn.className = 'eksi-ai-btn secondary eksi-ai-cached-btn';
-    cachedBtn.textContent = `📚 Kayıtlı Analizler (${cachedCount})`;
+    if (!cachedBtn) {
+        cachedBtn = document.createElement('button');
+        cachedBtn.id = cachedBtnId;
+        cachedBtn.className = 'eksi-ai-btn secondary eksi-ai-cached-btn';
+        if (mainBtn.nextSibling) mainBtn.parentNode.insertBefore(cachedBtn, mainBtn.nextSibling);
+        else mainBtn.parentNode.appendChild(cachedBtn);
+    }
+    
+    // Kayıtlı analizler bölümünü bul
+    const cachedSection = container.querySelector('.eksi-ai-cached-results-section');
+    const isVisible = cachedSection && cachedSection.style.display !== 'none';
+    
+    cachedBtn.textContent = isVisible 
+        ? `📚 Kayıtlı Analizleri Gizle (${cachedCount})`
+        : `📚 Kayıtlı Analizler (${cachedCount})`;
+    
     cachedBtn.onclick = () => {
-        if (container.style.display === 'none') {
-            container.style.display = 'block';
-            cachedBtn.textContent = `📚 Kayıtlı Analizleri Gizle (${cachedCount})`;
-        } else {
-            container.style.display = 'none';
+        // cachedSection'ı dinamik olarak bul (renderActions sonrası yeniden oluşturulmuş olabilir)
+        const currentCachedSection = container.querySelector('.eksi-ai-cached-results-section');
+        if (!currentCachedSection) return;
+        
+        const isCurrentlyVisible = currentCachedSection.style.display !== 'none';
+        if (isCurrentlyVisible) {
+            currentCachedSection.style.display = 'none';
             cachedBtn.textContent = `📚 Kayıtlı Analizler (${cachedCount})`;
+        } else {
+            currentCachedSection.style.display = 'block';
+            cachedBtn.textContent = `📚 Kayıtlı Analizleri Gizle (${cachedCount})`;
         }
     };
-    
-    if (mainBtn.nextSibling) mainBtn.parentNode.insertBefore(cachedBtn, mainBtn.nextSibling);
-    else mainBtn.parentNode.appendChild(cachedBtn);
 };
 
 const addToggleVisibilityButton = (mainBtnId, containerId, startHidden = false) => {
@@ -246,6 +295,15 @@ const renderActions = async (container, wasStopped = false) => {
     // Container'ın tema durumunu güncelle
     updateContainerTheme(container);
     
+    // Kayıtlı analizler bölümünü koru (varsa)
+    const cachedSection = container.querySelector('.eksi-ai-cached-results-section');
+    let cachedSectionHtml = '';
+    let cachedSectionDisplay = 'none';
+    if (cachedSection) {
+        cachedSectionDisplay = cachedSection.style.display || 'none';
+        cachedSectionHtml = cachedSection.outerHTML;
+    }
+    
     const settings = await getSettings();
     const { tokenEstimate } = estimateTokens(allEntries);
     const tokenStr = formatTokenCount(tokenEstimate);
@@ -264,7 +322,34 @@ const renderActions = async (container, wasStopped = false) => {
         buttonsHtml += `<div class="eksi-ai-button-group"><button id="btn-prompt-${index}" class="eksi-ai-btn" data-index="${index}">${item.name}</button><button id="btn-prompt-ve-${index}" class="eksi-ai-btn-ve" data-index="${index}" title="Prompt'u düzenle">ve</button></div>`;
     });
     buttonsHtml += `<button id="btn-custom-manual" class="eksi-ai-btn">Özel Prompt</button>`;
-    container.innerHTML = `${statusMessage}<div class="eksi-ai-actions">${buttonsHtml}</div><div id="ai-result" class="eksi-ai-result-area"></div><div id="ai-warning" class="eksi-ai-warning"></div>`;
+    
+    // Kayıtlı analizler bölümünü koruyarak container içeriğini güncelle
+    container.innerHTML = cachedSectionHtml + `${statusMessage}<div class="eksi-ai-actions">${buttonsHtml}</div><div id="ai-result" class="eksi-ai-result-area"></div><div id="ai-warning" class="eksi-ai-warning"></div>`;
+    
+    // Kayıtlı analizler bölümündeki toggle event'lerini yeniden bağla ve görünürlük durumunu koru
+    if (cachedSectionHtml) {
+        const restoredSection = container.querySelector('.eksi-ai-cached-results-section');
+        if (restoredSection) {
+            // Görünürlük durumunu koru
+            restoredSection.style.display = cachedSectionDisplay;
+            
+            // Toggle event'lerini yeniden bağla
+            restoredSection.querySelectorAll('.eksi-ai-cached-header').forEach(header => {
+                header.onclick = () => {
+                    const body = header.nextElementSibling;
+                    const toggle = header.querySelector('.eksi-ai-cached-toggle');
+                    if (body.style.display === 'none') {
+                        body.style.display = 'block';
+                        toggle.textContent = '▲';
+                    } else {
+                        body.style.display = 'none';
+                        toggle.textContent = '▼';
+                    }
+                };
+            });
+        }
+    }
+    
     document.getElementById('btn-download').onclick = downloadJson;
     settings.prompts.forEach((item, index) => {
         const btn = document.getElementById(`btn-prompt-${index}`);
@@ -281,6 +366,22 @@ const renderActions = async (container, wasStopped = false) => {
         if (lastCustomPrompt && responseCache.has(lastCustomPrompt)) { runGemini(lastCustomPrompt, true, customBtn); return; }
         openCustomPromptModal(customBtn);
     };
+    
+    // Kayıtlı analizler butonunun state'ini güncelle
+    const containerId = container.id;
+    let mainBtnId = null;
+    if (containerId === 'eksi-ai-entry-container') {
+        mainBtnId = 'eksi-ai-entry-btn';
+    } else if (containerId.startsWith('eksi-ai-container-')) {
+        const topicId = containerId.replace('eksi-ai-container-', '');
+        mainBtnId = `eksi-ai-main-btn-${topicId}`;
+    } else if (containerId === 'eksi-ai-container') {
+        mainBtnId = 'eksi-ai-main-btn';
+    }
+    
+    if (mainBtnId) {
+        updateCachedResultsButtonState(mainBtnId, containerId);
+    }
 };
 
 const openCustomPromptModal = (customButton = null, prefillPrompt = null, mainButton = null) => {
@@ -480,7 +581,9 @@ const startAnalysisForTopic = async (h1Element, topicId) => {
     try {
         if (shouldUseFreshScrape) {
             // İkinci tıklama: Yeni scrape yap
-            container.innerHTML = '<span class="eksi-ai-loading">Entry\'ler yeniden toplanıyor...</span>';
+            const cachedSection = container.querySelector('.eksi-ai-cached-results-section');
+            const cachedSectionHtml = cachedSection ? cachedSection.outerHTML : '';
+            container.innerHTML = cachedSectionHtml + '<span class="eksi-ai-loading">Entry\'ler yeniden toplanıyor...</span>';
             await scrapeEntriesFromUrl(topicUrl);
         } else {
             // İlk tıklama: Önce cache'te sourceEntries var mı kontrol et
@@ -494,7 +597,9 @@ const startAnalysisForTopic = async (h1Element, topicId) => {
                 container.innerHTML = `<div class="eksi-ai-info">📦 Cache'ten ${allEntries.length} entry yüklendi.</div>`;
             } else {
                 // Yeni scrape yap
-                container.innerHTML = '<span class="eksi-ai-loading">Entry\'ler toplanıyor...</span>';
+                const cachedSection = container.querySelector('.eksi-ai-cached-results-section');
+                const cachedSectionHtml = cachedSection ? cachedSection.outerHTML : '';
+                container.innerHTML = cachedSectionHtml + '<span class="eksi-ai-loading">Entry\'ler toplanıyor...</span>';
                 await scrapeEntriesFromUrl(topicUrl);
             }
         }
@@ -511,11 +616,19 @@ const startAnalysisForTopic = async (h1Element, topicId) => {
             });
             await renderActions(container, shouldStopScraping);
             addToggleVisibilityButton(btnId, containerId);
+            // Kayıtlı analizler butonunun state'ini güncelle
+            updateCachedResultsButtonState(btnId, containerId);
         } else {
-            container.innerHTML = '<div class="eksi-ai-warning">Hiç entry toplanamadı.</div>';
+            const cachedSection = container.querySelector('.eksi-ai-cached-results-section');
+            const cachedSectionHtml = cachedSection ? cachedSection.outerHTML : '';
+            container.innerHTML = cachedSectionHtml + '<div class="eksi-ai-warning">Hiç entry toplanamadı.</div>';
         }
     }
-    catch (err) { container.innerHTML = `<div class="eksi-ai-warning">Hata: ${escapeHtml(err.message)}</div>`; }
+    catch (err) { 
+        const cachedSection = container.querySelector('.eksi-ai-cached-results-section');
+        const cachedSectionHtml = cachedSection ? cachedSection.outerHTML : '';
+        container.innerHTML = cachedSectionHtml + `<div class="eksi-ai-warning">Hata: ${escapeHtml(err.message)}</div>`;
+    }
     finally { btn.disabled = false; btn.textContent = "Entry'leri Analiz Et"; btn.onclick = () => startAnalysisForTopic(h1Element, topicId); }
 };
 
@@ -528,12 +641,22 @@ const startAnalysis = async () => {
 
     shouldStopScraping = false; responseCache.clear(); lastCustomPrompt = null;
     btn.textContent = 'Durdur'; btn.onclick = stopScraping; btn.disabled = false;
-    container.style.display = 'block'; container.innerHTML = '<span class="eksi-ai-loading">Entry\'ler kontrol ediliyor...</span>';
+    container.style.display = 'block';
+    
+    // Kayıtlı analizler bölümünü koru (varsa)
+    const cachedSection = container.querySelector('.eksi-ai-cached-results-section');
+    const cachedSectionHtml = cachedSection ? cachedSection.outerHTML : '';
+    container.innerHTML = cachedSectionHtml + '<span class="eksi-ai-loading">Entry\'ler kontrol ediliyor...</span>';
+    
+    // Kayıtlı analizler butonunun state'ini güncelle
+    updateCachedResultsButtonState('eksi-ai-main-btn', 'eksi-ai-container');
 
     try {
         if (shouldUseFreshScrape) {
             // İkinci tıklama: Yeni scrape yap
-            container.innerHTML = '<span class="eksi-ai-loading">Entry\'ler yeniden toplanıyor...</span>';
+            const cachedSection = container.querySelector('.eksi-ai-cached-results-section');
+            const cachedSectionHtml = cachedSection ? cachedSection.outerHTML : '';
+            container.innerHTML = cachedSectionHtml + '<span class="eksi-ai-loading">Entry\'ler yeniden toplanıyor...</span>';
             await scrapeEntries();
         } else {
             // İlk tıklama: Önce cache'te sourceEntries var mı kontrol et
@@ -545,10 +668,14 @@ const startAnalysis = async () => {
                 // Cache'teki entry'leri kullan
                 allEntries = cachedWithEntries.sourceEntries;
                 topicTitle = cachedWithEntries.topicTitle || document.querySelector('h1')?.innerText || 'Basliksiz';
-                container.innerHTML = `<div class="eksi-ai-info">📦 Cache'ten ${allEntries.length} entry yüklendi.</div>`;
+                const cachedSection = container.querySelector('.eksi-ai-cached-results-section');
+                const cachedSectionHtml = cachedSection ? cachedSection.outerHTML : '';
+                container.innerHTML = cachedSectionHtml + `<div class="eksi-ai-info">📦 Cache'ten ${allEntries.length} entry yüklendi.</div>`;
             } else {
                 // Yeni scrape yap
-                container.innerHTML = '<span class="eksi-ai-loading">Entry\'ler toplanıyor...</span>';
+                const cachedSection = container.querySelector('.eksi-ai-cached-results-section');
+                const cachedSectionHtml = cachedSection ? cachedSection.outerHTML : '';
+                container.innerHTML = cachedSectionHtml + '<span class="eksi-ai-loading">Entry\'ler toplanıyor...</span>';
                 await scrapeEntries();
             }
         }
@@ -565,11 +692,19 @@ const startAnalysis = async () => {
             });
             await renderActions(container, shouldStopScraping);
             addToggleVisibilityButton('eksi-ai-main-btn', 'eksi-ai-container');
+            // Kayıtlı analizler butonunun state'ini güncelle
+            updateCachedResultsButtonState('eksi-ai-main-btn', 'eksi-ai-container');
         } else {
-            container.innerHTML = '<div class="eksi-ai-warning">Hiç entry toplanamadı.</div>';
+            const cachedSection = container.querySelector('.eksi-ai-cached-results-section');
+            const cachedSectionHtml = cachedSection ? cachedSection.outerHTML : '';
+            container.innerHTML = cachedSectionHtml + '<div class="eksi-ai-warning">Hiç entry toplanamadı.</div>';
         }
     }
-    catch (err) { container.innerHTML = `<div class="eksi-ai-warning">Hata: ${escapeHtml(err.message)}</div>`; }
+    catch (err) { 
+        const cachedSection = container.querySelector('.eksi-ai-cached-results-section');
+        const cachedSectionHtml = cachedSection ? cachedSection.outerHTML : '';
+        container.innerHTML = cachedSectionHtml + `<div class="eksi-ai-warning">Hata: ${escapeHtml(err.message)}</div>`;
+    }
     finally { btn.disabled = false; btn.textContent = "Entry'leri Analiz Et"; btn.onclick = startAnalysis; }
 };
 
@@ -582,12 +717,22 @@ const startSingleEntryAnalysis = async () => {
 
     shouldStopScraping = false; responseCache.clear(); lastCustomPrompt = null;
     btn.textContent = 'Durdur'; btn.onclick = stopScraping; btn.disabled = false;
-    container.style.display = 'block'; container.innerHTML = '<span class="eksi-ai-loading">Entry kontrol ediliyor...</span>';
+    container.style.display = 'block';
+    
+    // Kayıtlı analizler bölümünü koru (varsa)
+    const cachedSection = container.querySelector('.eksi-ai-cached-results-section');
+    const cachedSectionHtml = cachedSection ? cachedSection.outerHTML : '';
+    container.innerHTML = cachedSectionHtml + '<span class="eksi-ai-loading">Entry kontrol ediliyor...</span>';
+    
+    // Kayıtlı analizler butonunun state'ini güncelle
+    updateCachedResultsButtonState('eksi-ai-entry-btn', 'eksi-ai-entry-container');
 
     try {
         if (shouldUseFreshScrape) {
             // İkinci tıklama: Yeni scrape yap
-            container.innerHTML = '<span class="eksi-ai-loading">Entry yeniden toplanıyor...</span>';
+            const cachedSection = container.querySelector('.eksi-ai-cached-results-section');
+            const cachedSectionHtml = cachedSection ? cachedSection.outerHTML : '';
+            container.innerHTML = cachedSectionHtml + '<span class="eksi-ai-loading">Entry yeniden toplanıyor...</span>';
             scrapeSingleEntryFromCurrentPage();
             if (!shouldStopScraping && allEntries.length > 0) {
                 await fetchAllReferencedEntries(container.querySelector('.eksi-ai-loading'));
@@ -602,10 +747,14 @@ const startSingleEntryAnalysis = async () => {
                 // Cache'teki entry'leri kullan
                 allEntries = cachedWithEntries.sourceEntries;
                 topicTitle = cachedWithEntries.topicTitle || 'Entry Analizi';
-                container.innerHTML = `<div class="eksi-ai-info">📦 Cache'ten ${allEntries.length} entry yüklendi.</div>`;
+                const cachedSection = container.querySelector('.eksi-ai-cached-results-section');
+                const cachedSectionHtml = cachedSection ? cachedSection.outerHTML : '';
+                container.innerHTML = cachedSectionHtml + `<div class="eksi-ai-info">📦 Cache'ten ${allEntries.length} entry yüklendi.</div>`;
             } else {
                 // Yeni scrape yap
-                container.innerHTML = '<span class="eksi-ai-loading">Entry toplanıyor...</span>';
+                const cachedSection = container.querySelector('.eksi-ai-cached-results-section');
+                const cachedSectionHtml = cachedSection ? cachedSection.outerHTML : '';
+                container.innerHTML = cachedSectionHtml + '<span class="eksi-ai-loading">Entry toplanıyor...</span>';
                 scrapeSingleEntryFromCurrentPage();
                 if (!shouldStopScraping && allEntries.length > 0) {
                     await fetchAllReferencedEntries(container.querySelector('.eksi-ai-loading'));
@@ -625,11 +774,19 @@ const startSingleEntryAnalysis = async () => {
             });
             await renderActions(container, shouldStopScraping);
             addToggleVisibilityButton('eksi-ai-entry-btn', 'eksi-ai-entry-container');
+            // Kayıtlı analizler butonunun state'ini güncelle
+            updateCachedResultsButtonState('eksi-ai-entry-btn', 'eksi-ai-entry-container');
         } else {
-            container.innerHTML = '<div class="eksi-ai-warning">Entry toplanamadı.</div>';
+            const cachedSection = container.querySelector('.eksi-ai-cached-results-section');
+            const cachedSectionHtml = cachedSection ? cachedSection.outerHTML : '';
+            container.innerHTML = cachedSectionHtml + '<div class="eksi-ai-warning">Entry toplanamadı.</div>';
         }
     }
-    catch (err) { container.innerHTML = `<div class="eksi-ai-warning">Hata: ${escapeHtml(err.message)}</div>`; }
+    catch (err) { 
+        const cachedSection = container.querySelector('.eksi-ai-cached-results-section');
+        const cachedSectionHtml = cachedSection ? cachedSection.outerHTML : '';
+        container.innerHTML = cachedSectionHtml + `<div class="eksi-ai-warning">Hata: ${escapeHtml(err.message)}</div>`;
+    }
     finally { btn.disabled = false; btn.textContent = "Bu Entry'yi Analiz Et"; btn.onclick = startSingleEntryAnalysis; }
 };
 
