@@ -227,7 +227,7 @@ const renderActions = async (container, wasStopped = false) => {
     else if (tokenEstimate > contextWindow * 0.80) tokenClass = 'eksi-ai-token-warning';
     const statusMessage = wasStopped
         ? `<div class="eksi-ai-info">İşlem durduruldu. ${allEntries.length} entry toplandı.</div><div class="eksi-ai-token-info ${tokenClass}">📊 ${allEntries.length} entry | ~${tokenStr} token</div>`
-        : `<h3>${allEntries.length} entry toplandı.</h3><div class="eksi-ai-token-info ${tokenClass}">📊 ~${tokenStr} token | ${settings.selectedModel} | %${usagePercent} kullanım</div>`;
+        : `<h3>${allEntries.length} entry toplandı.</h3><div class="eksi-ai-token-info ${tokenClass}">📊 ~${tokenStr} token | %${usagePercent} kullanım</div>`;
     let buttonsHtml = `<button id="btn-download" class="eksi-ai-btn secondary">JSON İndir</button>`;
     settings.prompts.forEach((item, index) => {
         buttonsHtml += `<div class="eksi-ai-button-group"><button id="btn-prompt-${index}" class="eksi-ai-btn" data-index="${index}">${item.name}</button><button id="btn-prompt-ve-${index}" class="eksi-ai-btn-ve" data-index="${index}" title="Prompt'u düzenle">ve</button></div>`;
