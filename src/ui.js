@@ -282,11 +282,9 @@ const openCustomPromptModal = (customButton = null, prefillPrompt = null, mainBu
     document.addEventListener('keydown', handleEscape, true);
     document.getElementById('eksi-ai-modal-submit').onclick = () => {
         const userPrompt = textarea.value.trim();
-        if (userPrompt) {
-            if (mainButton) { mainButton.setAttribute('data-ve-prompt', userPrompt); runGemini(userPrompt, true, customButton, mainButton); }
-            else { lastCustomPrompt = userPrompt; runGemini(userPrompt, true, customButton); }
-            closeModal();
-        } else { textarea.style.borderColor = '#d9534f'; textarea.focus(); }
+        if (mainButton) { mainButton.setAttribute('data-ve-prompt', userPrompt); runGemini(userPrompt, true, customButton, mainButton); }
+        else { lastCustomPrompt = userPrompt; runGemini(userPrompt, true, customButton); }
+        closeModal();
     };
     textarea.onkeydown = (e) => {
         if (textarea.style.borderColor === 'rgb(217, 83, 79)') textarea.style.borderColor = '';
