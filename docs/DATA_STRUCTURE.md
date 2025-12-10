@@ -72,7 +72,7 @@ interface UsageStats {
 ```typescript
 interface ScrapeRecord {
     id: string;                    // "scrape-1704067200000"
-    sourceEntriesHash: string;     // Entry ID'lerinden hash (unique identifier)
+    sourceEntriesHash: string;     // Tüm entry objesinden SHA-256 hash (unique identifier)
     topicId: string;               // "12345"
     topicTitle: string;
     topicUrl: string;
@@ -104,7 +104,14 @@ interface Analysis {
 ```
 
 **Önemli Notlar:**
-- **Hash Sistemi:** Aynı entry seti için tek kayıt. Aynı hash'li yeni scrape'ler mevcut kaydı günceller.
+- **Hash Sistemi:** 
+  - SHA-256 hash algoritması kullanılır
+  - Tüm entry objesi hash'lenir: `id`, `author`, `date`, `content`, `referenced_entries`
+  - Entry'ler ID'ye göre sıralanarak deterministik hash üretilir
+  - Referenced entries'ler de hash'e dahil edilir (nested yapı)
+  - Aynı entry içeriğine sahip sourceEntries'ler aynı hash'i üretir
+  - Aynı hash'li yeni scrape'ler mevcut kaydı günceller
+  - Hash formatı: `sha256-{64 karakter hex string}` veya `empty` (boş array için)
 - **Analizler:** Her analiz `analyses` array'ine eklenir. Farklı prompt'larla yapılan analizler ayrı kayıtlar.
 - **Referanslar:** `(bkz: #entry_id)` formatındaki referanslar otomatik yüklenir.
 - **Temizleme:** `historyRetentionDays`'e göre otomatik (0 = sınırsız).
@@ -147,7 +154,7 @@ interface Analysis {
 
 **Önemli Notlar:**
 - **Referans Bazlı:** Entry'ler kopyalanmaz, sadece kaynak referansları tutulur.
-- **Unique Identifier:** `sourceScrapes` içindeki `sourceEntriesHash`'ler sıralanıp birleştirilerek unique identifier oluşturulur.
+- **Unique Identifier:** `sourceScrapes` içindeki `sourceEntriesHash`'ler (SHA-256 hash'ler) sıralanıp birleştirilerek unique identifier oluşturulur. Her hash tüm entry objesini (id, author, date, content, referenced_entries) temsil eder.
 - **Aynı Kombinasyon:** Aynı kaynak hash kombinasyonuna yapılan yeni analizler mevcut kayda `analyses` array'ine eklenir.
 - **Temizleme:** `historyRetentionDays`'e göre otomatik (0 = sınırsız).
 - **ZIP İndirme:** Her kaynak için ayrı JSON, her analiz için ayrı md/txt dosyası oluşturulur.
@@ -242,7 +249,7 @@ interface FlatHistoryItem {
 
 **Optimizasyon:**
 - Preview alanları: `promptPreview` (100 karakter), `responsePreview` (200 karakter)
-- Hash sistemi: Aynı entry setleri için tek kayıt
+- Hash sistemi: SHA-256 ile tüm entry objesine hash yapılır, aynı entry içeriğine sahip setler için tek kayıt
 - Referans bazlı çoklu scrape: Entry'ler kopyalanmaz, sadece scrape referansları tutulur
 - Otomatik temizleme: `historyRetentionDays`'e göre
 - Sıralama: Analizler en yeniden en eskiye doğru sıralanır (timestamp'e göre)
@@ -345,4 +352,4 @@ await saveToHistoryFromPage({
 
 ---
 
-**Son Güncelleme:** 2025-12-10 | **Versiyon:** 1.1.0
+**Son Güncelleme:** 2025-12-10 | **Versiyon:** 1.2.0

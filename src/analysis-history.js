@@ -28,39 +28,81 @@ const DEFAULT_HISTORY_RETENTION_DAYS = 30;
 /**
  * sourceEntries array'inden unique hash oluşturur.
  * 
- * Entry ID'lerini sıralayıp birleştirerek hash oluşturur.
- * Aynı entry'lerden oluşan sourceEntries'ler aynı hash'i üretir.
+ * Tüm entry objesini (id, author, date, content, referenced_entries) SHA-256 ile hash'ler.
+ * Entry'ler ID'ye göre sıralanarak deterministik hash üretilir.
+ * Aynı entry içeriğine sahip sourceEntries'ler aynı hash'i üretir.
  * 
  * @param {Array} sourceEntries - Entry array'i
- * @returns {string} Hash string
+ * @returns {Promise<string>} SHA-256 hash string (hex formatında)
  */
-const createSourceEntriesHash = (sourceEntries) => {
+const createSourceEntriesHash = async (sourceEntries) => {
     if (!sourceEntries || sourceEntries.length === 0) {
         return 'empty';
     }
 
-    // Entry ID'lerini çıkar ve sırala
-    const entryIds = sourceEntries
-        .map(entry => entry.id)
-        .filter(id => id) // null/undefined kontrolü
-        .sort();
+    // Entry'leri ID'ye göre sırala (deterministik sıralama için)
+    const sortedEntries = [...sourceEntries]
+        .filter(entry => entry && entry.id) // null/undefined ve id kontrolü
+        .sort((a, b) => {
+            // ID'leri string olarak karşılaştır
+            const idA = String(a.id);
+            const idB = String(b.id);
+            return idA.localeCompare(idB);
+        });
 
-    if (entryIds.length === 0) {
+    if (sortedEntries.length === 0) {
         return 'empty';
     }
 
-    // ID'leri birleştir ve basit hash oluştur
-    const combined = entryIds.join(',');
-    
-    // Basit hash fonksiyonu (string hash)
-    let hash = 0;
-    for (let i = 0; i < combined.length; i++) {
-        const char = combined.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // 32bit integer'a çevir
+    // Her entry'yi normalize et ve serialize et
+    // Tüm alanları dahil et: id, author, date, content, referenced_entries
+    const serializedEntries = sortedEntries.map(entry => {
+        const normalizedEntry = {
+            id: entry.id || '',
+            author: entry.author || '',
+            date: entry.date || '',
+            content: entry.content || '',
+            referenced_entries: entry.referenced_entries || []
+        };
+        // Referenced entries'leri de normalize et
+        if (normalizedEntry.referenced_entries && normalizedEntry.referenced_entries.length > 0) {
+            normalizedEntry.referenced_entries = normalizedEntry.referenced_entries
+                .map(refEntry => ({
+                    id: refEntry.id || '',
+                    author: refEntry.author || '',
+                    date: refEntry.date || '',
+                    content: refEntry.content || ''
+                }))
+                .sort((a, b) => String(a.id).localeCompare(String(b.id)));
+        }
+        return normalizedEntry;
+    });
+
+    // JSON string'e çevir (deterministik için space olmadan)
+    const jsonString = JSON.stringify(serializedEntries);
+
+    // SHA-256 hash hesapla
+    try {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(jsonString);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        
+        // ArrayBuffer'ı hex string'e çevir
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        
+        return `sha256-${hashHex}`;
+    } catch (error) {
+        console.error('SHA-256 hash hesaplama hatası:', error);
+        // Fallback: basit hash (eski yöntem)
+        let hash = 0;
+        for (let i = 0; i < jsonString.length; i++) {
+            const char = jsonString.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        return `fallback-${Math.abs(hash).toString(36)}`;
     }
-    
-    return `hash${Math.abs(hash).toString(36)}`;
 };
 
 /**
@@ -94,13 +136,12 @@ const saveToHistory = async (data) => {
             if (data.scrapeOnly) {
                 // Scrape kaydetme/güncelleme
                 const sourceEntries = data.sourceEntries || [];
-                const sourceEntriesHash = createSourceEntriesHash(sourceEntries);
-                
-                const existingIndex = scrapedData.findIndex(item => 
-                    item.sourceEntriesHash === sourceEntriesHash
-                );
+                createSourceEntriesHash(sourceEntries).then(sourceEntriesHash => {
+                    const existingIndex = scrapedData.findIndex(item => 
+                        item.sourceEntriesHash === sourceEntriesHash
+                    );
 
-                if (existingIndex >= 0) {
+                    if (existingIndex >= 0) {
                     // Mevcut scrape'i güncelle (aynı sourceEntries)
                     const existing = scrapedData[existingIndex];
                     existing.scrapedAt = new Date().toISOString();
@@ -112,35 +153,53 @@ const saveToHistory = async (data) => {
                     if (data.topicId) existing.topicId = data.topicId;
                     if (data.topicTitle) existing.topicTitle = data.topicTitle;
                     
-                    // Sona taşı (en yeni en sonda)
-                    scrapedData.splice(existingIndex, 1);
-                    scrapedData.push(existing);
-                } else {
-                    // Yeni scrape ekle (farklı sourceEntries)
-                    const newScrape = {
-                        id: `scrape-${Date.now()}`,
-                        sourceEntriesHash: sourceEntriesHash,
-                        topicId: data.topicId || '',
-                        topicTitle: data.topicTitle,
-                        topicUrl: window.location.href,
-                        scrapedAt: new Date().toISOString(),
-                        entryCount: data.entryCount,
-                        sourceEntries: sourceEntries,
-                        wasStopped: data.wasStopped || false,
-                        analyses: []
-                    };
-                    scrapedData.push(newScrape);
-                }
+                        // Sona taşı (en yeni en sonda)
+                        scrapedData.splice(existingIndex, 1);
+                        scrapedData.push(existing);
+                    } else {
+                        // Yeni scrape ekle (farklı sourceEntries)
+                        const newScrape = {
+                            id: `scrape-${Date.now()}`,
+                            sourceEntriesHash: sourceEntriesHash,
+                            topicId: data.topicId || '',
+                            topicTitle: data.topicTitle,
+                            topicUrl: window.location.href,
+                            scrapedAt: new Date().toISOString(),
+                            entryCount: data.entryCount,
+                            sourceEntries: sourceEntries,
+                            wasStopped: data.wasStopped || false,
+                            analyses: []
+                        };
+                        scrapedData.push(newScrape);
+                    }
+                    
+                    // Eski kayıtları temizle (ayarlanan saklama süresine göre, 0 = sınırsız)
+                    if (retentionDays > 0) {
+                        const cutoffDate = new Date();
+                        cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+                        const cutoffTime = cutoffDate.getTime();
+                        
+                        scrapedData = scrapedData.filter(item => {
+                            const itemDate = new Date(item.scrapedAt);
+                            return itemDate.getTime() >= cutoffTime;
+                        });
+                    }
+
+                    chrome.storage.local.set({ scrapedData }, resolve);
+                }).catch(err => {
+                    console.error('Hash hesaplama hatası:', err);
+                    resolve(); // Hata durumunda devam et
+                });
+                return;
             } else {
                 // Analiz kaydetme
                 const sourceEntries = data.sourceEntries || [];
-                const sourceEntriesHash = createSourceEntriesHash(sourceEntries);
-                
-                const scrapeIndex = scrapedData.findIndex(item => 
-                    item.sourceEntriesHash === sourceEntriesHash
-                );
+                createSourceEntriesHash(sourceEntries).then(sourceEntriesHash => {
+                    const scrapeIndex = scrapedData.findIndex(item => 
+                        item.sourceEntriesHash === sourceEntriesHash
+                    );
 
-                if (scrapeIndex >= 0) {
+                    if (scrapeIndex >= 0) {
                     // İlgili scrape'i bulduk, analyses'e ekle
                     const scrape = scrapedData[scrapeIndex];
                     const newAnalysis = {
@@ -153,47 +212,51 @@ const saveToHistory = async (data) => {
                         modelId: data.modelId || '',
                         responseTime: data.responseTime || 0
                     };
-                    scrape.analyses.push(newAnalysis);
-                } else {
-                    // Scrape bulunamadı, önce scrape oluştur sonra analiz ekle
-                    const newScrape = {
-                        id: `scrape-${Date.now()}`,
-                        sourceEntriesHash: sourceEntriesHash,
-                        topicId: data.topicId || '',
-                        topicTitle: data.topicTitle,
-                        topicUrl: window.location.href,
-                        scrapedAt: new Date().toISOString(),
-                        entryCount: data.entryCount || 0,
-                        sourceEntries: sourceEntries,
-                        wasStopped: false,
-                        analyses: [{
-                            id: `analysis-${Date.now()}`,
-                            timestamp: new Date().toISOString(),
-                            prompt: data.prompt || '',
-                            promptPreview: data.prompt ? (data.prompt.substring(0, 100) + (data.prompt.length > 100 ? '...' : '')) : '',
-                            response: data.response || '',
-                            responsePreview: data.response ? (data.response.substring(0, 200) + (data.response.length > 200 ? '...' : '')) : '',
-                            modelId: data.modelId || '',
-                            responseTime: data.responseTime || 0
-                        }]
-                    };
-                    scrapedData.push(newScrape);
-                }
-            }
+                        scrape.analyses.push(newAnalysis);
+                    } else {
+                        // Scrape bulunamadı, önce scrape oluştur sonra analiz ekle
+                        const newScrape = {
+                            id: `scrape-${Date.now()}`,
+                            sourceEntriesHash: sourceEntriesHash,
+                            topicId: data.topicId || '',
+                            topicTitle: data.topicTitle,
+                            topicUrl: window.location.href,
+                            scrapedAt: new Date().toISOString(),
+                            entryCount: data.entryCount || 0,
+                            sourceEntries: sourceEntries,
+                            wasStopped: false,
+                            analyses: [{
+                                id: `analysis-${Date.now()}`,
+                                timestamp: new Date().toISOString(),
+                                prompt: data.prompt || '',
+                                promptPreview: data.prompt ? (data.prompt.substring(0, 100) + (data.prompt.length > 100 ? '...' : '')) : '',
+                                response: data.response || '',
+                                responsePreview: data.response ? (data.response.substring(0, 200) + (data.response.length > 200 ? '...' : '')) : '',
+                                modelId: data.modelId || '',
+                                responseTime: data.responseTime || 0
+                            }]
+                        };
+                        scrapedData.push(newScrape);
+                    }
+                    
+                    // Eski kayıtları temizle (ayarlanan saklama süresine göre, 0 = sınırsız)
+                    if (retentionDays > 0) {
+                        const cutoffDate = new Date();
+                        cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+                        const cutoffTime = cutoffDate.getTime();
+                        
+                        scrapedData = scrapedData.filter(item => {
+                            const itemDate = new Date(item.scrapedAt);
+                            return itemDate.getTime() >= cutoffTime;
+                        });
+                    }
 
-            // Eski kayıtları temizle (ayarlanan saklama süresine göre, 0 = sınırsız)
-            if (retentionDays > 0) {
-                const cutoffDate = new Date();
-                cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
-                const cutoffTime = cutoffDate.getTime();
-                
-                scrapedData = scrapedData.filter(item => {
-                    const itemDate = new Date(item.scrapedAt);
-                    return itemDate.getTime() >= cutoffTime;
+                    chrome.storage.local.set({ scrapedData }, resolve);
+                }).catch(err => {
+                    console.error('Hash hesaplama hatası:', err);
+                    resolve(); // Hata durumunda devam et
                 });
             }
-
-            chrome.storage.local.set({ scrapedData }, resolve);
         });
     });
 };

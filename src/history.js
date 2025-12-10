@@ -287,37 +287,81 @@ const deleteHistoryItem = async (itemId) => {
  * sourceEntries array'inden unique hash oluşturur.
  * 
  * analysis-history.js'deki fonksiyonla aynı mantık.
+ * Tüm entry objesini (id, author, date, content, referenced_entries) SHA-256 ile hash'ler.
+ * Entry'ler ID'ye göre sıralanarak deterministik hash üretilir.
+ * Aynı entry içeriğine sahip sourceEntries'ler aynı hash'i üretir.
  * 
  * @param {Array} sourceEntries - Entry array'i
- * @returns {string} Hash string
+ * @returns {Promise<string>} SHA-256 hash string (hex formatında)
  */
-const createSourceEntriesHash = (sourceEntries) => {
+const createSourceEntriesHash = async (sourceEntries) => {
     if (!sourceEntries || sourceEntries.length === 0) {
         return 'empty';
     }
 
-    // Entry ID'lerini çıkar ve sırala
-    const entryIds = sourceEntries
-        .map(entry => entry.id)
-        .filter(id => id) // null/undefined kontrolü
-        .sort();
+    // Entry'leri ID'ye göre sırala (deterministik sıralama için)
+    const sortedEntries = [...sourceEntries]
+        .filter(entry => entry && entry.id) // null/undefined ve id kontrolü
+        .sort((a, b) => {
+            // ID'leri string olarak karşılaştır
+            const idA = String(a.id);
+            const idB = String(b.id);
+            return idA.localeCompare(idB);
+        });
 
-    if (entryIds.length === 0) {
+    if (sortedEntries.length === 0) {
         return 'empty';
     }
 
-    // ID'leri birleştir ve basit hash oluştur
-    const combined = entryIds.join(',');
+    // Her entry'yi normalize et ve serialize et
+    // Tüm alanları dahil et: id, author, date, content, referenced_entries
+    const serializedEntries = sortedEntries.map(entry => {
+        const normalizedEntry = {
+            id: entry.id || '',
+            author: entry.author || '',
+            date: entry.date || '',
+            content: entry.content || '',
+            referenced_entries: entry.referenced_entries || []
+        };
+        // Referenced entries'leri de normalize et
+        if (normalizedEntry.referenced_entries && normalizedEntry.referenced_entries.length > 0) {
+            normalizedEntry.referenced_entries = normalizedEntry.referenced_entries
+                .map(refEntry => ({
+                    id: refEntry.id || '',
+                    author: refEntry.author || '',
+                    date: refEntry.date || '',
+                    content: refEntry.content || ''
+                }))
+                .sort((a, b) => String(a.id).localeCompare(String(b.id)));
+        }
+        return normalizedEntry;
+    });
 
-    // Basit hash fonksiyonu (string hash)
-    let hash = 0;
-    for (let i = 0; i < combined.length; i++) {
-        const char = combined.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // 32bit integer'a çevir
+    // JSON string'e çevir (deterministik için space olmadan)
+    const jsonString = JSON.stringify(serializedEntries);
+
+    // SHA-256 hash hesapla
+    try {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(jsonString);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        
+        // ArrayBuffer'ı hex string'e çevir
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        
+        return `sha256-${hashHex}`;
+    } catch (error) {
+        console.error('SHA-256 hash hesaplama hatası:', error);
+        // Fallback: basit hash (eski yöntem)
+        let hash = 0;
+        for (let i = 0; i < jsonString.length; i++) {
+            const char = jsonString.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        return `fallback-${Math.abs(hash).toString(36)}`;
     }
-
-    return `hash${Math.abs(hash).toString(36)}`;
 };
 
 /**
@@ -429,45 +473,68 @@ const saveToHistoryFromPage = async (analysisData) => {
             } else {
                 // Tek başlık için normal işlem
                 const sourceEntries = analysisData.sourceEntries || [];
-                const sourceEntriesHash = createSourceEntriesHash(sourceEntries);
+                createSourceEntriesHash(sourceEntries).then(sourceEntriesHash => {
+                    const scrapeIndex = scrapedData.findIndex(item =>
+                        item.sourceEntriesHash === sourceEntriesHash
+                    );
 
-                const scrapeIndex = scrapedData.findIndex(item =>
-                    item.sourceEntriesHash === sourceEntriesHash
-                );
-
-                const newAnalysis = {
-                    id: `analysis-${Date.now()}`,
-                    timestamp: new Date().toISOString(),
-                    prompt: prompt,
-                    promptPreview: prompt ? (prompt.substring(0, 100) + (prompt.length > 100 ? '...' : '')) : '',
-                    response: response,
-                    responsePreview: response ? (response.substring(0, 200) + (response.length > 200 ? '...' : '')) : '',
-                    modelId: analysisData.modelId || '',
-                    responseTime: analysisData.responseTime || 0,
-                    fromHistoryPage: true
-                };
-
-                if (scrapeIndex >= 0) {
-                    scrapedData[scrapeIndex].analyses.push(newAnalysis);
-                } else {
-                    // Yeni scrape oluştur
-                    const newScrape = {
-                        id: `scrape-${Date.now()}`,
-                        sourceEntriesHash: sourceEntriesHash,
-                        topicId: analysisData.topicId || '',
-                        topicTitle: analysisData.topicTitle,
-                        topicUrl: analysisData.topicUrl,
-                        scrapedAt: new Date().toISOString(),
-                        entryCount: analysisData.entryCount || 0,
-                        sourceEntries: sourceEntries,
-                        wasStopped: false,
-                        analyses: [newAnalysis]
+                    const newAnalysis = {
+                        id: `analysis-${Date.now()}`,
+                        timestamp: new Date().toISOString(),
+                        prompt: prompt,
+                        promptPreview: prompt ? (prompt.substring(0, 100) + (prompt.length > 100 ? '...' : '')) : '',
+                        response: response,
+                        responsePreview: response ? (response.substring(0, 200) + (response.length > 200 ? '...' : '')) : '',
+                        modelId: analysisData.modelId || '',
+                        responseTime: analysisData.responseTime || 0,
+                        fromHistoryPage: true
                     };
-                    scrapedData.push(newScrape);
-                }
+
+                    if (scrapeIndex >= 0) {
+                        scrapedData[scrapeIndex].analyses.push(newAnalysis);
+                    } else {
+                        // Yeni scrape oluştur
+                        const newScrape = {
+                            id: `scrape-${Date.now()}`,
+                            sourceEntriesHash: sourceEntriesHash,
+                            topicId: analysisData.topicId || '',
+                            topicTitle: analysisData.topicTitle,
+                            topicUrl: analysisData.topicUrl,
+                            scrapedAt: new Date().toISOString(),
+                            entryCount: analysisData.entryCount || 0,
+                            sourceEntries: sourceEntries,
+                            wasStopped: false,
+                            analyses: [newAnalysis]
+                        };
+                        scrapedData.push(newScrape);
+                    }
+
+                    // Eski kayıtları temizle
+                    if (retentionDays > 0) {
+                        const cutoffDate = new Date();
+                        cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+                        const cutoffTime = cutoffDate.getTime();
+
+                        scrapedData = scrapedData.filter(item => {
+                            const itemDate = new Date(item.scrapedAt);
+                            return itemDate.getTime() >= cutoffTime;
+                        });
+
+                        multiScrapeAnalyses = multiScrapeAnalyses.filter(item => {
+                            const itemDate = new Date(item.timestamp);
+                            return itemDate.getTime() >= cutoffTime;
+                        });
+                    }
+
+                    chrome.storage.local.set({ scrapedData, multiScrapeAnalyses }, resolve);
+                }).catch(err => {
+                    console.error('Hash hesaplama hatası:', err);
+                    resolve(); // Hata durumunda devam et
+                });
+                return;
             }
 
-            // Eski kayıtları temizle
+            // Eski kayıtları temizle (çoklu kaynak analizi için)
             if (retentionDays > 0) {
                 const cutoffDate = new Date();
                 cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
@@ -1367,10 +1434,16 @@ const importHistory = async (file) => {
             // Eski format - flat view'dan scrapedData'ya çevir
             const newItemsMap = new Map(); // sourceEntriesHash -> scrape object
 
-            importData.history.forEach(item => {
+            // Tüm hash'leri önce hesapla
+            const hashPromises = importData.history.map(async (item) => {
                 const sourceEntries = item.sourceEntries || [];
-                const sourceEntriesHash = createSourceEntriesHash(sourceEntries);
+                const sourceEntriesHash = await createSourceEntriesHash(sourceEntries);
+                return { item, sourceEntriesHash };
+            });
 
+            const itemsWithHashes = await Promise.all(hashPromises);
+
+            itemsWithHashes.forEach(({ item, sourceEntriesHash }) => {
                 if (!newItemsMap.has(sourceEntriesHash)) {
                     // Yeni scrape oluştur
                     newItemsMap.set(sourceEntriesHash, {
@@ -1381,7 +1454,7 @@ const importHistory = async (file) => {
                         topicUrl: item.topicUrl,
                         scrapedAt: item.scrapeOnly ? item.timestamp : new Date().toISOString(),
                         entryCount: item.entryCount,
-                        sourceEntries: sourceEntries,
+                        sourceEntries: item.sourceEntries || [],
                         wasStopped: item.wasStopped || false,
                         analyses: []
                     });
