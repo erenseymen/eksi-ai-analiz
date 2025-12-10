@@ -977,17 +977,20 @@ const showCustomPromptInput = async () => {
     // Mevcut içeriği sakla (eğer test devam ediyorsa)
     const currentContent = modalBody.innerHTML;
 
-    // Dark theme kontrolü
-    const isDarkTheme = document.body.classList.contains('dark-theme');
+    // Dark theme kontrolü (manuel ve otomatik dark mode)
+    const isDarkTheme = document.body.classList.contains('dark-theme') || 
+        (!document.body.classList.contains('light-theme') && 
+         window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
     const textareaBg = isDarkTheme ? '#2d2d2d' : '#fff';
     const textareaBorder = isDarkTheme ? '#555' : '#ddd';
     const textareaColor = isDarkTheme ? '#e0e0e0' : '#333';
-    const textareaFocusBorder = isDarkTheme ? '#667eea' : '#667eea';
+    const textareaFocusBorder = '#667eea';
+    const labelColor = isDarkTheme ? '#e0e0e0' : '#333';
 
     // Prompt giriş ekranını göster
     modalBody.innerHTML = `
         <div id="promptInputSection" style="margin-bottom: 20px;">
-            <label for="modelTestPrompt" style="display: block; margin-bottom: 8px; font-weight: bold;">
+            <label for="modelTestPrompt" style="display: block; margin-bottom: 8px; font-weight: bold; color: ${labelColor};">
                 Test Promptu:
             </label>
             <textarea 
@@ -1009,7 +1012,7 @@ const showCustomPromptInput = async () => {
     const startBtn = document.getElementById('startModelTestBtn');
 
     // Textarea focus border rengini ayarla
-    const focusBorderColor = '#667eea';
+    const focusBorderColor = textareaFocusBorder;
     
     textarea.addEventListener('focus', () => {
         textarea.style.borderColor = focusBorderColor;

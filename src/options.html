@@ -1345,6 +1345,30 @@
             color: #e0e0e0 !important;
         }
 
+        body.dark-theme .modal-body {
+            color: #e0e0e0 !important;
+        }
+
+        /* Özel Prompt Giriş Ekranı - Dark Theme */
+        body.dark-theme #promptInputSection label {
+            color: #e0e0e0 !important;
+        }
+
+        body.dark-theme #modelTestPrompt {
+            background-color: #2d2d2d !important;
+            color: #e0e0e0 !important;
+            border-color: #555 !important;
+        }
+
+        body.dark-theme #modelTestPrompt:focus {
+            border-color: #667eea !important;
+            outline: none !important;
+        }
+
+        body.dark-theme #modelTestPrompt::placeholder {
+            color: #888 !important;
+        }
+
         body.dark-theme .models-comparison-section-title {
             color: #e0e0e0 !important;
             border-bottom-color: #444 !important;
@@ -1703,6 +1727,30 @@
             body:not(.light-theme):not(.dark-theme) .modal-close:hover {
                 background: #404040 !important;
                 color: #e0e0e0 !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .modal-body {
+                color: #e0e0e0 !important;
+            }
+
+            /* Özel Prompt Giriş Ekranı - Auto Dark Mode */
+            body:not(.light-theme):not(.dark-theme) #promptInputSection label {
+                color: #e0e0e0 !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) #modelTestPrompt {
+                background-color: #2d2d2d !important;
+                color: #e0e0e0 !important;
+                border-color: #555 !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) #modelTestPrompt:focus {
+                border-color: #667eea !important;
+                outline: none !important;
+            }
+
+            body:not(.light-theme):not(.dark-theme) #modelTestPrompt::placeholder {
+                color: #888 !important;
             }
 
             body:not(.light-theme):not(.dark-theme) .models-comparison-section-title {
