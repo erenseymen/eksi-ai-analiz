@@ -56,6 +56,51 @@ const showToast = (message, type = 'success', duration = 3000) => {
 };
 
 /**
+ * Prompts sekmesi için bottom feedback bar gösterir.
+ * 
+ * @param {string} message - Gösterilecek mesaj
+ * @param {string} type - Bildirim tipi: 'success' veya 'error'
+ * @param {number} duration - Bildirimin gösterileceği süre (ms), varsayılan: 2000
+ */
+const showPromptsFeedback = (message, type = 'success', duration = 2000) => {
+    const feedbackBar = document.getElementById('promptsFeedbackBar');
+    if (!feedbackBar) return;
+
+    // Sadece prompts sekmesi aktifse göster
+    const activeTab = document.querySelector('.tab-btn.active');
+    if (!activeTab || activeTab.dataset.tab !== 'prompts') {
+        return;
+    }
+
+    const icon = feedbackBar.querySelector('.prompts-feedback-icon');
+    const messageEl = feedbackBar.querySelector('.prompts-feedback-message');
+
+    // İkon ve mesajı ayarla
+    icon.textContent = type === 'success' ? '✓' : '✕';
+    messageEl.textContent = message;
+
+    // Class'ları ayarla
+    feedbackBar.className = `prompts-feedback-bar ${type}`;
+    feedbackBar.style.display = 'flex'; // Önce display'i ayarla
+    
+    // Aktif et (animasyon için bir sonraki frame'de)
+    requestAnimationFrame(() => {
+        feedbackBar.classList.add('active');
+    });
+
+    // Belirtilen süre sonra kapat (fade out)
+    setTimeout(() => {
+        feedbackBar.classList.remove('active');
+        // Animasyon bitince display: none yap
+        setTimeout(() => {
+            if (!feedbackBar.classList.contains('active')) {
+                feedbackBar.style.display = 'none';
+            }
+        }, 300); // transition süresi kadar bekle
+    }, duration);
+};
+
+/**
  * DOM'daki prompt input alanlarından güncel prompt listesini oluşturur.
  * Her kaydetme işleminden önce çağrılarak DOM state'i ile prompts dizisini senkronize eder.
  */
@@ -238,8 +283,13 @@ const saveOptions = async () => {
             }, 3000);
         }
 
-        // Toast bildirimi göster
-        showToast('Ayarlar kaydedildi.', 'success', 2000);
+        // Prompts sekmesi aktifse bottom feedback bar göster, değilse toast göster
+        const activeTab = document.querySelector('.tab-btn.active');
+        if (activeTab && activeTab.dataset.tab === 'prompts') {
+            showPromptsFeedback('Ayarlar kaydedildi.', 'success', 2000);
+        } else {
+            showToast('Ayarlar kaydedildi.', 'success', 2000);
+        }
 
         // State tutarlılığı için listeyi yeniden render etme - DOM zaten güncel
         // renderPrompts(); // Kaldırıldı: Gereksiz yeniden render artifact'a neden oluyor
@@ -1571,29 +1621,18 @@ const renderSinglePromptItem = (item, index, list, isNew = false) => {
             <button class="save-item-btn">Kaydet</button>
             <button class="delete-btn">Sil</button>
         </div>
-        <div class="prompt-item-status" style="display: none;"></div>
         <textarea class="prompt-text" placeholder="Prompt içeriği...">${escapeHtml(item.prompt)}</textarea>
     `;
 
     // Event listener'ları bağla
     const saveBtn = div.querySelector('.save-item-btn');
-    const statusElement = div.querySelector('.prompt-item-status');
     
     saveBtn.onclick = async (e) => {
         // Önce genel saveOptions'ı çağır
         await saveOptions();
         
-        // Bu prompt-item'ın status elementini güncelle
-        if (statusElement) {
-            statusElement.textContent = 'Kaydedildi.';
-            statusElement.className = 'status success';
-            statusElement.style.display = 'block';
-            setTimeout(() => {
-                statusElement.textContent = '';
-                statusElement.className = 'status';
-                statusElement.style.display = 'none';
-            }, 3000);
-        }
+        // Bottom feedback bar göster (buton adının altındaki status kaldırıldı)
+        showPromptsFeedback('Ayarlar kaydedildi.', 'success', 2000);
     };
     
     div.querySelector('.delete-btn').onclick = () => removePrompt(index);
@@ -1736,16 +1775,8 @@ const removePrompt = (index) => {
         chrome.storage.sync.set(settings, () => {
             renderPrompts();
 
-            // Kullanıcıya geri bildirim ver (genel status elementi)
-            const status = document.getElementById('status');
-            if (status) {
-                status.textContent = 'Buton silindi ve ayarlar kaydedildi.';
-                status.className = 'status success';
-                setTimeout(() => {
-                    status.textContent = '';
-                    status.className = 'status';
-                }, 3000);
-            }
+            // Bottom feedback bar göster
+            showPromptsFeedback('Buton silindi ve ayarlar kaydedildi.', 'success', 2000);
         });
     }
 };
@@ -1771,16 +1802,8 @@ const resetPrompts = () => {
         chrome.storage.sync.set(settings, () => {
             renderPrompts();
 
-            // Kullanıcıya geri bildirim ver (genel status elementi)
-            const status = document.getElementById('status');
-            if (status) {
-                status.textContent = 'Butonlar varsayılan değerlere sıfırlandı ve ayarlar kaydedildi.';
-                status.className = 'status success';
-                setTimeout(() => {
-                    status.textContent = '';
-                    status.className = 'status';
-                }, 3000);
-            }
+            // Bottom feedback bar göster
+            showPromptsFeedback('Butonlar varsayılan değerlere sıfırlandı ve ayarlar kaydedildi.', 'success', 2000);
         });
     }
 };

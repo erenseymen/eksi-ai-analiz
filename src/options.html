@@ -420,27 +420,6 @@
             margin-top: 8px;
         }
 
-        .prompt-item-status {
-            margin-top: 8px;
-            margin-bottom: 8px;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 0.85em;
-            display: none;
-        }
-
-        .prompt-item-status.success {
-            background-color: #d4edda;
-            color: #155724;
-            display: block;
-        }
-
-        .prompt-item-status.error {
-            background-color: #f8d7da;
-            color: #721c24;
-            display: block;
-        }
-
         .delete-btn {
             background-color: #d9534f;
             padding: 5px 10px;
@@ -1139,16 +1118,6 @@
             border-color: #555;
         }
 
-        body.dark-theme .prompt-item-status.success {
-            background-color: #1e4a1e;
-            color: #a5d67a;
-        }
-
-        body.dark-theme .prompt-item-status.error {
-            background-color: #4a1e1e;
-            color: #ff9999;
-        }
-
         body.dark-theme .status.success {
             background-color: #1e4a1e;
             color: #a5d67a;
@@ -1544,16 +1513,6 @@
                 background-color: #2d2d2d;
                 color: #e0e0e0;
                 border-color: #555;
-            }
-
-            body:not(.light-theme):not(.dark-theme) .prompt-item-status.success {
-                background-color: #1e4a1e;
-                color: #a5d67a;
-            }
-
-            body:not(.light-theme):not(.dark-theme) .prompt-item-status.error {
-                background-color: #4a1e1e;
-                color: #ff9999;
             }
 
             body:not(.light-theme):not(.dark-theme) .status.success {
@@ -2241,6 +2200,99 @@
         body:not(.light-theme):not(.dark-theme) .toast-notification-message {
             color: #e0e0e0;
         }
+
+        /* Prompts Tab Bottom Feedback Bar */
+        .prompts-feedback-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 2px solid #81c14b;
+            padding: 12px 20px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            z-index: 1000;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            transform: translateY(100%);
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+            opacity: 0;
+        }
+
+        .prompts-feedback-bar.active {
+            display: flex;
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .prompts-feedback-bar.success {
+            border-top-color: #81c14b;
+            background: #f0f8f0;
+        }
+
+        .prompts-feedback-bar.error {
+            border-top-color: #d9534f;
+            background: #fff5f5;
+        }
+
+        .prompts-feedback-icon {
+            font-size: 1.2em;
+            flex-shrink: 0;
+        }
+
+        .prompts-feedback-bar.success .prompts-feedback-icon {
+            color: #81c14b;
+        }
+
+        .prompts-feedback-bar.error .prompts-feedback-icon {
+            color: #d9534f;
+        }
+
+        .prompts-feedback-message {
+            flex: 1;
+            font-size: 0.95em;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        body.dark-theme .prompts-feedback-bar {
+            background: #2d2d2d;
+            border-top-color: #81c14b;
+        }
+
+        body.dark-theme .prompts-feedback-bar.success {
+            background: #1e3a1e;
+            border-top-color: #81c14b;
+        }
+
+        body.dark-theme .prompts-feedback-bar.error {
+            background: #3a1e1e;
+            border-top-color: #d9534f;
+        }
+
+        body.dark-theme .prompts-feedback-message {
+            color: #e0e0e0;
+        }
+
+        body:not(.light-theme):not(.dark-theme) .prompts-feedback-bar {
+            background: #2d2d2d;
+            border-top-color: #81c14b;
+        }
+
+        body:not(.light-theme):not(.dark-theme) .prompts-feedback-bar.success {
+            background: #1e3a1e;
+            border-top-color: #81c14b;
+        }
+
+        body:not(.light-theme):not(.dark-theme) .prompts-feedback-bar.error {
+            background: #3a1e1e;
+            border-top-color: #d9534f;
+        }
+
+        body:not(.light-theme):not(.dark-theme) .prompts-feedback-message {
+            color: #e0e0e0;
+        }
     </style>
 </head>
 
@@ -2314,6 +2366,12 @@
             <div class="btn-row" style="margin-top: 10px;">
                 <button id="addBtn" class="btn-muted">+ Yeni Buton</button>
                 <button id="resetBtn" class="btn-danger">Sıfırla</button>
+            </div>
+
+            <!-- Bottom Feedback Bar -->
+            <div id="promptsFeedbackBar" class="prompts-feedback-bar">
+                <span class="prompts-feedback-icon"></span>
+                <span class="prompts-feedback-message"></span>
             </div>
 
             <h3 style="margin-top: 30px; margin-bottom: 15px;">⚙️ Sistem Promptu</h3>
