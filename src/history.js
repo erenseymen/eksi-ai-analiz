@@ -178,23 +178,7 @@ const cleanupOldEntries = async (days) => {
 // DOSYA İŞLEMLERİ
 // =============================================================================
 
-/**
- * Dosya adını geçerli karakterlerle temizler.
- * 
- * Windows ve diğer işletim sistemlerinde geçersiz olan karakterleri
- * alt çizgi ile değiştirir. Türkçe karakterleri korur.
- * 
- * @param {string} name - Temizlenecek dosya adı
- * @returns {string} Güvenli dosya adı
- */
-const sanitizeFilename = (name) => {
-    if (!name) return '';
-    return name
-        .replace(/[\\/:*?"<>|]/g, '_')  // Windows'ta geçersiz karakterleri değiştir
-        .replace(/_+/g, '_')            // Ardışık alt çizgileri teke indir
-        .replace(/^\s+|\s+$/g, '')      // Baş ve sondaki boşlukları temizle
-        .replace(/^_+|_+$/g, '');       // Baş ve sondaki alt çizgileri temizle
-};
+// Not: sanitizeFilename fonksiyonu utils.js'den gelir
 
 /**
  * Timestamp'i dosya isimlerinde kullanılabilir formata çevirir.
@@ -320,86 +304,7 @@ const deleteHistoryItem = async (itemId) => {
     });
 };
 
-/**
- * sourceEntries array'inden unique hash oluşturur.
- * 
- * analysis-history.js'deki fonksiyonla aynı mantık.
- * Tüm entry objesini (id, author, date, content, referenced_entries) SHA-256 ile hash'ler.
- * Entry'ler ID'ye göre sıralanarak deterministik hash üretilir.
- * Aynı entry içeriğine sahip sourceEntries'ler aynı hash'i üretir.
- * 
- * @param {Array} sourceEntries - Entry array'i
- * @returns {Promise<string>} SHA-256 hash string (hex formatında)
- */
-const createSourceEntriesHash = async (sourceEntries) => {
-    if (!sourceEntries || sourceEntries.length === 0) {
-        return 'empty';
-    }
-
-    // Entry'leri ID'ye göre sırala (deterministik sıralama için)
-    const sortedEntries = [...sourceEntries]
-        .filter(entry => entry && entry.id) // null/undefined ve id kontrolü
-        .sort((a, b) => {
-            // ID'leri string olarak karşılaştır
-            const idA = String(a.id);
-            const idB = String(b.id);
-            return idA.localeCompare(idB);
-        });
-
-    if (sortedEntries.length === 0) {
-        return 'empty';
-    }
-
-    // Her entry'yi normalize et ve serialize et
-    // Tüm alanları dahil et: id, author, date, content, referenced_entries
-    const serializedEntries = sortedEntries.map(entry => {
-        const normalizedEntry = {
-            id: entry.id || '',
-            author: entry.author || '',
-            date: entry.date || '',
-            content: entry.content || '',
-            referenced_entries: entry.referenced_entries || []
-        };
-        // Referenced entries'leri de normalize et
-        if (normalizedEntry.referenced_entries && normalizedEntry.referenced_entries.length > 0) {
-            normalizedEntry.referenced_entries = normalizedEntry.referenced_entries
-                .map(refEntry => ({
-                    id: refEntry.id || '',
-                    author: refEntry.author || '',
-                    date: refEntry.date || '',
-                    content: refEntry.content || ''
-                }))
-                .sort((a, b) => String(a.id).localeCompare(String(b.id)));
-        }
-        return normalizedEntry;
-    });
-
-    // JSON string'e çevir (deterministik için space olmadan)
-    const jsonString = JSON.stringify(serializedEntries);
-
-    // SHA-256 hash hesapla
-    try {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(jsonString);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-        
-        // ArrayBuffer'ı hex string'e çevir
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        
-        return `sha256-${hashHex}`;
-    } catch (error) {
-        console.error('SHA-256 hash hesaplama hatası:', error);
-        // Fallback: basit hash (eski yöntem)
-        let hash = 0;
-        for (let i = 0; i < jsonString.length; i++) {
-            const char = jsonString.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash;
-        }
-        return `fallback-${Math.abs(hash).toString(36)}`;
-    }
-};
+// Not: createSourceEntriesHash fonksiyonu shared-utils.js'den gelir
 
 /**
  * Geçmiş sayfasından yapılan analiz sonuçlarını geçmişe kaydeder.
