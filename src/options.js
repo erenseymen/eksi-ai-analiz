@@ -509,7 +509,7 @@ const populateModelSelect = async (savedModelId) => {
 
     comparisonCard.innerHTML = `
         <div class="model-card-name">🔄 Modelleri Karşılaştır</div>
-        <div class="model-card-description">Tüm modelleri son scrape edilen veriyle test et ve karşılaştır</div>
+        <div class="model-card-description">Tüm modelleri Analiz Geçmişi'ndeki son analiz datası ve prompt'u ile test et ve karşılaştır</div>
         <div class="model-card-meta">
             <span>⚡ Hızlı Test</span>
         </div>
@@ -1076,53 +1076,60 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
         return;
     }
 
-    // Son scrape edilen veriyi al (hem prompt için hem de kayıt için)
+    // Analiz Geçmişi'nden en son analizi al (hem prompt için hem de kayıt için)
     let apiPrompt = customPrompt; // API'ye gönderilecek prompt (entry'lerle birlikte)
     let displayPrompt = customPrompt || ''; // Modal'da gösterilecek prompt (sadece kullanıcı prompt'u, entry'ler olmadan)
     lastScrapeData = null; // Global değişkeni sıfırla
+    let lastAnalysisFromHistory = null; // Modal'da gösterim için sakla
     
-    // Son scrape verisini al
+    // Analiz Geçmişi'nden en son analizi al
     try {
-        const historyData = await new Promise((resolve) => {
-            chrome.storage.local.get({ scrapedData: [] }, (result) => {
-                const scrapedData = result.scrapedData;
-                scrapedData.sort((a, b) => {
-                    const dateA = new Date(a.scrapedAt);
-                    const dateB = new Date(b.scrapedAt);
-                    return dateB - dateA;
-                });
-                resolve(scrapedData);
-            });
-        });
+        // getHistory() fonksiyonu en yeni analizi en üstte döndürür (timestamp'e göre descending)
+        const analysisHistory = await getHistory();
 
-        if (historyData && historyData.length > 0) {
-            lastScrapeData = historyData[0]; // Kayıt için sakla
+        if (analysisHistory && analysisHistory.length > 0) {
+            // En son analizi al (ilk eleman)
+            const lastAnalysis = analysisHistory[0];
+            lastAnalysisFromHistory = lastAnalysis; // Modal'da gösterim için sakla
             
-            // Eğer custom prompt verilmemişse, son scrape için kullanılan son prompt'u kullan
-            if (!apiPrompt) {
-                let userPrompt = '';
+            // Kayıt için lastScrapeData'yı oluştur (kayıt fonksiyonu sourceEntriesHash bekliyor)
+            // ScrapedData'dan ilgili scrape'i bul
+            const scrapedData = await new Promise((resolve) => {
+                chrome.storage.local.get({ scrapedData: [] }, (result) => {
+                    resolve(result.scrapedData);
+                });
+            });
+            
+            // Son analizin sourceEntries'ine göre ilgili scrape'i bul
+            if (lastAnalysis.sourceEntries && lastAnalysis.sourceEntries.length > 0) {
+                const sourceEntriesHash = await createSourceEntriesHash(lastAnalysis.sourceEntries);
+                const relatedScrape = scrapedData.find(scrape => scrape.sourceEntriesHash === sourceEntriesHash);
                 
-                // Son scrape'in son analizinde kullanılan prompt'u bul
-                if (lastScrapeData.analyses && lastScrapeData.analyses.length > 0) {
-                    // Analizleri timestamp'e göre sırala (en yeni en sonda)
-                    const sortedAnalyses = [...lastScrapeData.analyses].sort((a, b) => {
-                        const dateA = new Date(a.timestamp);
-                        const dateB = new Date(b.timestamp);
-                        return dateA - dateB; // Ascending order
-                    });
-                    
-                    const lastAnalysis = sortedAnalyses[sortedAnalyses.length - 1];
-                    if (lastAnalysis && lastAnalysis.prompt && lastAnalysis.prompt.trim()) {
-                        userPrompt = lastAnalysis.prompt;
-                    }
+                if (relatedScrape) {
+                    lastScrapeData = relatedScrape;
+                } else {
+                    // Scrape bulunamazsa, son analiz verilerinden oluştur
+                    lastScrapeData = {
+                        sourceEntriesHash: sourceEntriesHash,
+                        topicTitle: lastAnalysis.topicTitle || 'Ekşi Sözlük Başlığı',
+                        topicId: lastAnalysis.topicId || '',
+                        topicUrl: lastAnalysis.topicUrl || '',
+                        sourceEntries: lastAnalysis.sourceEntries,
+                        entryCount: lastAnalysis.entryCount || 0
+                    };
                 }
+            }
+            
+            // Eğer custom prompt verilmemişse, Analiz Geçmişi'ndeki en son analizin prompt'unu ve datasını kullan
+            if (!apiPrompt) {
+                const userPrompt = lastAnalysis.prompt || '';
                 
                 // Entry'leri JSON formatında hazırla ve prompt'a ekle
-                if (lastScrapeData.sourceEntries && lastScrapeData.sourceEntries.length > 0) {
-                    const entriesJson = JSON.stringify(lastScrapeData.sourceEntries);
-                    const topicTitle = lastScrapeData.topicTitle || 'Ekşi Sözlük Başlığı';
+                if (lastAnalysis.sourceEntries && lastAnalysis.sourceEntries.length > 0) {
+                    const entriesJson = JSON.stringify(lastAnalysis.sourceEntries);
+                    const topicTitle = lastAnalysis.topicTitle || 'Ekşi Sözlük Başlığı';
                     
-                    if (userPrompt) {
+                    if (userPrompt && userPrompt.trim()) {
                         // Prompt varsa, entry'leri başa ekle (ui.js formatı)
                         // API'ye gönderilecek prompt (entry'lerle birlikte)
                         apiPrompt = `Analiz Edilen Başlık: "${topicTitle}"\n\nAşağıda Ekşi Sözlük entry'leri JSON formatında verilmiştir:\n${entriesJson}\n\n${userPrompt}`;
@@ -1133,7 +1140,7 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
                         apiPrompt = `Analiz Edilen Başlık: "${topicTitle}"\n\nAşağıda Ekşi Sözlük entry'leri JSON formatında verilmiştir:\n${entriesJson}`;
                         displayPrompt = ''; // Entry'ler gösterilmeyecek
                     }
-                } else if (userPrompt) {
+                } else if (userPrompt && userPrompt.trim()) {
                     // Entry yok ama prompt var
                     apiPrompt = userPrompt;
                     displayPrompt = userPrompt;
@@ -1144,7 +1151,7 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
             }
         }
     } catch (error) {
-        console.warn('Son scrape edilen veri alınamadı:', error);
+        console.warn('Analiz Geçmişi alınamadı:', error);
     }
 
     // Eğer hiç veri yoksa (analiz geçmişinde entry yok), sadece sistem promptu ile basit bir test yap
@@ -1180,16 +1187,19 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
     // Modal'ı göster
     modal.classList.add('active');
 
-    // Başlık bilgisini hazırla
+    // Başlık bilgisini hazırla (Analiz Geçmişi'nden en son analizden)
     let topicInfoHtml = '';
-    if (lastScrapeData) {
+    
+    // lastScrapeData veya lastAnalysisFromHistory'den başlık bilgisini al
+    const topicData = lastAnalysisFromHistory || lastScrapeData;
+    if (topicData) {
         // Dark theme kontrolü
         const isDarkTheme = document.body.classList.contains('dark-theme');
         const labelColor = isDarkTheme ? '#e0e0e0' : '#333';
         const valueColor = isDarkTheme ? '#ccc' : '#555';
         
-        // Birden fazla başlık varsa topics dizisini göster
-        if (lastScrapeData.topics && lastScrapeData.topics.length > 1) {
+        // Birden fazla başlık varsa topics dizisini göster (lastScrapeData'da varsa)
+        if (lastScrapeData && lastScrapeData.topics && lastScrapeData.topics.length > 1) {
             const topicLinks = lastScrapeData.topics.map(topic => 
                 `<a href="${topic.url}" target="_blank" class="topic-link" style="color: ${isDarkTheme ? '#81c14b' : '#667eea'}; text-decoration: none;">${topic.title}</a>`
             ).join(', ');
@@ -1199,11 +1209,11 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
                     <span class="topic-info-value" style="color: ${valueColor}; margin-left: 8px;">${topicLinks}</span>
                 </div>
             `;
-        } else if (lastScrapeData.topicTitle) {
+        } else if (topicData.topicTitle) {
             // Tek başlık varsa
-            const topicLink = lastScrapeData.topicUrl 
-                ? `<a href="${lastScrapeData.topicUrl}" target="_blank" class="topic-link" style="color: ${isDarkTheme ? '#81c14b' : '#667eea'}; text-decoration: none;">${lastScrapeData.topicTitle}</a>`
-                : `<span style="color: ${valueColor};">${lastScrapeData.topicTitle}</span>`;
+            const topicLink = topicData.topicUrl 
+                ? `<a href="${topicData.topicUrl}" target="_blank" class="topic-link" style="color: ${isDarkTheme ? '#81c14b' : '#667eea'}; text-decoration: none;">${topicData.topicTitle}</a>`
+                : `<span style="color: ${valueColor};">${topicData.topicTitle}</span>`;
             topicInfoHtml = `
                 <div class="topic-info-section" style="margin-bottom: 10px; padding: 10px; background: ${isDarkTheme ? '#2d2d2d' : '#f9f9f9'}; border-radius: 6px;">
                     <span class="topic-info-label" style="font-weight: bold; color: ${labelColor};">📖 Analiz Edilen Başlık:</span>
