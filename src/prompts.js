@@ -72,7 +72,8 @@ const DEFAULT_PROMPTS = [
 - Entry'lerden bol bol alıntı yap
 
 ## Çıktı:
-- Yanıtın sadece özet metni olsun, ek açıklama veya meta bilgi içermesin.`
+- Yanıtın sadece özet metni olsun, ek açıklama veya meta bilgi içermesin.
+- Yanıtın compact olsun.`
     },
     {
         name: "Blog",
@@ -104,7 +105,8 @@ Her alıntı şu formatta olsun:
 - Yanıt YALNIZCA blog yazısı olsun (Markdown formatında)
 - Başlık, alt başlıklar ve paragrafları uygun şekilde formatla
 - Entry'lerden bol bol alıntı yap, farklı görüşleri yansıt
-- Her alıntıda yazar, tarih ve link bilgilerini mutlaka ekle`
+- Her alıntıda yazar, tarih ve link bilgilerini mutlaka ekle
+- Yanıtın compact olsun.`
     },
     {
         name: "Şiir",
