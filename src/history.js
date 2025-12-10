@@ -129,6 +129,29 @@ const sanitizeFilename = (name) => {
         .replace(/^_+|_+$/g, '');       // Baş ve sondaki alt çizgileri temizle
 };
 
+/**
+ * Timestamp'i dosya isimlerinde kullanılabilir formata çevirir.
+ * 
+ * @param {string} timestamp - ISO formatında timestamp (örn: "2024-01-15T14:30:00.000Z")
+ * @returns {string} Dosya isimlerinde kullanılabilir format (örn: "20240115-143000")
+ */
+const formatTimestampForFilename = (timestamp) => {
+    if (!timestamp) return '';
+    try {
+        const date = new Date(timestamp);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        return `${year}${month}${day}-${hours}${minutes}${seconds}`;
+    } catch (err) {
+        console.warn('Timestamp formatlama hatası:', err);
+        return '';
+    }
+};
+
 // =============================================================================
 // GEÇMİŞ YÖNETİMİ
 // =============================================================================
@@ -858,15 +881,19 @@ const attachEventListeners = (scrapes) => {
 
                 if (!analysis) return;
 
-                const idxSuffix = analysisIdx !== null ? `_${parseInt(analysisIdx) + 1}` : '';
+                const timestamp = formatTimestampForFilename(analysis.timestamp);
                 if (artifact === 'prompt') {
                     content = analysis.prompt || '';
-                    filename = `multi_analysis_prompt${idxSuffix}.md`;
+                    filename = timestamp 
+                        ? `multi_analysis_${timestamp}_prompt.md`
+                        : `multi_analysis_prompt_${parseInt(analysisIdx) + 1}.md`;
                     mimeType = 'text/markdown';
                     previewType = 'markdown';
                 } else if (artifact === 'response' || !artifact) {
                     content = analysis.response || '';
-                    filename = `multi_analysis_response${idxSuffix}.md`;
+                    filename = timestamp 
+                        ? `multi_analysis_${timestamp}_analysis.md`
+                        : `multi_analysis_response_${parseInt(analysisIdx) + 1}.md`;
                     mimeType = 'text/markdown';
                 }
             } else if (scrapeId && analysisIdx !== null) {
@@ -877,13 +904,20 @@ const attachEventListeners = (scrapes) => {
                 const analysis = scrape.analyses[parseInt(analysisIdx)];
                 if (!analysis) return;
 
+                const safeTitle = sanitizeFilename(scrape.topicTitle);
+                const timestamp = formatTimestampForFilename(analysis.timestamp);
+
                 if (type === 'markdown' && !artifact) {
                     content = analysis.response || '';
-                    filename = `${sanitizeFilename(scrape.topicTitle)}_analysis_${analysisIdx + 1}.md`;
+                    filename = timestamp 
+                        ? `${safeTitle}_${timestamp}_analysis.md`
+                        : `${safeTitle}_analysis_${parseInt(analysisIdx) + 1}.md`;
                     mimeType = 'text/markdown';
                 } else if (artifact === 'prompt') {
                     content = analysis.prompt || '';
-                    filename = `${sanitizeFilename(scrape.topicTitle)}_prompt_${analysisIdx + 1}.md`;
+                    filename = timestamp 
+                        ? `${safeTitle}_${timestamp}_prompt.md`
+                        : `${safeTitle}_prompt_${parseInt(analysisIdx) + 1}.md`;
                     mimeType = 'text/markdown';
                     previewType = 'markdown'; // Prompt'u markdown olarak göster
                 }
@@ -1095,13 +1129,22 @@ const downloadAllArtifacts = async (scrape) => {
     // Her analiz için artifact'ler
     scrape.analyses.forEach((analysis, idx) => {
         const safeTitle = sanitizeFilename(scrape.topicTitle);
+        const timestamp = formatTimestampForFilename(analysis.timestamp);
+        
         if (analysis.response) {
-            // Markdown
-            zip.file(`${safeTitle}_analysis_${idx + 1}.md`, analysis.response);
+            // Markdown - timestamp ile
+            const filename = timestamp 
+                ? `${safeTitle}_${timestamp}_analysis.md`
+                : `${safeTitle}_analysis_${idx + 1}.md`;
+            zip.file(filename, analysis.response);
             hasFiles = true;
         }
         if (analysis.prompt) {
-            zip.file(`${safeTitle}_prompt_${idx + 1}.txt`, analysis.prompt);
+            // Prompt - aynı timestamp ile
+            const filename = timestamp 
+                ? `${safeTitle}_${timestamp}_prompt.md`
+                : `${safeTitle}_prompt_${idx + 1}.md`;
+            zip.file(filename, analysis.prompt);
             hasFiles = true;
         }
     });
@@ -1182,13 +1225,22 @@ const downloadMultiScrapeArtifacts = async (multiAnalysis, allScrapes) => {
     }] : []);
 
     analyses.forEach((analysis, idx) => {
-        const idxSuffix = analyses.length > 1 ? `_${idx + 1}` : '';
+        const timestamp = formatTimestampForFilename(analysis.timestamp);
+        
         if (analysis.response) {
-            zip.file(`multi_analysis_response${idxSuffix}.md`, analysis.response);
+            // Timestamp ile isimlendir
+            const filename = timestamp 
+                ? `multi_analysis_${timestamp}_analysis.md`
+                : `multi_analysis_response_${idx + 1}.md`;
+            zip.file(filename, analysis.response);
             hasFiles = true;
         }
         if (analysis.prompt) {
-            zip.file(`multi_analysis_prompt${idxSuffix}.txt`, analysis.prompt);
+            // Aynı timestamp ile prompt
+            const filename = timestamp 
+                ? `multi_analysis_${timestamp}_prompt.md`
+                : `multi_analysis_prompt_${idx + 1}.md`;
+            zip.file(filename, analysis.prompt);
             hasFiles = true;
         }
     });
