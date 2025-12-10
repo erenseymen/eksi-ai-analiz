@@ -137,7 +137,41 @@ The extension requires the "storage" permission to save user settings:
 This data is essential for the extension's core functionality and is used to personalize the user experience. The API key is obtained by the user from their own Google account and is only used for Gemini API calls.
 ```
 
-#### 3. Host Permission Justification
+#### 3. Tabs Permission Justification
+**Question:** Why does your extension need the "tabs" permission?
+
+**Answer:**
+```
+The extension requires the "tabs" permission to:
+- Access information about the current active tab to determine if the user is on an Ekşi Sözlük page
+- Open the options/settings page programmatically when needed
+- Communicate with content scripts running on specific tabs
+- Ensure proper functionality when the extension popup is opened from different tabs
+
+This permission is essential for the extension to work correctly across different browser tabs and to provide a seamless user experience when navigating between Ekşi Sözlük pages and the extension's interface.
+```
+
+#### 4. UnlimitedStorage Permission Justification
+**Question:** Why does your extension need the "unlimitedStorage" permission?
+
+**Answer:**
+```
+The extension requires the "unlimitedStorage" permission because it stores large amounts of data locally using chrome.storage.local:
+
+- Scraped entry data: The extension collects and stores complete entry content from Ekşi Sözlük topics, including full text, author information, dates, and metadata
+- Analysis history: All AI analysis results (summaries, blog posts, etc.) are stored locally for user reference
+- Multiple analyses per scrape: Users can perform multiple analyses on the same set of entries, and all results are preserved
+
+The default chrome.storage.local quota (typically 10MB) is insufficient for storing:
+- Multiple topic scrapes with hundreds of entries
+- Full entry content (which can be lengthy)
+- Multiple analysis results per scrape
+- Historical data that users may want to keep for reference
+
+Without unlimitedStorage, users would quickly hit storage limits when analyzing multiple topics or keeping analysis history, which would severely limit the extension's functionality. All data is stored locally on the user's device and is never transmitted to external servers except for the AI analysis API calls (which use the user's own API key).
+```
+
+#### 5. Host Permission Justification
 **Question:** Why does your extension need host permissions?
 
 **Answer:**
@@ -158,7 +192,7 @@ The extension uses two host permissions:
 Both permissions are essential for the extension's core functionality and are not used for any other purpose.
 ```
 
-#### 4. Remote Code Usage
+#### 6. Remote Code Usage
 **Question:** Are you using remote code? If yes, provide justification.
 
 **Answer:**
