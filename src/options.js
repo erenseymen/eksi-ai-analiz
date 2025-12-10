@@ -921,6 +921,13 @@ const showCustomPromptInput = async () => {
     // Mevcut içeriği sakla (eğer test devam ediyorsa)
     const currentContent = modalBody.innerHTML;
 
+    // Dark theme kontrolü
+    const isDarkTheme = document.body.classList.contains('dark-theme');
+    const textareaBg = isDarkTheme ? '#2d2d2d' : '#fff';
+    const textareaBorder = isDarkTheme ? '#555' : '#ddd';
+    const textareaColor = isDarkTheme ? '#e0e0e0' : '#333';
+    const textareaFocusBorder = isDarkTheme ? '#667eea' : '#667eea';
+
     // Prompt giriş ekranını göster
     modalBody.innerHTML = `
         <div id="promptInputSection" style="margin-bottom: 20px;">
@@ -929,9 +936,8 @@ const showCustomPromptInput = async () => {
             </label>
             <textarea 
                 id="modelTestPrompt" 
-                rows="8" 
-                style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; font-size: 14px; resize: vertical;"
-                placeholder="Test edilecek prompt'u buraya girin...">${escapeHtml(defaultPrompt)}</textarea>
+                style="width: 100%; height: 120px; min-height: 120px; max-height: 500px; padding: 12px; border: 1px solid ${textareaBorder}; border-radius: 4px; font-family: inherit; font-size: 14px; box-sizing: border-box; resize: vertical; background: ${textareaBg}; color: ${textareaColor}; margin-bottom: 0;"
+                placeholder="Test edilecek prompt'u buraya girin... (Ctrl+Enter ile gönder)">${escapeHtml(defaultPrompt)}</textarea>
             <div style="margin-top: 10px; display: flex; gap: 10px;">
                 <button id="startModelTestBtn" class="btn-primary" style="flex: 1;">
                     🚀 Test Et
@@ -943,11 +949,41 @@ const showCustomPromptInput = async () => {
         </div>
     `;
 
+    const textarea = document.getElementById('modelTestPrompt');
+    const startBtn = document.getElementById('startModelTestBtn');
+
+    // Textarea focus border rengini ayarla
+    const focusBorderColor = '#667eea';
+    
+    textarea.addEventListener('focus', () => {
+        textarea.style.borderColor = focusBorderColor;
+        textarea.style.outline = 'none';
+    });
+    
+    textarea.addEventListener('blur', () => {
+        textarea.style.borderColor = textareaBorder;
+    });
+
+    // Textarea'ya focus ver
+    setTimeout(() => {
+        textarea.focus();
+        textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+    }, 100);
+
+    // Ctrl+Enter ile submit
+    textarea.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            startBtn.click();
+        }
+    });
+
     // Test Et butonuna event listener ekle
-    document.getElementById('startModelTestBtn').addEventListener('click', async () => {
-        const promptText = document.getElementById('modelTestPrompt').value.trim();
+    startBtn.addEventListener('click', async () => {
+        const promptText = textarea.value.trim();
         if (!promptText) {
             alert('Lütfen bir prompt girin.');
+            textarea.focus();
             return;
         }
         // Test'i başlat
