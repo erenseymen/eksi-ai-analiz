@@ -139,11 +139,6 @@ const fetchAllReferencedEntries = async (statusSpan = null) => {
         if (entry) {
             fetchedEntries.set(entryId, entry);
         }
-
-        // Rate limiting
-        if (i < idsToFetch.length - 1) {
-            await new Promise(r => setTimeout(r, 300));
-        }
     }
 
     // allEntries'den referans edilen entry'leri de ekle
@@ -405,9 +400,6 @@ const scrapeEntriesFromUrl = async (url) => {
 
         const { entries } = extractEntriesFromDoc(pageDoc);
         allEntries.push(...entries);
-
-        // Rate limiting - sunucuya nazik davran
-        await new Promise(r => setTimeout(r, 500));
     }
 
     // Referans entry'lerin içeriklerini al
