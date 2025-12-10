@@ -637,50 +637,6 @@
             color: inherit;
         }
 
-        /* JSON Preview Styles */
-        .json-preview {
-            background: #1e1e1e;
-            color: #d4d4d4;
-            padding: 1em;
-            border-radius: 6px;
-            overflow-x: auto;
-            margin: 0;
-            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Consolas', monospace;
-            font-size: 13px;
-            line-height: 1.6;
-            white-space: pre;
-            word-wrap: normal;
-        }
-
-        .json-preview code {
-            background: none;
-            padding: 0;
-            color: inherit;
-            font-family: inherit;
-            font-size: inherit;
-        }
-
-        .json-preview .json-key {
-            color: #9cdcfe;
-        }
-
-        .json-preview .json-string {
-            color: #ce9178;
-        }
-
-        .json-preview .json-number {
-            color: #b5cea8;
-        }
-
-        .json-preview .json-boolean {
-            color: #569cd6;
-        }
-
-        .json-preview .json-null {
-            color: #569cd6;
-            font-style: italic;
-        }
-
         .detail-response table {
             border-collapse: collapse;
             width: 100%;
@@ -898,64 +854,6 @@
         body.dark-theme .detail-response code {
             background: rgba(0, 0, 0, 0.3);
             color: #d4d4d4;
-        }
-
-        /* Light theme JSON Preview */
-        body.light-theme .json-preview,
-        body:not(.dark-theme):not(.light-theme) .json-preview {
-            background: #f8f8f8;
-            color: #333;
-            border: 1px solid #ddd;
-        }
-
-        body.light-theme .json-preview .json-key,
-        body:not(.dark-theme):not(.light-theme) .json-preview .json-key {
-            color: #0066cc;
-        }
-
-        body.light-theme .json-preview .json-string,
-        body:not(.dark-theme):not(.light-theme) .json-preview .json-string {
-            color: #008000;
-        }
-
-        body.light-theme .json-preview .json-number,
-        body:not(.dark-theme):not(.light-theme) .json-preview .json-number {
-            color: #098658;
-        }
-
-        body.light-theme .json-preview .json-boolean,
-        body:not(.dark-theme):not(.light-theme) .json-preview .json-boolean {
-            color: #0000ff;
-        }
-
-        body.light-theme .json-preview .json-null,
-        body:not(.dark-theme):not(.light-theme) .json-preview .json-null {
-            color: #808080;
-        }
-
-        body.dark-theme .json-preview {
-            background: #1e1e1e;
-            color: #d4d4d4;
-        }
-
-        body.dark-theme .json-preview .json-key {
-            color: #9cdcfe;
-        }
-
-        body.dark-theme .json-preview .json-string {
-            color: #ce9178;
-        }
-
-        body.dark-theme .json-preview .json-number {
-            color: #b5cea8;
-        }
-
-        body.dark-theme .json-preview .json-boolean {
-            color: #569cd6;
-        }
-
-        body.dark-theme .json-preview .json-null {
-            color: #569cd6;
         }
 
         body.dark-theme .detail-response th,

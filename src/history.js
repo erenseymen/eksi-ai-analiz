@@ -898,7 +898,7 @@ const attachEventListeners = (scrapes) => {
         });
     });
 
-    // JSON butonu (Tümünü İndir'in solunda)
+    // JSON butonu (Tümünü İndir'in solunda) - Direkt indirme
     document.querySelectorAll('.btn-json').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -910,7 +910,16 @@ const attachEventListeners = (scrapes) => {
             const filename = `${sanitizeFilename(scrape.topicTitle)} sourceEntries.json`;
             const mimeType = 'application/json';
 
-            showArtifactPreview(content, filename, mimeType, 'json');
+            // Direkt indirme
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         });
     });
 
@@ -1079,43 +1088,6 @@ const attachEventListeners = (scrapes) => {
     };
 };
 
-/**
- * JSON string'ini syntax highlighting ile formatlar.
- * 
- * @param {string} jsonString - Formatlanacak JSON string'i
- * @returns {string} HTML formatında renklendirilmiş JSON
- */
-const formatJSON = (jsonString) => {
-    try {
-        // JSON'u parse edip tekrar formatla (düzgün indentasyon için)
-        const parsed = JSON.parse(jsonString);
-        const formatted = JSON.stringify(parsed, null, 2);
-        
-        // Basit syntax highlighting
-        return formatted
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => {
-                let cls = 'json-number';
-                if (/^"/.test(match)) {
-                    if (/:$/.test(match)) {
-                        cls = 'json-key';
-                    } else {
-                        cls = 'json-string';
-                    }
-                } else if (/true|false/.test(match)) {
-                    cls = 'json-boolean';
-                } else if (/null/.test(match)) {
-                    cls = 'json-null';
-                }
-                return `<span class="${cls}">${match}</span>`;
-            });
-    } catch (e) {
-        // Parse edilemezse, sadece escape et
-        return escapeHtml(jsonString);
-    }
-};
 
 /**
  * Artifact preview ekranını gösterir.
@@ -1137,10 +1109,6 @@ const showArtifactPreview = (content, filename, mimeType, type) => {
     // İçeriği göster
     if (type === 'markdown') {
         contentEl.innerHTML = parseMarkdown(content);
-    } else if (type === 'json') {
-        // JSON syntax highlighting ile göster
-        const formattedJSON = formatJSON(content);
-        contentEl.innerHTML = `<pre class="json-preview"><code>${formattedJSON}</code></pre>`;
     } else {
         // Plain text
         contentEl.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(content)}</pre>`;
