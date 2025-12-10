@@ -466,7 +466,7 @@ const populateModelSelect = async (savedModelId) => {
 
     // "Modelleri Karşılaştır" card'ını ekle
     const comparisonCard = document.createElement('div');
-    comparisonCard.className = 'model-select-card';
+    comparisonCard.className = 'model-select-card model-select-card-comparison';
     comparisonCard.setAttribute('role', 'button');
     comparisonCard.setAttribute('tabindex', '0');
     comparisonCard.setAttribute('aria-label', 'Tüm modelleri karşılaştır ve test et');

@@ -616,6 +616,39 @@
             font-weight: bold;
         }
 
+        /* Modelleri Karşılaştır kartı için özel stil */
+        .model-select-card-comparison {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: 2px solid #667eea;
+            color: white;
+        }
+
+        .model-select-card-comparison .model-card-name {
+            color: white;
+            font-weight: 700;
+        }
+
+        .model-select-card-comparison .model-card-description {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .model-select-card-comparison .model-card-meta {
+            color: rgba(255, 255, 255, 0.8);
+            border-top-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .model-select-card-comparison:hover {
+            border-color: #764ba2;
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .model-select-card-comparison:focus {
+            outline: 2px solid #764ba2;
+            outline-offset: 2px;
+        }
+
         .model-card-name {
             font-weight: 600;
             font-size: 0.95em;
@@ -1176,6 +1209,35 @@
         body.dark-theme .model-card-meta {
             color: #888 !important;
             border-top-color: #555 !important;
+        }
+
+        /* Modelleri Karşılaştır kartı - Dark Theme */
+        body.dark-theme .model-select-card-comparison {
+            background: linear-gradient(135deg, #5568d3 0%, #6a3d8a 100%) !important;
+            border-color: #5568d3 !important;
+        }
+
+        body.dark-theme .model-select-card-comparison .model-card-name {
+            color: white !important;
+        }
+
+        body.dark-theme .model-select-card-comparison .model-card-description {
+            color: rgba(255, 255, 255, 0.9) !important;
+        }
+
+        body.dark-theme .model-select-card-comparison .model-card-meta {
+            color: rgba(255, 255, 255, 0.8) !important;
+            border-top-color: rgba(255, 255, 255, 0.3) !important;
+        }
+
+        body.dark-theme .model-select-card-comparison:hover {
+            border-color: #6a3d8a !important;
+            background: linear-gradient(135deg, #6a3d8a 0%, #5568d3 100%) !important;
+            box-shadow: 0 6px 20px rgba(85, 104, 211, 0.5) !important;
+        }
+
+        body.dark-theme .model-select-card-comparison:focus {
+            outline-color: #6a3d8a !important;
         }
 
         body.dark-theme .modal-container {
