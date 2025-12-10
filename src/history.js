@@ -31,6 +31,79 @@ let allHistoryData = [];
 /** @type {Set<string>} Seçilen öğelerin ID'leri */
 let selectedItems = new Set();
 
+// =============================================================================
+// MIGRATION
+// =============================================================================
+
+/**
+ * Eski multiScrapeAnalyses verilerini scrapedData'ya taşır.
+ * 
+ * Migration sadece bir kez çalışır. multiScrapeAnalyses verileri
+ * scrapedData'ya taşındıktan sonra storage'dan silinir.
+ * 
+ * @returns {Promise<void>}
+ */
+const migrateMultiScrapeAnalyses = async () => {
+    return new Promise((resolve) => {
+        chrome.storage.local.get({ 
+            scrapedData: [],
+            multiScrapeAnalyses: []
+        }, (result) => {
+            const scrapedData = result.scrapedData || [];
+            const multiScrapeAnalyses = result.multiScrapeAnalyses || [];
+            
+            // Eğer taşınacak veri yoksa migration yapma
+            if (multiScrapeAnalyses.length === 0) {
+                resolve();
+                return;
+            }
+            
+            // MultiScrapeAnalyses kayıtlarını scrapedData formatına çevir
+            const migratedItems = multiScrapeAnalyses.map(multiAnalysis => {
+                // Kaynak hash'lerini birleştirerek unique identifier oluştur
+                const sourceHashes = (multiAnalysis.sourceScrapes || [])
+                    .map(s => s.sourceEntriesHash)
+                    .filter(h => h)
+                    .sort();
+                const combinedHash = sourceHashes.join('|');
+                
+                // Çoklu kaynak kaydı oluştur
+                return {
+                    id: multiAnalysis.id,
+                    sourceEntriesHash: combinedHash, // Tüm kaynak hash'lerinin birleşimi
+                    scrapedAt: multiAnalysis.timestamp,
+                    lastUpdated: multiAnalysis.lastUpdated || multiAnalysis.timestamp,
+                    sourceScrapes: multiAnalysis.sourceScrapes || [],
+                    analyses: multiAnalysis.analyses || (multiAnalysis.prompt ? [{
+                        id: multiAnalysis.id.replace('multi-analysis-', 'analysis-'),
+                        timestamp: multiAnalysis.timestamp,
+                        prompt: multiAnalysis.prompt,
+                        promptPreview: multiAnalysis.promptPreview || '',
+                        response: multiAnalysis.response,
+                        responsePreview: multiAnalysis.responsePreview || '',
+                        modelId: multiAnalysis.modelId || '',
+                        responseTime: multiAnalysis.responseTime || 0
+                    }] : [])
+                };
+            });
+            
+            // Mevcut scrapedData'ya ekle
+            const updatedScrapedData = [...scrapedData, ...migratedItems];
+            
+            // Storage'ı güncelle ve multiScrapeAnalyses'i sil
+            chrome.storage.local.set({ 
+                scrapedData: updatedScrapedData
+            }, () => {
+                // multiScrapeAnalyses'i sil
+                chrome.storage.local.remove('multiScrapeAnalyses', () => {
+                    console.log(`Migration tamamlandı: ${migratedItems.length} çoklu kaynak kaydı scrapedData'ya taşındı`);
+                    resolve();
+                });
+            });
+        });
+    });
+};
+
 /**
  * Saklama süresini storage'dan alır.
  * 
@@ -59,7 +132,8 @@ const setRetentionDays = async (days) => {
 /**
  * Eski kayıtları temizler (ayarlanan saklama süresine göre).
  * 
- * scrapedData'da scrapedAt timestamp'ine, multiScrapeAnalyses'de timestamp'e göre filtreleme yapar.
+ * scrapedData'da scrapedAt timestamp'ine göre filtreleme yapar.
+ * Tek kaynak ve çoklu kaynak kayıtları aynı şekilde işlenir.
  * 
  * @param {number} days - Saklama süresi (gün), 0 = sınırsız
  * @returns {Promise<number>} Silinen kayıt sayısı
@@ -72,34 +146,24 @@ const cleanupOldEntries = async (days) => {
 
     return new Promise((resolve) => {
         chrome.storage.local.get({ 
-            scrapedData: [],
-            multiScrapeAnalyses: []
+            scrapedData: []
         }, (result) => {
-            let scrapedData = result.scrapedData;
-            let multiScrapeAnalyses = result.multiScrapeAnalyses || [];
+            let scrapedData = result.scrapedData || [];
             const cutoffDate = new Date();
             cutoffDate.setDate(cutoffDate.getDate() - days);
             const cutoffTime = cutoffDate.getTime();
 
-            const originalScrapeCount = scrapedData.length;
-            const originalMultiCount = multiScrapeAnalyses.length;
+            const originalCount = scrapedData.length;
 
             const filteredScrapes = scrapedData.filter(item => {
                 const itemDate = new Date(item.scrapedAt);
                 return itemDate.getTime() >= cutoffTime;
             });
 
-            const filteredMulti = multiScrapeAnalyses.filter(item => {
-                const itemDate = new Date(item.timestamp);
-                return itemDate.getTime() >= cutoffTime;
-            });
-
-            const deletedCount = (originalScrapeCount - filteredScrapes.length) + 
-                                (originalMultiCount - filteredMulti.length);
+            const deletedCount = originalCount - filteredScrapes.length;
 
             chrome.storage.local.set({ 
-                scrapedData: filteredScrapes,
-                multiScrapeAnalyses: filteredMulti
+                scrapedData: filteredScrapes
             }, () => {
                 resolve(deletedCount);
             });
@@ -157,29 +221,29 @@ const formatTimestampForFilename = (timestamp) => {
 // =============================================================================
 
 /**
- * Kaydedilmiş analiz geçmişini alır (unique scrapes + multi-scrape analyses).
+ * Kaydedilmiş analiz geçmişini alır (tek kaynak + çoklu kaynak scrapes).
  * 
  * Her unique scrape için bir item döndürür, analyses içinde tutulur.
- * Çoklu scrape analizleri de ayrı item'lar olarak eklenir.
+ * Çoklu kaynak kayıtları da scrapedData içinde tutulur (sourceScrapes array'i ile).
  * 
- * @returns {Promise<Array>} Unique scrapes + multi-scrape analyses listesi (en yeniden en eskiye, timestamp'e göre sıralı)
+ * @returns {Promise<Array>} Tek ve çoklu kaynak scrapes listesi (en yeniden en eskiye, timestamp'e göre sıralı)
  */
 const getHistory = async () => {
     return new Promise((resolve) => {
         chrome.storage.local.get({ 
-            scrapedData: [],
-            multiScrapeAnalyses: []
+            scrapedData: []
         }, (result) => {
             const scrapedData = result.scrapedData || [];
-            const multiScrapeAnalyses = result.multiScrapeAnalyses || [];
 
             // Her scrape için analyses'leri timestamp'e göre sırala (en yeni en üstte)
             scrapedData.forEach(scrape => {
-                scrape.analyses.sort((a, b) => {
-                    const dateA = new Date(a.timestamp);
-                    const dateB = new Date(b.timestamp);
-                    return dateB - dateA; // Descending order
-                });
+                if (scrape.analyses && scrape.analyses.length > 0) {
+                    scrape.analyses.sort((a, b) => {
+                        const dateA = new Date(a.timestamp);
+                        const dateB = new Date(b.timestamp);
+                        return dateB - dateA; // Descending order
+                    });
+                }
             });
 
             // scrapedAt'e göre sırala (descending - en yeni en üstte)
@@ -189,17 +253,7 @@ const getHistory = async () => {
                 return dateB - dateA; // Descending order
             });
 
-            // Multi-scrape analyses'leri de ekle (timestamp'e göre sıralı)
-            const allItems = [...scrapedData, ...multiScrapeAnalyses];
-            
-            // Tüm item'ları timestamp'e göre sırala (en yeni en üstte)
-            allItems.sort((a, b) => {
-                const dateA = new Date(a.timestamp || a.scrapedAt);
-                const dateB = new Date(b.timestamp || b.scrapedAt);
-                return dateB - dateA; // Descending order
-            });
-
-            resolve(allItems);
+            resolve(scrapedData);
         });
     });
 };
@@ -212,8 +266,7 @@ const getHistory = async () => {
 const clearHistory = async () => {
     return new Promise((resolve) => {
         chrome.storage.local.set({ 
-            scrapedData: [],
-            multiScrapeAnalyses: []
+            scrapedData: []
         }, resolve);
     });
 };
@@ -227,24 +280,17 @@ const clearHistory = async () => {
 const deleteHistoryItem = async (itemId) => {
     return new Promise((resolve) => {
         chrome.storage.local.get({ 
-            scrapedData: [],
-            multiScrapeAnalyses: []
+            scrapedData: []
         }, (result) => {
-            let scrapedData = result.scrapedData;
-            let multiScrapeAnalyses = result.multiScrapeAnalyses || [];
+            let scrapedData = result.scrapedData || [];
 
-            // Multi-scrape analysis ID'si mi kontrol et
-            if (itemId.startsWith('multi-analysis-')) {
-                // Multi-scrape analysis'i sil
-                multiScrapeAnalyses = multiScrapeAnalyses.filter(item => item.id !== itemId);
-                chrome.storage.local.set({ scrapedData, multiScrapeAnalyses }, resolve);
-            } else if (itemId.startsWith('scrape-')) {
-                // Scrape'i tamamen sil
+            // Scrape ID'si mi kontrol et (tek veya çoklu kaynak)
+            if (itemId.startsWith('scrape-') || itemId.startsWith('multi-analysis-')) {
+                // Scrape'i tamamen sil (tek veya çoklu kaynak)
                 scrapedData = scrapedData.filter(item => item.id !== itemId);
-                chrome.storage.local.set({ scrapedData, multiScrapeAnalyses }, resolve);
+                chrome.storage.local.set({ scrapedData }, resolve);
             } else {
-                // Analysis ID'si, ilgili scrape veya multi-analysis'den analizi sil
-                // Önce normal scrapes'lerde ara
+                // Analysis ID'si, ilgili scrape'den analizi sil (tek veya çoklu kaynak)
                 scrapedData = scrapedData.map(scrape => {
                     if (scrape.analyses && scrape.analyses.some(a => a.id === itemId)) {
                         const filteredAnalyses = scrape.analyses.filter(a => a.id !== itemId);
@@ -252,32 +298,20 @@ const deleteHistoryItem = async (itemId) => {
                         if (filteredAnalyses.length === 0) {
                             return null;
                         }
-                        return {
+                        const updatedScrape = {
                             ...scrape,
                             analyses: filteredAnalyses
                         };
+                        // Çoklu kaynak kaydıysa lastUpdated'i güncelle
+                        if (scrape.sourceScrapes && scrape.sourceScrapes.length > 0) {
+                            updatedScrape.lastUpdated = new Date().toISOString();
+                        }
+                        return updatedScrape;
                     }
                     return scrape;
                 }).filter(scrape => scrape !== null); // null olanları filtrele
                 
-                // Multi-analysis'lerde de ara
-                multiScrapeAnalyses = multiScrapeAnalyses.map(multiAnalysis => {
-                    if (multiAnalysis.analyses && multiAnalysis.analyses.some(a => a.id === itemId)) {
-                        const filteredAnalyses = multiAnalysis.analyses.filter(a => a.id !== itemId);
-                        // Eğer tüm analizler silindiyse, multi-analysis'i de sil
-                        if (filteredAnalyses.length === 0) {
-                            return null;
-                        }
-                        return {
-                            ...multiAnalysis,
-                            analyses: filteredAnalyses,
-                            lastUpdated: new Date().toISOString()
-                        };
-                    }
-                    return multiAnalysis;
-                }).filter(multiAnalysis => multiAnalysis !== null); // null olanları filtrele
-                
-                chrome.storage.local.set({ scrapedData, multiScrapeAnalyses }, resolve);
+                chrome.storage.local.set({ scrapedData }, resolve);
             }
         });
     });
@@ -368,7 +402,7 @@ const createSourceEntriesHash = async (sourceEntries) => {
  * Geçmiş sayfasından yapılan analiz sonuçlarını geçmişe kaydeder.
  * 
  * Birden fazla başlık içeren analizler için özel işlem yapar.
- * Çoklu scrape analizleri için multiScrapeAnalyses storage'ına kaydeder.
+ * Çoklu kaynak analizleri scrapedData'ya kaydedilir (sourceScrapes array'i ile).
  * 
  * @param {Object} analysisData - Kaydedilecek analiz verisi
  * @param {string} analysisData.topicTitle - Başlık adı
@@ -388,11 +422,9 @@ const saveToHistoryFromPage = async (analysisData) => {
     return new Promise((resolve) => {
         chrome.storage.local.get({
             scrapedData: [],
-            multiScrapeAnalyses: [],
             historyRetentionDays: DEFAULT_RETENTION_DAYS
         }, (result) => {
-            let scrapedData = result.scrapedData;
-            let multiScrapeAnalyses = result.multiScrapeAnalyses || [];
+            let scrapedData = result.scrapedData || [];
             const retentionDays = result.historyRetentionDays;
 
             const prompt = analysisData.prompt || '';
@@ -407,9 +439,13 @@ const saveToHistoryFromPage = async (analysisData) => {
                     .sort();
                 const combinedHash = sourceHashes.join('|');
                 
-                // Aynı kaynak kombinasyonuna sahip mevcut bir kayıt var mı?
-                const existingIndex = multiScrapeAnalyses.findIndex(item => {
-                    const existingHashes = (item.sourceScrapes || [])
+                // Aynı kaynak kombinasyonuna sahip mevcut bir kayıt var mı? (scrapedData içinde)
+                const existingIndex = scrapedData.findIndex(item => {
+                    // Çoklu kaynak kaydı mı kontrol et (sourceScrapes array'i varsa)
+                    if (!item.sourceScrapes || item.sourceScrapes.length === 0) {
+                        return false;
+                    }
+                    const existingHashes = item.sourceScrapes
                         .map(s => s.sourceEntriesHash)
                         .filter(h => h)
                         .sort();
@@ -429,35 +465,18 @@ const saveToHistoryFromPage = async (analysisData) => {
 
                 if (existingIndex >= 0) {
                     // Mevcut kayda analizi ekle
-                    if (!multiScrapeAnalyses[existingIndex].analyses) {
-                        // Eski format: tek analiz, analyses array'e dönüştür
-                        const oldAnalysis = {
-                            id: multiScrapeAnalyses[existingIndex].id.replace('multi-analysis-', 'analysis-'),
-                            timestamp: multiScrapeAnalyses[existingIndex].timestamp,
-                            prompt: multiScrapeAnalyses[existingIndex].prompt,
-                            promptPreview: multiScrapeAnalyses[existingIndex].promptPreview,
-                            response: multiScrapeAnalyses[existingIndex].response,
-                            responsePreview: multiScrapeAnalyses[existingIndex].responsePreview,
-                            modelId: multiScrapeAnalyses[existingIndex].modelId,
-                            responseTime: multiScrapeAnalyses[existingIndex].responseTime
-                        };
-                        multiScrapeAnalyses[existingIndex].analyses = [oldAnalysis];
-                        // Eski alanları temizle
-                        delete multiScrapeAnalyses[existingIndex].prompt;
-                        delete multiScrapeAnalyses[existingIndex].promptPreview;
-                        delete multiScrapeAnalyses[existingIndex].response;
-                        delete multiScrapeAnalyses[existingIndex].responsePreview;
-                        delete multiScrapeAnalyses[existingIndex].modelId;
-                        delete multiScrapeAnalyses[existingIndex].responseTime;
+                    if (!scrapedData[existingIndex].analyses) {
+                        scrapedData[existingIndex].analyses = [];
                     }
-                    multiScrapeAnalyses[existingIndex].analyses.push(newAnalysis);
+                    scrapedData[existingIndex].analyses.push(newAnalysis);
                     // Timestamp'i güncelle (en son analiz zamanı)
-                    multiScrapeAnalyses[existingIndex].lastUpdated = new Date().toISOString();
+                    scrapedData[existingIndex].lastUpdated = new Date().toISOString();
                 } else {
-                    // Yeni kayıt oluştur
-                    const newMultiAnalysis = {
+                    // Yeni çoklu kaynak kaydı oluştur
+                    const newMultiSourceScrape = {
                         id: `multi-analysis-${Date.now()}`,
-                        timestamp: new Date().toISOString(),
+                        sourceEntriesHash: combinedHash,
+                        scrapedAt: new Date().toISOString(),
                         sourceScrapes: analysisData.sourceScrapes.map(scrape => ({
                             scrapeId: scrape.id,
                             sourceEntriesHash: scrape.sourceEntriesHash,
@@ -468,14 +487,15 @@ const saveToHistoryFromPage = async (analysisData) => {
                         })),
                         analyses: [newAnalysis]
                     };
-                    multiScrapeAnalyses.push(newMultiAnalysis);
+                    scrapedData.push(newMultiSourceScrape);
                 }
             } else {
                 // Tek başlık için normal işlem
                 const sourceEntries = analysisData.sourceEntries || [];
                 createSourceEntriesHash(sourceEntries).then(sourceEntriesHash => {
                     const scrapeIndex = scrapedData.findIndex(item =>
-                        item.sourceEntriesHash === sourceEntriesHash
+                        // Tek kaynak kaydı mı kontrol et (sourceScrapes yoksa)
+                        !item.sourceScrapes && item.sourceEntriesHash === sourceEntriesHash
                     );
 
                     const newAnalysis = {
@@ -519,14 +539,9 @@ const saveToHistoryFromPage = async (analysisData) => {
                             const itemDate = new Date(item.scrapedAt);
                             return itemDate.getTime() >= cutoffTime;
                         });
-
-                        multiScrapeAnalyses = multiScrapeAnalyses.filter(item => {
-                            const itemDate = new Date(item.timestamp);
-                            return itemDate.getTime() >= cutoffTime;
-                        });
                     }
 
-                    chrome.storage.local.set({ scrapedData, multiScrapeAnalyses }, resolve);
+                    chrome.storage.local.set({ scrapedData }, resolve);
                 }).catch(err => {
                     console.error('Hash hesaplama hatası:', err);
                     resolve(); // Hata durumunda devam et
@@ -544,14 +559,9 @@ const saveToHistoryFromPage = async (analysisData) => {
                     const itemDate = new Date(item.scrapedAt);
                     return itemDate.getTime() >= cutoffTime;
                 });
-
-                multiScrapeAnalyses = multiScrapeAnalyses.filter(item => {
-                    const itemDate = new Date(item.timestamp);
-                    return itemDate.getTime() >= cutoffTime;
-                });
             }
 
-            chrome.storage.local.set({ scrapedData, multiScrapeAnalyses }, resolve);
+            chrome.storage.local.set({ scrapedData }, resolve);
         });
     });
 };
@@ -612,12 +622,12 @@ const renderHistory = (scrapes, append = false) => {
     if (importBtn) importBtn.style.display = 'inline-block';
 
     // İstatistikleri göster - toplam analiz sayısını hesapla
-    const regularScrapes = scrapes.filter(item => !item.id.startsWith('multi-analysis-'));
-    const multiAnalyses = scrapes.filter(item => item.id.startsWith('multi-analysis-'));
-    // Multi-analyses için de analyses array'deki analiz sayısını hesapla (eski format için 1 say)
+    // Çoklu kaynak kayıtlarını sourceScrapes array'i ile ayırt et
+    const regularScrapes = scrapes.filter(item => !item.sourceScrapes || item.sourceScrapes.length === 0);
+    const multiAnalyses = scrapes.filter(item => item.sourceScrapes && item.sourceScrapes.length > 0);
+    // Multi-analyses için de analyses array'deki analiz sayısını hesapla
     const multiAnalysisCount = multiAnalyses.reduce((sum, item) => {
         if (item.analyses) return sum + item.analyses.length;
-        if (item.prompt) return sum + 1; // Eski format
         return sum;
     }, 0);
     const totalAnalyses = regularScrapes.reduce((sum, scrape) => sum + (scrape.analyses ? scrape.analyses.length : 0), 0) + multiAnalysisCount;
@@ -635,10 +645,10 @@ const renderHistory = (scrapes, append = false) => {
     // Geçmiş listesini oluştur
     let html = '';
     itemsToShow.forEach((item) => {
-        // Multi-scrape analysis mi kontrol et
-        if (item.id && item.id.startsWith('multi-analysis-')) {
+        // Multi-scrape analysis mi kontrol et (sourceScrapes array'i varsa çoklu kaynak)
+        if (item.sourceScrapes && item.sourceScrapes.length > 0) {
             // Çoklu scrape analizi render et
-            const date = new Date(item.timestamp);
+            const date = new Date(item.scrapedAt);
             const dateStr = date.toLocaleDateString('tr-TR', {
                 year: 'numeric',
                 month: 'long',
@@ -663,17 +673,8 @@ const renderHistory = (scrapes, append = false) => {
             });
             sourceScrapesHtml += '</div>';
 
-            // Analizler - yeni format (analyses array) veya eski format (tek analiz)
-            const analyses = item.analyses || (item.prompt ? [{
-                id: item.id.replace('multi-analysis-', 'analysis-'),
-                timestamp: item.timestamp,
-                prompt: item.prompt,
-                promptPreview: item.promptPreview,
-                response: item.response,
-                responsePreview: item.responsePreview,
-                modelId: item.modelId,
-                responseTime: item.responseTime
-            }] : []);
+            // Analizler (analyses array)
+            const analyses = item.analyses || [];
 
             // Analiz sayısı
             const analysisCount = analyses.length;
@@ -1291,11 +1292,8 @@ const downloadMultiScrapeArtifacts = async (multiAnalysis, allScrapes) => {
         }
     }
 
-    // Analiz sonuçları - yeni format (analyses array) veya eski format
-    const analyses = multiAnalysis.analyses || (multiAnalysis.prompt ? [{
-        prompt: multiAnalysis.prompt,
-        response: multiAnalysis.response
-    }] : []);
+    // Analiz sonuçları (analyses array)
+    const analyses = multiAnalysis.analyses || [];
 
     analyses.forEach((analysis, idx) => {
         const timestamp = formatTimestampForFilename(analysis.timestamp);
@@ -1333,7 +1331,7 @@ const downloadMultiScrapeArtifacts = async (multiAnalysis, allScrapes) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        const timestamp = new Date(multiAnalysis.timestamp).toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const timestamp = new Date(multiAnalysis.scrapedAt).toISOString().replace(/[:.]/g, '-').slice(0, 19);
         a.download = `multi scrape analysis ${timestamp}.zip`;
         document.body.appendChild(a);
         a.click();
@@ -1364,33 +1362,34 @@ const loadHistory = async () => {
  */
 const exportHistory = async () => {
     try {
-        // Storage'dan direkt verileri al (ayrı ayrı)
+        // Storage'dan direkt verileri al
         const storageData = await new Promise((resolve) => {
             chrome.storage.local.get({
-                scrapedData: [],
-                multiScrapeAnalyses: []
+                scrapedData: []
             }, resolve);
         });
 
         const scrapedData = storageData.scrapedData || [];
-        const multiScrapeAnalyses = storageData.multiScrapeAnalyses || [];
 
-        if (scrapedData.length === 0 && multiScrapeAnalyses.length === 0) {
+        if (scrapedData.length === 0) {
             alert('Dışa aktarılacak analiz geçmişi bulunamadı.');
             return;
         }
 
+        // Tek ve çoklu kaynak kayıtlarını ayır
+        const regularScrapes = scrapedData.filter(item => !item.sourceScrapes || item.sourceScrapes.length === 0);
+        const multiSourceScrapes = scrapedData.filter(item => item.sourceScrapes && item.sourceScrapes.length > 0);
+
         // Toplam analiz sayısını hesapla
-        const totalAnalyses = scrapedData.reduce((sum, scrape) => sum + (scrape.analyses ? scrape.analyses.length : 0), 0) + multiScrapeAnalyses.length;
+        const totalAnalyses = scrapedData.reduce((sum, scrape) => sum + (scrape.analyses ? scrape.analyses.length : 0), 0);
 
         const exportData = {
-            version: '2.1',
+            version: '2.2',
             exportDate: new Date().toISOString(),
-            scrapeCount: scrapedData.length,
-            multiScrapeAnalysisCount: multiScrapeAnalyses.length,
+            scrapeCount: regularScrapes.length,
+            multiSourceScrapeCount: multiSourceScrapes.length,
             totalAnalyses: totalAnalyses,
-            scrapedData: scrapedData,
-            multiScrapeAnalyses: multiScrapeAnalyses
+            scrapedData: scrapedData
         };
 
         const dataStr = JSON.stringify(exportData, null, 2);
@@ -1424,17 +1423,47 @@ const importHistory = async (file) => {
         const importData = JSON.parse(fileText);
 
         let scrapesToImport = [];
-        let multiAnalysesToImport = [];
 
-        // Format kontrolü - v2.1 (multiScrapeAnalyses ile), v2.0 (yeni format) veya v1.0 (eski format)
-        if (importData.version === '2.1' || importData.version === '2.0') {
-            // Yeni format - direkt scrapedData
+        // Format kontrolü - v2.2 (birleştirilmiş), v2.1 (multiScrapeAnalyses ile), v2.0 (yeni format) veya v1.0 (eski format)
+        if (importData.version === '2.2') {
+            // Yeni format - direkt scrapedData (tek ve çoklu kaynak birlikte)
             if (importData.scrapedData && Array.isArray(importData.scrapedData)) {
                 scrapesToImport = importData.scrapedData;
             }
-            // v2.1'de multiScrapeAnalyses de var
+        } else if (importData.version === '2.1' || importData.version === '2.0') {
+            // Eski format - scrapedData ve multiScrapeAnalyses ayrı
+            if (importData.scrapedData && Array.isArray(importData.scrapedData)) {
+                scrapesToImport = importData.scrapedData;
+            }
+            // v2.1'de multiScrapeAnalyses de var - scrapedData'ya taşı
             if (importData.multiScrapeAnalyses && Array.isArray(importData.multiScrapeAnalyses)) {
-                multiAnalysesToImport = importData.multiScrapeAnalyses;
+                const migratedMultiScrapes = importData.multiScrapeAnalyses.map(multiAnalysis => {
+                    // Kaynak hash'lerini birleştirerek unique identifier oluştur
+                    const sourceHashes = (multiAnalysis.sourceScrapes || [])
+                        .map(s => s.sourceEntriesHash)
+                        .filter(h => h)
+                        .sort();
+                    const combinedHash = sourceHashes.join('|');
+                    
+                    return {
+                        id: multiAnalysis.id,
+                        sourceEntriesHash: combinedHash,
+                        scrapedAt: multiAnalysis.timestamp,
+                        lastUpdated: multiAnalysis.lastUpdated || multiAnalysis.timestamp,
+                        sourceScrapes: multiAnalysis.sourceScrapes || [],
+                        analyses: multiAnalysis.analyses || (multiAnalysis.prompt ? [{
+                            id: multiAnalysis.id.replace('multi-analysis-', 'analysis-'),
+                            timestamp: multiAnalysis.timestamp,
+                            prompt: multiAnalysis.prompt,
+                            promptPreview: multiAnalysis.promptPreview || '',
+                            response: multiAnalysis.response,
+                            responsePreview: multiAnalysis.responsePreview || '',
+                            modelId: multiAnalysis.modelId || '',
+                            responseTime: multiAnalysis.responseTime || 0
+                        }] : [])
+                    };
+                });
+                scrapesToImport = [...scrapesToImport, ...migratedMultiScrapes];
             }
         } else if (importData.history && Array.isArray(importData.history)) {
             // Eski format - flat view'dan scrapedData'ya çevir
@@ -1491,7 +1520,7 @@ const importHistory = async (file) => {
             throw new Error('Geçersiz dosya formatı. Geçmiş verisi bulunamadı.');
         }
 
-        if (scrapesToImport.length === 0 && multiAnalysesToImport.length === 0) {
+        if (scrapesToImport.length === 0) {
             alert('İçe aktarılacak kayıt bulunamadı.');
             return;
         }
@@ -1499,44 +1528,28 @@ const importHistory = async (file) => {
         // Mevcut verileri al
         const currentStorageData = await new Promise((resolve) => {
             chrome.storage.local.get({
-                scrapedData: [],
-                multiScrapeAnalyses: []
+                scrapedData: []
             }, resolve);
         });
 
         const currentScrapedData = currentStorageData.scrapedData || [];
-        const currentMultiAnalyses = currentStorageData.multiScrapeAnalyses || [];
 
-        // Duplicate kontrolü - sourceEntriesHash'e göre
+        // Duplicate kontrolü - sourceEntriesHash'e göre (tek ve çoklu kaynak için)
         const existingHashes = new Set(currentScrapedData.map(s => s.sourceEntriesHash));
         const newScrapes = scrapesToImport.filter(scrape => {
             return !existingHashes.has(scrape.sourceEntriesHash);
         });
 
-        // Multi-analyses için duplicate kontrolü - ID'ye göre
-        const existingMultiIds = new Set(currentMultiAnalyses.map(m => m.id));
-        const newMultiAnalyses = multiAnalysesToImport.filter(m => {
-            return !existingMultiIds.has(m.id);
-        });
-
-        if (newScrapes.length === 0 && newMultiAnalyses.length === 0) {
+        if (newScrapes.length === 0) {
             alert('İçe aktarılacak yeni kayıt bulunamadı. Tüm kayıtlar zaten mevcut.');
             return;
         }
 
         // Onay al
-        let confirmMessage = '';
-        if (newScrapes.length > 0) {
-            confirmMessage += `${scrapesToImport.length} kayıt bulundu.\n` +
-                `${newScrapes.length} yeni kayıt eklenecek.\n` +
-                `${scrapesToImport.length - newScrapes.length} kayıt zaten mevcut (atlanacak).\n\n`;
-        }
-        if (newMultiAnalyses.length > 0) {
-            confirmMessage += `${multiAnalysesToImport.length} birleştirilmiş analiz bulundu.\n` +
-                `${newMultiAnalyses.length} yeni birleştirilmiş analiz eklenecek.\n` +
-                `${multiAnalysesToImport.length - newMultiAnalyses.length} birleştirilmiş analiz zaten mevcut (atlanacak).\n\n`;
-        }
-        confirmMessage += 'Devam etmek istiyor musunuz?';
+        const confirmMessage = `${scrapesToImport.length} kayıt bulundu.\n` +
+            `${newScrapes.length} yeni kayıt eklenecek.\n` +
+            `${scrapesToImport.length - newScrapes.length} kayıt zaten mevcut (atlanacak).\n\n` +
+            'Devam etmek istiyor musunuz?';
 
         const confirmed = confirm(confirmMessage);
 
@@ -1546,13 +1559,11 @@ const importHistory = async (file) => {
 
         // Yeni verileri ekle
         const updatedScrapedData = [...currentScrapedData, ...newScrapes];
-        const updatedMultiAnalyses = [...currentMultiAnalyses, ...newMultiAnalyses];
 
         // Storage'a kaydet
         await new Promise((resolve) => {
             chrome.storage.local.set({
-                scrapedData: updatedScrapedData,
-                multiScrapeAnalyses: updatedMultiAnalyses
+                scrapedData: updatedScrapedData
             }, resolve);
         });
 
@@ -1563,17 +1574,7 @@ const importHistory = async (file) => {
         const statsTextEl = document.getElementById('statsText');
         if (statsTextEl) {
             const originalText = statsTextEl.textContent;
-            let successMessage = '✅ ';
-            if (newScrapes.length > 0) {
-                successMessage += `${newScrapes.length} kayıt`;
-            }
-            if (newScrapes.length > 0 && newMultiAnalyses.length > 0) {
-                successMessage += ', ';
-            }
-            if (newMultiAnalyses.length > 0) {
-                successMessage += `${newMultiAnalyses.length} birleştirilmiş analiz`;
-            }
-            successMessage += ' başarıyla içe aktarıldı';
+            const successMessage = `✅ ${newScrapes.length} kayıt başarıyla içe aktarıldı`;
             statsTextEl.textContent = successMessage;
             statsTextEl.style.color = '#28a745';
             setTimeout(() => {
@@ -1684,6 +1685,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             restoreTheme();
         }
     });
+    
+    // Migration: Eski multiScrapeAnalyses verilerini scrapedData'ya taşı
+    await migrateMultiScrapeAnalyses();
+    
     // Saklama süresini yükle
     currentRetentionDays = await getRetentionDays();
 
@@ -1850,8 +1855,9 @@ const getSourceEntriesFromSelection = async () => {
     const processedScrapeHashes = new Set();
 
     for (const item of selectedItems_arr) {
-        if (item.id.startsWith('multi-analysis-')) {
-            // Multi-analysis: kaynak scrape'lerin entry'lerini al
+        // Çoklu kaynak kaydı mı kontrol et (sourceScrapes array'i varsa)
+        if (item.sourceScrapes && item.sourceScrapes.length > 0) {
+            // Çoklu kaynak kaydı: kaynak scrape'lerin entry'lerini al
             const sourceScrapes = item.sourceScrapes || [];
             for (const sourceScrape of sourceScrapes) {
                 // Daha önce işlenmiş mi kontrol et

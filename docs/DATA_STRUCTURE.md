@@ -65,10 +65,10 @@ interface UsageStats {
 ## Chrome Storage Local (Yerel Veriler)
 
 ### 1. `scrapedData`
-**Tip:** `Array<ScrapeRecord>` | **Varsayılan:** `[]`  
-**Açıklama:** Scrape edilen entry'ler ve analizler. Her unique entry seti için bir kayıt.
+**Tip:** `Array<ScrapeRecord | MultiSourceScrapeRecord>` | **Varsayılan:** `[]`  
+**Açıklama:** Scrape edilen entry'ler ve analizler. Tek kaynak (single source) ve çoklu kaynak (multi-source) kayıtları birlikte tutulur.
 
-**Yapı:**
+**Yapı - Tek Kaynak (Single Source):**
 ```typescript
 interface ScrapeRecord {
     id: string;                    // "scrape-1704067200000"
@@ -81,6 +81,27 @@ interface ScrapeRecord {
     sourceEntries: Array<Entry>;
     wasStopped: boolean;
     analyses: Array<Analysis>;
+}
+```
+
+**Yapı - Çoklu Kaynak (Multi-Source):**
+```typescript
+interface MultiSourceScrapeRecord {
+    id: string;                    // "multi-analysis-1704067200000"
+    sourceEntriesHash: string;     // Tüm sourceScrapes hash'lerinin birleşimi (unique identifier)
+    scrapedAt: string;             // ISO 8601 (ilk oluşturulma zamanı)
+    lastUpdated?: string;          // ISO 8601 (son analiz ekleme zamanı)
+    sourceScrapes: Array<{
+        scrapeId: string;          // Kaynak scrape ID'si
+        sourceEntriesHash: string; // Kaynak scrape'in hash'i (unique identifier)
+        topicTitle: string;
+        topicUrl: string;
+        topicId: string;
+        entryCount: number;
+    }>;
+    analyses: Array<Analysis>;
+    // sourceEntries yok - referans bazlı
+    // topicId, topicTitle, topicUrl yok - çoklu kaynak olduğu için
 }
 
 interface Entry {
@@ -112,57 +133,18 @@ interface Analysis {
   - Aynı entry içeriğine sahip sourceEntries'ler aynı hash'i üretir
   - Aynı hash'li yeni scrape'ler mevcut kaydı günceller
   - Hash formatı: `sha256-{64 karakter hex string}` veya `empty` (boş array için)
+- **Tek Kaynak vs Çoklu Kaynak:** 
+  - Tek kaynak kayıtları: `sourceEntries` array'i var, `sourceScrapes` yok
+  - Çoklu kaynak kayıtları: `sourceScrapes` array'i var, `sourceEntries` yok (referans bazlı)
+  - Çoklu kaynak kayıtlarında `topicId`, `topicTitle`, `topicUrl` yok (birden fazla kaynak olduğu için)
 - **Analizler:** Her analiz `analyses` array'ine eklenir. Farklı prompt'larla yapılan analizler ayrı kayıtlar.
 - **Referanslar:** `(bkz: #entry_id)` formatındaki referanslar otomatik yüklenir.
+- **Çoklu Kaynak Unique Identifier:** Çoklu kaynak kayıtlarında `sourceScrapes` içindeki `sourceEntriesHash`'ler sıralanıp birleştirilerek unique identifier oluşturulur.
 - **Temizleme:** `historyRetentionDays`'e göre otomatik (0 = sınırsız).
 
 **Kaynak:** `src/analysis-history.js`, `src/history.js`
 
-### 2. `multiScrapeAnalyses`
-**Tip:** `Array<MultiScrapeAnalysis>` | **Varsayılan:** `[]`  
-**Açıklama:** Birden fazla kaynaktan birleştirilerek oluşturulan analizler. Entry'ler kopyalanmaz, sadece kaynak referansları tutulur. Aynı kaynak kombinasyonuna yapılan yeni analizler mevcut kayda eklenir.
-
-**Yapı:**
-```typescript
-interface MultiScrapeAnalysis {
-    id: string;                    // "multi-analysis-1704067200000"
-    timestamp: string;             // ISO 8601 (ilk oluşturulma zamanı)
-    lastUpdated?: string;          // ISO 8601 (son analiz ekleme zamanı)
-    sourceScrapes: Array<{
-        scrapeId: string;          // Kaynak scrape ID'si
-        sourceEntriesHash: string; // Kaynak scrape'in hash'i (unique identifier)
-        topicTitle: string;
-        topicUrl: string;
-        topicId: string;
-        entryCount: number;
-    }>;
-    analyses: Array<Analysis>;     // Aynı kaynak kombinasyonuna yapılan tüm analizler
-}
-
-// Analysis interface'i (ScrapeRecord ile aynı)
-interface Analysis {
-    id: string;                    // "analysis-1704067200000"
-    timestamp: string;             // ISO 8601
-    prompt: string;                // Tam prompt
-    promptPreview: string;         // İlk 100 karakter
-    response: string;              // Tam yanıt
-    responsePreview: string;       // İlk 200 karakter
-    modelId: string;
-    responseTime: number;          // ms
-}
-```
-
-**Önemli Notlar:**
-- **Referans Bazlı:** Entry'ler kopyalanmaz, sadece kaynak referansları tutulur.
-- **Unique Identifier:** `sourceScrapes` içindeki `sourceEntriesHash`'ler (SHA-256 hash'ler) sıralanıp birleştirilerek unique identifier oluşturulur. Her hash tüm entry objesini (id, author, date, content, referenced_entries) temsil eder.
-- **Aynı Kombinasyon:** Aynı kaynak hash kombinasyonuna yapılan yeni analizler mevcut kayda `analyses` array'ine eklenir.
-- **Temizleme:** `historyRetentionDays`'e göre otomatik (0 = sınırsız).
-- **ZIP İndirme:** Her kaynak için ayrı JSON, her analiz için ayrı md/txt dosyası oluşturulur.
-- **Eski Format Uyumluluğu:** Eski formatla (`prompt`, `response` direkt item üzerinde) uyumluluk korunur.
-
-**Kaynak:** `src/history.js`
-
-### 3. `historyRetentionDays`
+### 2. `historyRetentionDays`
 **Tip:** `number` | **Varsayılan:** `30` (gün)  
 **Açıklama:** Analiz geçmişi saklama süresi.  
 **Değerler:** `0` = sınırsız, `1-365` = gün cinsinden  
@@ -173,7 +155,7 @@ interface Analysis {
 ## Veri İlişkileri
 
 ```
-ScrapeRecord
+ScrapeRecord (Tek Kaynak)
 ├── sourceEntries (Entry[])
 │   └── referenced_entries (Entry[])
 └── analyses (Analysis[])
@@ -181,34 +163,14 @@ ScrapeRecord
     ├── response (string)
     └── modelId (string)
 
-MultiScrapeAnalysis
+MultiSourceScrapeRecord (Çoklu Kaynak)
 ├── sourceScrapes (SourceScrape[])
 │   ├── scrapeId (string) → ScrapeRecord.id
 │   └── sourceEntriesHash (string) → ScrapeRecord.sourceEntriesHash
-├── prompt (string)
-├── response (string)
-└── modelId (string)
-```
-
-**Flat History View (UI için):**
-```typescript
-interface FlatHistoryItem {
-    id: string;                    // Scrape ID veya Analysis ID
-    timestamp: string;             // scrapedAt veya analysis.timestamp
-    topicTitle: string;
-    topicId: string;
-    topicUrl: string;
-    entryCount: number;
-    sourceEntries: Array<Entry>;
-    scrapeOnly: boolean;           // true = sadece scrape
-    wasStopped: boolean;
-    prompt: string;                // Analysis varsa dolu
-    promptPreview: string;
-    response: string;              // Analysis varsa dolu
-    responsePreview: string;
-    modelId: string;
-    responseTime: number;
-}
+└── analyses (Analysis[])
+    ├── prompt (string)
+    ├── response (string)
+    └── modelId (string)
 ```
 
 ---
@@ -231,7 +193,7 @@ interface FlatHistoryItem {
 2. "Yeniden Analiz Et" → `history.js` → `runReanalysis()`
 3. Gemini API isteği yapılır (birleştirilmiş entry'ler ile)
 4. `history.js` → `saveToHistoryFromPage({ sourceScrapes: [...] })`
-5. `chrome.storage.local` → `multiScrapeAnalyses[]` güncellenir (entry'ler kopyalanmaz, sadece referanslar)
+5. `chrome.storage.local` → `scrapedData[]` güncellenir (çoklu kaynak kaydı olarak, entry'ler kopyalanmaz, sadece referanslar)
 6. `stats.js` → `recordApiCall()` → `chrome.storage.sync` güncellenir
 
 **Ayarları Kaydetme:**
@@ -250,15 +212,18 @@ interface FlatHistoryItem {
 **Optimizasyon:**
 - Preview alanları: `promptPreview` (100 karakter), `responsePreview` (200 karakter)
 - Hash sistemi: SHA-256 ile tüm entry objesine hash yapılır, aynı entry içeriğine sahip setler için tek kayıt
-- Referans bazlı çoklu scrape: Entry'ler kopyalanmaz, sadece scrape referansları tutulur
+- Referans bazlı çoklu kaynak: Entry'ler kopyalanmaz, sadece scrape referansları tutulur (`sourceScrapes` array'i)
 - Otomatik temizleme: `historyRetentionDays`'e göre
 - Sıralama: Analizler en yeniden en eskiye doğru sıralanır (timestamp'e göre)
+- Birleştirilmiş yapı: Tek ve çoklu kaynak kayıtları aynı `scrapedData` array'inde tutulur
 
 ---
 
 ## Migration ve Uyumluluk
 
 **Stats Migration:** İlk kullanımda `eksi_ai_usage_stats` local→sync taşınır (`src/stats.js - migrateStatsToSync()`). Sync'te veri varsa migration yapılmaz.
+
+**MultiScrapeAnalyses Migration:** Eski `multiScrapeAnalyses` verileri otomatik olarak `scrapedData`'ya taşınır (`src/history.js - migrateMultiScrapeAnalyses()`). Migration sayfa yüklendiğinde otomatik çalışır.
 
 **Varsayılan Değerler:** Tüm storage key'leri için varsayılan değerler tanımlı. Key yoksa varsayılan kullanılır.
 
@@ -284,7 +249,6 @@ interface FlatHistoryItem {
 | `geminiApiKey`, `selectedModel`, `prompts`, `theme`, `optionsActiveTab` | `src/settings.js`, `src/options.js`, `src/model-select.js` |
 | `eksi_ai_usage_stats` | `src/stats.js` |
 | `scrapedData`, `historyRetentionDays` | `src/analysis-history.js`, `src/history.js` |
-| `multiScrapeAnalyses` | `src/history.js` |
 | Entry yapısı | `src/scraper.js` |
 | Prompt yapısı | `src/prompts.js` |
 
@@ -304,10 +268,12 @@ await recordApiCall({ modelId: "gemini-2.5-flash", tokenEstimate: response.token
 **Geçmişi Görüntüleme:**
 ```javascript
 const history = await getHistory();
-// history hem ScrapeRecord hem de MultiScrapeAnalysis içerir
+// history hem ScrapeRecord (tek kaynak) hem de MultiSourceScrapeRecord (çoklu kaynak) içerir
 const recent = history.slice(0, 10);
-const withAnalysis = history.filter(item => !item.scrapeOnly || item.id?.startsWith('multi-analysis-'));
-const multiAnalyses = history.filter(item => item.id?.startsWith('multi-analysis-'));
+// Tek kaynak kayıtları
+const singleSource = history.filter(item => !item.sourceScrapes || item.sourceScrapes.length === 0);
+// Çoklu kaynak kayıtları
+const multiSource = history.filter(item => item.sourceScrapes && item.sourceScrapes.length > 0);
 ```
 
 **Çoklu Scrape Analizi:**
@@ -328,7 +294,7 @@ await saveToHistoryFromPage({
         entryCount: s.entryCount
     }))
 });
-// multiScrapeAnalyses storage'ına kaydedilir
+// scrapedData storage'ına çoklu kaynak kaydı olarak kaydedilir
 ```
 
 ---
@@ -352,4 +318,4 @@ await saveToHistoryFromPage({
 
 ---
 
-**Son Güncelleme:** 2025-12-10 | **Versiyon:** 1.2.0
+**Son Güncelleme:** 2025-12-10 | **Versiyon:** 2.2.0
