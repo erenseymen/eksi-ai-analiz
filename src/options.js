@@ -64,11 +64,15 @@ const updatePromptsFromDOM = () => {
     const newPrompts = [];
 
     promptItems.forEach(item => {
-        const name = item.querySelector('.prompt-name').value;
-        const prompt = item.querySelector('.prompt-text').value;
-        // Sadece isim ve prompt dolu olan öğeleri kaydet
-        if (name && prompt) {
-            newPrompts.push({ name, prompt });
+        const nameInput = item.querySelector('.prompt-name');
+        const promptTextarea = item.querySelector('.prompt-text');
+        if (nameInput && promptTextarea) {
+            const name = nameInput.value.trim();
+            const prompt = promptTextarea.value.trim();
+            // Sadece isim ve prompt dolu olan öğeleri kaydet
+            if (name && prompt) {
+                newPrompts.push({ name, prompt });
+            }
         }
     });
 
@@ -237,8 +241,8 @@ const saveOptions = async () => {
         // Toast bildirimi göster
         showToast('Ayarlar kaydedildi.', 'success', 2000);
 
-        // State tutarlılığı için listeyi yeniden render et
-        renderPrompts();
+        // State tutarlılığı için listeyi yeniden render etme - DOM zaten güncel
+        // renderPrompts(); // Kaldırıldı: Gereksiz yeniden render artifact'a neden oluyor
 
         // Tema seçimini uygula
         applyTheme(selectedTheme);
