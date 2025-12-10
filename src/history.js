@@ -31,6 +31,9 @@ let allHistoryData = [];
 /** @type {Set<string>} Seçilen öğelerin ID'leri */
 let selectedItems = new Set();
 
+/** @type {Object|null} Yeniden analiz modal'ı için saklanan kaynak verileri */
+let reanalyzeSourceData = null;
+
 // =============================================================================
 // MIGRATION
 // =============================================================================
@@ -1936,8 +1939,10 @@ const showReanalyzeModal = async () => {
     // Sonuç alanını gizle
     resultArea.style.display = 'none';
 
-    // Kaynak entry'leri topla (duplicate'sız)
-    const { combinedData, uniqueSourceScrapes } = await getSourceEntriesFromSelection();
+    // Kaynak entry'leri topla (duplicate'sız) ve modül değişkeninde sakla
+    // Bu sayede modal açıkken birden fazla analiz yapılabilir
+    reanalyzeSourceData = await getSourceEntriesFromSelection();
+    const { combinedData, uniqueSourceScrapes } = reanalyzeSourceData;
 
     // Özet bilgi göster
     let totalEntries = combinedData.reduce((sum, d) => sum + d.entries.length, 0);
@@ -1981,6 +1986,9 @@ const setupReanalyzeModal = () => {
 
     const closeModal = () => {
         modal.classList.remove('active');
+        // Modal kapandığında seçimi ve saklanan verileri temizle
+        clearSelection();
+        reanalyzeSourceData = null;
     };
 
     closeBtn.onclick = closeModal;
@@ -2049,8 +2057,15 @@ const runReanalysis = async (userPrompt) => {
     const resultContent = document.getElementById('reanalyzeResultContent');
     const submitBtn = document.getElementById('btnSubmitReanalyze');
 
-    // Kaynak entry'leri topla (duplicate'sız)
-    const { combinedData, uniqueSourceScrapes } = await getSourceEntriesFromSelection();
+    // Modal açıldığında saklanan kaynak verilerini kullan
+    // Bu sayede prompt değiştirip tekrar analiz yapılabilir
+    if (!reanalyzeSourceData) {
+        resultArea.style.display = 'block';
+        resultContent.innerHTML = '<div style="color: #d9534f;">Kaynak verisi bulunamadı. Lütfen modal\'ı kapatıp tekrar deneyin.</div>';
+        return;
+    }
+
+    const { combinedData, uniqueSourceScrapes } = reanalyzeSourceData;
 
     if (combinedData.length === 0) {
         resultArea.style.display = 'block';
@@ -2132,8 +2147,8 @@ ${userPrompt}`;
         // Geçmiş listesini yenile (yeni kayıt görünsün)
         await loadHistory();
 
-        // Seçimi temizle
-        clearSelection();
+        // Not: Seçimi burada temizlemiyoruz - kullanıcı prompt'u değiştirip tekrar analiz yapabilir
+        // Seçim modal kapandığında temizlenecek
 
         // Sonucu göster
         resultContent.innerHTML = `
