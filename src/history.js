@@ -840,7 +840,7 @@ const attachEventListeners = (scrapes) => {
             if (!scrape || !scrape.sourceEntries) return;
 
             const content = JSON.stringify(scrape.sourceEntries, null, 2);
-            const filename = `${sanitizeFilename(scrape.topicTitle)}_sourceEntries.json`;
+            const filename = `${sanitizeFilename(scrape.topicTitle)} sourceEntries.json`;
             const mimeType = 'application/json';
 
             showArtifactPreview(content, filename, mimeType, 'json');
@@ -885,15 +885,15 @@ const attachEventListeners = (scrapes) => {
                 if (artifact === 'prompt') {
                     content = analysis.prompt || '';
                     filename = timestamp 
-                        ? `multi_analysis_${timestamp}_prompt.md`
-                        : `multi_analysis_prompt_${parseInt(analysisIdx) + 1}.md`;
+                        ? `multi analysis ${timestamp} prompt.md`
+                        : `multi analysis prompt ${parseInt(analysisIdx) + 1}.md`;
                     mimeType = 'text/markdown';
                     previewType = 'markdown';
                 } else if (artifact === 'response' || !artifact) {
                     content = analysis.response || '';
                     filename = timestamp 
-                        ? `multi_analysis_${timestamp}_analysis.md`
-                        : `multi_analysis_response_${parseInt(analysisIdx) + 1}.md`;
+                        ? `multi analysis ${timestamp} analysis.md`
+                        : `multi analysis response ${parseInt(analysisIdx) + 1}.md`;
                     mimeType = 'text/markdown';
                 }
             } else if (scrapeId && analysisIdx !== null) {
@@ -910,14 +910,14 @@ const attachEventListeners = (scrapes) => {
                 if (type === 'markdown' && !artifact) {
                     content = analysis.response || '';
                     filename = timestamp 
-                        ? `${safeTitle}_${timestamp}_analysis.md`
-                        : `${safeTitle}_analysis_${parseInt(analysisIdx) + 1}.md`;
+                        ? `${safeTitle} ${timestamp} analysis.md`
+                        : `${safeTitle} analysis ${parseInt(analysisIdx) + 1}.md`;
                     mimeType = 'text/markdown';
                 } else if (artifact === 'prompt') {
                     content = analysis.prompt || '';
                     filename = timestamp 
-                        ? `${safeTitle}_${timestamp}_prompt.md`
-                        : `${safeTitle}_prompt_${parseInt(analysisIdx) + 1}.md`;
+                        ? `${safeTitle} ${timestamp} prompt.md`
+                        : `${safeTitle} prompt ${parseInt(analysisIdx) + 1}.md`;
                     mimeType = 'text/markdown';
                     previewType = 'markdown'; // Prompt'u markdown olarak göster
                 }
@@ -1122,7 +1122,7 @@ const downloadAllArtifacts = async (scrape) => {
     if (scrape.sourceEntries && scrape.sourceEntries.length > 0) {
         const content = JSON.stringify(scrape.sourceEntries, null, 2);
         const safeTitle = sanitizeFilename(scrape.topicTitle);
-        zip.file(`${safeTitle}_sourceEntries.json`, content);
+        zip.file(`${safeTitle} sourceEntries.json`, content);
         hasFiles = true;
     }
 
@@ -1134,16 +1134,16 @@ const downloadAllArtifacts = async (scrape) => {
         if (analysis.response) {
             // Markdown - timestamp ile
             const filename = timestamp 
-                ? `${safeTitle}_${timestamp}_analysis.md`
-                : `${safeTitle}_analysis_${idx + 1}.md`;
+                ? `${safeTitle} ${timestamp} analysis.md`
+                : `${safeTitle} analysis ${idx + 1}.md`;
             zip.file(filename, analysis.response);
             hasFiles = true;
         }
         if (analysis.prompt) {
             // Prompt - aynı timestamp ile
             const filename = timestamp 
-                ? `${safeTitle}_${timestamp}_prompt.md`
-                : `${safeTitle}_prompt_${idx + 1}.md`;
+                ? `${safeTitle} ${timestamp} prompt.md`
+                : `${safeTitle} prompt ${idx + 1}.md`;
             zip.file(filename, analysis.prompt);
             hasFiles = true;
         }
@@ -1164,7 +1164,7 @@ const downloadAllArtifacts = async (scrape) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${sanitizeFilename(scrape.topicTitle)}_artifacts.zip`;
+        a.download = `${sanitizeFilename(scrape.topicTitle)} artifacts.zip`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -1213,7 +1213,7 @@ const downloadMultiScrapeArtifacts = async (multiAnalysis, allScrapes) => {
         if (originalScrape && originalScrape.sourceEntries && originalScrape.sourceEntries.length > 0) {
             const content = JSON.stringify(originalScrape.sourceEntries, null, 2);
             const safeTitle = sanitizeFilename(sourceScrape.topicTitle);
-            zip.file(`${safeTitle}_sourceEntries.json`, content);
+            zip.file(`${safeTitle} sourceEntries.json`, content);
             hasFiles = true;
         }
     }
@@ -1230,16 +1230,16 @@ const downloadMultiScrapeArtifacts = async (multiAnalysis, allScrapes) => {
         if (analysis.response) {
             // Timestamp ile isimlendir
             const filename = timestamp 
-                ? `multi_analysis_${timestamp}_analysis.md`
-                : `multi_analysis_response_${idx + 1}.md`;
+                ? `multi analysis ${timestamp} analysis.md`
+                : `multi analysis response ${idx + 1}.md`;
             zip.file(filename, analysis.response);
             hasFiles = true;
         }
         if (analysis.prompt) {
             // Aynı timestamp ile prompt
             const filename = timestamp 
-                ? `multi_analysis_${timestamp}_prompt.md`
-                : `multi_analysis_prompt_${idx + 1}.md`;
+                ? `multi analysis ${timestamp} prompt.md`
+                : `multi analysis prompt ${idx + 1}.md`;
             zip.file(filename, analysis.prompt);
             hasFiles = true;
         }
@@ -1261,7 +1261,7 @@ const downloadMultiScrapeArtifacts = async (multiAnalysis, allScrapes) => {
         const a = document.createElement('a');
         a.href = url;
         const timestamp = new Date(multiAnalysis.timestamp).toISOString().replace(/[:.]/g, '-').slice(0, 19);
-        a.download = `multi_scrape_analysis_${timestamp}.zip`;
+        a.download = `multi scrape analysis ${timestamp}.zip`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -1325,7 +1325,7 @@ const exportHistory = async () => {
         const url = URL.createObjectURL(dataBlob);
 
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-        const filename = `eksi-ai-analiz-gecmisi-${timestamp}.json`;
+        const filename = `eksi-ai-analiz-gecmisi ${timestamp}.json`;
 
         const a = document.createElement('a');
         a.href = url;
