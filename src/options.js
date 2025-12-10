@@ -477,10 +477,24 @@ const populateModelSelect = async (savedModelId) => {
         <div class="model-card-meta">
             <span>⚡ Hızlı Test</span>
         </div>
+        <button id="customPromptBtn" class="comparison-card-custom-prompt-btn" style="margin-top: 12px; width: 100%; font-size: 14px; padding: 8px 12px; background-color: rgba(255, 255, 255, 0.2); color: white; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 4px; cursor: pointer; transition: all 0.2s ease; font-weight: 500;">📝 Özel Prompt</button>
     `;
 
-    // Tıklama event listener
-    comparisonCard.addEventListener('click', async () => {
+    // Özel prompt butonuna event listener ekle
+    const customPromptBtn = comparisonCard.querySelector('#customPromptBtn');
+    if (customPromptBtn) {
+        customPromptBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            await showCustomPromptInput();
+        });
+    }
+
+    // Kartın kendisine tıklama event listener (buton dışında)
+    comparisonCard.addEventListener('click', async (e) => {
+        // Butona tıklanmışsa işlem yapma
+        if (e.target === customPromptBtn || customPromptBtn.contains(e.target)) {
+            return;
+        }
         await compareModelsWithStreaming();
     });
 
@@ -1855,7 +1869,6 @@ document.getElementById('copySystemPromptBtn').addEventListener('click', copySys
 const setupModal = () => {
     const modal = document.getElementById('modelComparisonModal');
     const closeBtn = document.getElementById('modalCloseBtn');
-    const customPromptBtn = document.getElementById('customPromptBtn');
 
     if (!modal || !closeBtn) return;
 
@@ -1872,13 +1885,6 @@ const setupModal = () => {
         });
         modelComparisonAbortControllers = [];
     };
-
-    // Özel prompt butonuna tıklandığında
-    if (customPromptBtn) {
-        customPromptBtn.addEventListener('click', async () => {
-            await showCustomPromptInput();
-        });
-    }
 
     // Kapat butonuna tıklandığında
     closeBtn.addEventListener('click', () => {

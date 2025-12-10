@@ -649,6 +649,23 @@
             outline-offset: 2px;
         }
 
+        .comparison-card-custom-prompt-btn {
+            background-color: rgba(255, 255, 255, 0.2) !important;
+            color: white !important;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        }
+
+        .comparison-card-custom-prompt-btn:hover {
+            background-color: rgba(255, 255, 255, 0.3) !important;
+            border-color: rgba(255, 255, 255, 0.5) !important;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .comparison-card-custom-prompt-btn:active {
+            transform: translateY(0);
+        }
+
         .model-card-name {
             font-weight: 600;
             font-size: 0.95em;
@@ -1238,6 +1255,17 @@
 
         body.dark-theme .model-select-card-comparison:focus {
             outline-color: #6a3d8a !important;
+        }
+
+        body.dark-theme .comparison-card-custom-prompt-btn {
+            background-color: rgba(255, 255, 255, 0.2) !important;
+            color: white !important;
+            border-color: rgba(255, 255, 255, 0.3) !important;
+        }
+
+        body.dark-theme .comparison-card-custom-prompt-btn:hover {
+            background-color: rgba(255, 255, 255, 0.3) !important;
+            border-color: rgba(255, 255, 255, 0.5) !important;
         }
 
         body.dark-theme .modal-container {
@@ -2221,7 +2249,6 @@
                     <span class="status-summary" id="modalStatusSummary"></span>
                 </h2>
                 <div style="display: flex; gap: 10px; align-items: center;">
-                    <button id="customPromptBtn" class="btn-secondary" style="font-size: 14px; padding: 6px 12px;">📝 Özel Prompt</button>
                     <button class="modal-close" id="modalCloseBtn" title="Kapat">×</button>
                 </div>
             </div>
