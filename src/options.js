@@ -902,9 +902,13 @@ let modelComparisonAbortControllers = []; // Modal kapatıldığında iptal edil
  * Kullanıcı prompt'u girdikten sonra test başlatır.
  */
 const showCustomPromptInput = async () => {
+    const modal = document.getElementById('modelComparisonModal');
     const modalBody = document.getElementById('modalBody');
     const modalStatusSummary = document.getElementById('modalStatusSummary');
-    if (!modalBody) return;
+    if (!modal || !modalBody) return;
+    
+    // Modal'ı aç
+    modal.classList.add('active');
     
     // Status summary'yi temizle
     if (modalStatusSummary) {
