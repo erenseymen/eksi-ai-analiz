@@ -876,13 +876,12 @@ const attachEventListeners = (scrapes) => {
     // Seçilebilir öğeler için tıklama
     document.querySelectorAll('.history-item.selectable').forEach(item => {
         item.addEventListener('click', (e) => {
-            // Butonlara, linklere veya artifact'lere tıklandığında seçim yapma
-            if (e.target.closest('.history-actions') ||
-                e.target.closest('.history-title') ||
-                e.target.closest('.history-title-link') ||
-                e.target.closest('.source-scrape-link') ||
-                e.target.closest('.analysis-artifacts') ||
-                e.target.closest('.analyses-list')) {
+            // Doğrudan link veya butona tıklandığında seçim yapma
+            // Ancak link/buton dışındaki boşluklara tıklandığında seçim yapılabilir
+            if (e.target.tagName === 'A' || 
+                e.target.tagName === 'BUTTON' || 
+                e.target.closest('button') || 
+                e.target.closest('a')) {
                 return;
             }
 
