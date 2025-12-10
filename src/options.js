@@ -2301,11 +2301,9 @@ const loadAndDisplayStats = async () => {
         // Toplam istatistikler
         document.getElementById('statsTotalCalls').textContent = summary.totals.apiCalls;
         document.getElementById('statsTotalTokens').textContent = formatTokenDisplay(summary.totals.totalTokens);
-        document.getElementById('statsCacheHits').textContent = summary.totals.cacheHits;
 
         // Son 24 saat
         document.getElementById('stats24hCalls').textContent = summary.last24h.apiCalls;
-        document.getElementById('stats24hCache').textContent = summary.last24h.cacheHits;
         document.getElementById('stats24hTokens').textContent = formatTokenDisplay(summary.last24h.totalTokens);
 
         // Model kullanımı

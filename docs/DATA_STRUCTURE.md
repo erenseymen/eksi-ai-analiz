@@ -45,7 +45,6 @@ interface UsageStats {
     totals: {
         apiCalls: number;      // Toplam API çağrı sayısı
         totalTokens: number;   // Toplam token sayısı
-        cacheHits: number;     // Cache'den gelen sonuç sayısı
     };
     history: Array<{
         timestamp: number;      // Unix timestamp (ms)

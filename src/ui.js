@@ -464,8 +464,6 @@ const runGemini = async (userPrompt, showPromptHeader = false, clickedButton = n
         resultArea.classList.add('eksi-ai-markdown');
         addResultActionButtons(resultArea, cd.response, userPrompt, showPromptHeader, clickedButton);
         if (clickedButton) clickedButton.classList.add('eksi-ai-btn-cached');
-        // Cache hit istatistiği kaydet
-        recordApiCall({ modelId: cd.modelId, tokenEstimate: 0, responseTime: 0, fromCache: true, topicTitle });
         return;
     }
     const abortController = new AbortController();

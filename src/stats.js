@@ -74,9 +74,6 @@ const recordApiCall = async (callData) => {
         // Toplam istatistikleri güncelle
         stats.totals.apiCalls++;
         stats.totals.totalTokens += record.tokenEstimate;
-        if (record.fromCache) {
-            stats.totals.cacheHits++;
-        }
 
         await chrome.storage.sync.set({ [STATS_STORAGE_KEY]: stats });
     } catch (err) {
@@ -104,7 +101,7 @@ const recordCacheHit = async () => {
  */
 const getUsageStats = async () => {
     if (!isChromeApiAvailable()) {
-        return { totals: { apiCalls: 0, totalTokens: 0, cacheHits: 0 }, history: [] };
+        return { totals: { apiCalls: 0, totalTokens: 0 }, history: [] };
     }
     try {
         // İlk çağrıda migration yap
@@ -114,15 +111,14 @@ const getUsageStats = async () => {
         return result[STATS_STORAGE_KEY] || {
             totals: {
                 apiCalls: 0,
-                totalTokens: 0,
-                cacheHits: 0
+                totalTokens: 0
             },
             history: []
         };
     } catch (err) {
         console.warn('Stats okuma hatası:', err);
         return {
-            totals: { apiCalls: 0, totalTokens: 0, cacheHits: 0 },
+            totals: { apiCalls: 0, totalTokens: 0 },
             history: []
         };
     }
@@ -168,12 +164,10 @@ const getStatsSummary = async () => {
         totals,
         last24h: {
             apiCalls: last24h.filter(h => !h.fromCache).length,
-            cacheHits: last24h.filter(h => h.fromCache).length,
             totalTokens: last24h.reduce((sum, h) => sum + h.tokenEstimate, 0)
         },
         last7d: {
             apiCalls: last7d.filter(h => !h.fromCache).length,
-            cacheHits: last7d.filter(h => h.fromCache).length,
             totalTokens: last7d.reduce((sum, h) => sum + h.tokenEstimate, 0)
         },
         modelUsage,
