@@ -137,21 +137,7 @@ The extension requires the "storage" permission to save user settings:
 This data is essential for the extension's core functionality and is used to personalize the user experience. The API key is obtained by the user from their own Google account and is only used for Gemini API calls.
 ```
 
-#### 3. Tabs Permission Justification
-**Question:** Why does your extension need the "tabs" permission?
-
-**Answer:**
-```
-The extension requires the "tabs" permission to:
-- Access information about the current active tab to determine if the user is on an Ekşi Sözlük page
-- Open the options/settings page programmatically when needed
-- Communicate with content scripts running on specific tabs
-- Ensure proper functionality when the extension popup is opened from different tabs
-
-This permission is essential for the extension to work correctly across different browser tabs and to provide a seamless user experience when navigating between Ekşi Sözlük pages and the extension's interface.
-```
-
-#### 4. UnlimitedStorage Permission Justification
+#### 3. UnlimitedStorage Permission Justification
 **Question:** Why does your extension need the "unlimitedStorage" permission?
 
 **Answer:**
