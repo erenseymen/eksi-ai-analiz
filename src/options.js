@@ -1213,10 +1213,10 @@ const compareModelsWithStreaming = async (customPrompt = null) => {
     // Prompt bilgisini hazırla (sadece kullanıcı prompt'u, entry'ler olmadan)
     let promptInfoHtml = '';
     if (displayPrompt && displayPrompt.trim()) {
-        // Dark theme kontrolü
+        // Dark theme kontrolü (topic-info-section ile aynı renk paleti)
         const isDarkTheme = document.body.classList.contains('dark-theme');
         const bgColor = isDarkTheme ? '#2d2d2d' : '#f5f5f5';
-        const borderColor = isDarkTheme ? '#667eea' : '#667eea';
+        const borderColor = isDarkTheme ? '#81c14b' : '#667eea'; // Koyu temada yeşil, açık temada mor
         const titleColor = isDarkTheme ? '#e0e0e0' : '#333';
         const textColor = isDarkTheme ? '#ccc' : '#555';
         
