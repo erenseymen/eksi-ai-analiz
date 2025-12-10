@@ -137,6 +137,30 @@ Firefox eklenti incelemesi şunlara bakar:
 | API key güvenliği endişesi | Key'in yalnızca kullanıcının cihazında saklandığını açıklayın |
 | Host permissions | Neden bu sitelere erişim gerektiğini açıklayın |
 
+### Notes to Reviewer (İnceleme Notları)
+
+Eklentiyi yüklerken "Notes to Reviewer" alanına aşağıdaki açıklamayı kopyalayabilirsiniz:
+
+```
+REGARDING innerHTML WARNINGS:
+- All user inputs are sanitized using the escapeHtml() function (see src/constants.js)
+- Dynamic content comes from Gemini API responses or static HTML templates
+- There is no XSS risk as all external data is properly escaped
+
+REGARDING JSZip LIBRARY (Function constructor warning):
+- jszip.min.js is a widely-used trusted third-party library with 40M+ weekly downloads on npm
+- The Function constructor usage is for performance optimization within the library
+- Source: https://github.com/Stuk/jszip
+
+REGARDING data_collection_permissions MANIFEST WARNING:
+- This is just a compatibility note for Firefox versions below 140
+- The extension works correctly on Firefox 109+, this key is simply ignored on older versions
+
+SOURCE CODE:
+- The code is not obfuscated and is fully readable
+- GitHub repository: https://github.com/erenseymen/eksi-ai-analiz
+```
+
 ## Güncelleme Yayınlama
 
 ### 1. Versiyon Numarasını Güncelleyin
