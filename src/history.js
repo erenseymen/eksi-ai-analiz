@@ -1080,6 +1080,44 @@ const attachEventListeners = (scrapes) => {
 };
 
 /**
+ * JSON string'ini syntax highlighting ile formatlar.
+ * 
+ * @param {string} jsonString - Formatlanacak JSON string'i
+ * @returns {string} HTML formatında renklendirilmiş JSON
+ */
+const formatJSON = (jsonString) => {
+    try {
+        // JSON'u parse edip tekrar formatla (düzgün indentasyon için)
+        const parsed = JSON.parse(jsonString);
+        const formatted = JSON.stringify(parsed, null, 2);
+        
+        // Basit syntax highlighting
+        return formatted
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => {
+                let cls = 'json-number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'json-key';
+                    } else {
+                        cls = 'json-string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'json-boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'json-null';
+                }
+                return `<span class="${cls}">${match}</span>`;
+            });
+    } catch (e) {
+        // Parse edilemezse, sadece escape et
+        return escapeHtml(jsonString);
+    }
+};
+
+/**
  * Artifact preview ekranını gösterir.
  * 
  * @param {string} content - Gösterilecek içerik
@@ -1100,8 +1138,9 @@ const showArtifactPreview = (content, filename, mimeType, type) => {
     if (type === 'markdown') {
         contentEl.innerHTML = parseMarkdown(content);
     } else if (type === 'json') {
-        // JSON syntax highlighting için pre/code kullan - word-wrap ile
-        contentEl.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word;"><code>${escapeHtml(content)}</code></pre>`;
+        // JSON syntax highlighting ile göster
+        const formattedJSON = formatJSON(content);
+        contentEl.innerHTML = `<pre class="json-preview"><code>${formattedJSON}</code></pre>`;
     } else {
         // Plain text
         contentEl.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(content)}</pre>`;
