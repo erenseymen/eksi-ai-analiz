@@ -285,27 +285,78 @@ const saveToHistoryFromPage = async (analysisData) => {
             const prompt = analysisData.prompt || '';
             const response = analysisData.response || '';
 
-            // Çoklu scrape analizi (sourceScrapes varsa)
+            // Çoklu kaynak analizi (sourceScrapes varsa)
             if (analysisData.sourceScrapes && analysisData.sourceScrapes.length > 1) {
-                const newMultiAnalysis = {
-                    id: `multi-analysis-${Date.now()}`,
+                // Kaynak hash'lerini sırala ve birleştir (unique identifier olarak kullan)
+                const sourceHashes = analysisData.sourceScrapes
+                    .map(s => s.sourceEntriesHash)
+                    .filter(h => h)
+                    .sort();
+                const combinedHash = sourceHashes.join('|');
+                
+                // Aynı kaynak kombinasyonuna sahip mevcut bir kayıt var mı?
+                const existingIndex = multiScrapeAnalyses.findIndex(item => {
+                    const existingHashes = (item.sourceScrapes || [])
+                        .map(s => s.sourceEntriesHash)
+                        .filter(h => h)
+                        .sort();
+                    return existingHashes.join('|') === combinedHash;
+                });
+
+                const newAnalysis = {
+                    id: `analysis-${Date.now()}`,
                     timestamp: new Date().toISOString(),
                     prompt: prompt,
                     promptPreview: prompt ? (prompt.substring(0, 100) + (prompt.length > 100 ? '...' : '')) : '',
                     response: response,
                     responsePreview: response ? (response.substring(0, 200) + (response.length > 200 ? '...' : '')) : '',
                     modelId: analysisData.modelId || '',
-                    responseTime: analysisData.responseTime || 0,
-                    sourceScrapes: analysisData.sourceScrapes.map(scrape => ({
-                        scrapeId: scrape.id,
-                        sourceEntriesHash: scrape.sourceEntriesHash,
-                        topicTitle: scrape.topicTitle,
-                        topicUrl: scrape.topicUrl,
-                        topicId: scrape.topicId,
-                        entryCount: scrape.entryCount || (scrape.sourceEntries ? scrape.sourceEntries.length : 0)
-                    }))
+                    responseTime: analysisData.responseTime || 0
                 };
-                multiScrapeAnalyses.push(newMultiAnalysis);
+
+                if (existingIndex >= 0) {
+                    // Mevcut kayda analizi ekle
+                    if (!multiScrapeAnalyses[existingIndex].analyses) {
+                        // Eski format: tek analiz, analyses array'e dönüştür
+                        const oldAnalysis = {
+                            id: multiScrapeAnalyses[existingIndex].id.replace('multi-analysis-', 'analysis-'),
+                            timestamp: multiScrapeAnalyses[existingIndex].timestamp,
+                            prompt: multiScrapeAnalyses[existingIndex].prompt,
+                            promptPreview: multiScrapeAnalyses[existingIndex].promptPreview,
+                            response: multiScrapeAnalyses[existingIndex].response,
+                            responsePreview: multiScrapeAnalyses[existingIndex].responsePreview,
+                            modelId: multiScrapeAnalyses[existingIndex].modelId,
+                            responseTime: multiScrapeAnalyses[existingIndex].responseTime
+                        };
+                        multiScrapeAnalyses[existingIndex].analyses = [oldAnalysis];
+                        // Eski alanları temizle
+                        delete multiScrapeAnalyses[existingIndex].prompt;
+                        delete multiScrapeAnalyses[existingIndex].promptPreview;
+                        delete multiScrapeAnalyses[existingIndex].response;
+                        delete multiScrapeAnalyses[existingIndex].responsePreview;
+                        delete multiScrapeAnalyses[existingIndex].modelId;
+                        delete multiScrapeAnalyses[existingIndex].responseTime;
+                    }
+                    multiScrapeAnalyses[existingIndex].analyses.push(newAnalysis);
+                    // Timestamp'i güncelle (en son analiz zamanı)
+                    multiScrapeAnalyses[existingIndex].lastUpdated = new Date().toISOString();
+                } else {
+                    // Yeni kayıt oluştur
+                    const newMultiAnalysis = {
+                        id: `multi-analysis-${Date.now()}`,
+                        timestamp: new Date().toISOString(),
+                        sourceScrapes: analysisData.sourceScrapes.map(scrape => ({
+                            scrapeId: scrape.id,
+                            sourceEntriesHash: scrape.sourceEntriesHash,
+                            topicTitle: scrape.topicTitle,
+                            topicUrl: scrape.topicUrl,
+                            topicId: scrape.topicId,
+                            entryCount: scrape.entryCount || (scrape.sourceEntries ? scrape.sourceEntries.length : 0)
+                        })),
+                        analyses: [newAnalysis]
+                    };
+                    multiScrapeAnalyses.push(newMultiAnalysis);
+                }
             } else {
                 // Tek başlık için normal işlem
                 const sourceEntries = analysisData.sourceEntries || [];
@@ -427,10 +478,16 @@ const renderHistory = (scrapes, append = false) => {
     // İstatistikleri göster - toplam analiz sayısını hesapla
     const regularScrapes = scrapes.filter(item => !item.id.startsWith('multi-analysis-'));
     const multiAnalyses = scrapes.filter(item => item.id.startsWith('multi-analysis-'));
-    const totalAnalyses = regularScrapes.reduce((sum, scrape) => sum + (scrape.analyses ? scrape.analyses.length : 0), 0) + multiAnalyses.length;
+    // Multi-analyses için de analyses array'deki analiz sayısını hesapla (eski format için 1 say)
+    const multiAnalysisCount = multiAnalyses.reduce((sum, item) => {
+        if (item.analyses) return sum + item.analyses.length;
+        if (item.prompt) return sum + 1; // Eski format
+        return sum;
+    }, 0);
+    const totalAnalyses = regularScrapes.reduce((sum, scrape) => sum + (scrape.analyses ? scrape.analyses.length : 0), 0) + multiAnalysisCount;
     const statsTextEl = document.getElementById('statsText');
     const retentionText = currentRetentionDays === 0 ? 'Sınırsız' : `Son ${currentRetentionDays} gün`;
-    statsTextEl.textContent = `Toplam ${regularScrapes.length} kayıt, ${multiAnalyses.length} birleştirilmiş analiz, ${totalAnalyses} toplam analiz (${retentionText})`;
+    statsTextEl.textContent = `Toplam ${regularScrapes.length} kayıt, ${multiAnalyses.length} birleştirilmiş kaynak grubu, ${totalAnalyses} toplam analiz (${retentionText})`;
 
     // Gösterilecek kayıtları hesapla
     const startIndex = displayedCount;
@@ -470,22 +527,56 @@ const renderHistory = (scrapes, append = false) => {
             });
             sourceScrapesHtml += '</div>';
 
-            // Analiz bilgileri
-            const analysisDate = new Date(item.timestamp);
-            const analysisDateStr = analysisDate.toLocaleDateString('tr-TR', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
+            // Analizler - yeni format (analyses array) veya eski format (tek analiz)
+            const analyses = item.analyses || (item.prompt ? [{
+                id: item.id.replace('multi-analysis-', 'analysis-'),
+                timestamp: item.timestamp,
+                prompt: item.prompt,
+                promptPreview: item.promptPreview,
+                response: item.response,
+                responsePreview: item.responsePreview,
+                modelId: item.modelId,
+                responseTime: item.responseTime
+            }] : []);
 
-            let analysisArtifactsHtml = '';
-            if (item.prompt) {
-                analysisArtifactsHtml += `<button class="btn-secondary" data-type="markdown" data-multi-analysis-id="${escapeHtml(item.id)}" data-artifact="prompt">💬 Prompt</button>`;
-            }
-            if (item.response) {
-                analysisArtifactsHtml += `<button class="btn-secondary" data-type="markdown" data-multi-analysis-id="${escapeHtml(item.id)}" data-artifact="response">📝 Cevap</button>`;
+            // Analiz sayısı
+            const analysisCount = analyses.length;
+
+            // Analizler listesi HTML'i
+            let analysesHtml = '';
+            if (analysisCount > 0) {
+                analysesHtml = '<div class="analyses-list">';
+                analyses.forEach((analysis, idx) => {
+                    const analysisDate = new Date(analysis.timestamp);
+                    const analysisDateStr = analysisDate.toLocaleDateString('tr-TR', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+
+                    let analysisArtifactsHtml = '';
+                    if (analysis.prompt) {
+                        analysisArtifactsHtml += `<button class="btn-secondary" data-type="markdown" data-multi-analysis-id="${escapeHtml(item.id)}" data-analysis-idx="${idx}" data-artifact="prompt">💬 Prompt</button>`;
+                    }
+                    if (analysis.response) {
+                        analysisArtifactsHtml += `<button class="btn-secondary" data-type="markdown" data-multi-analysis-id="${escapeHtml(item.id)}" data-analysis-idx="${idx}" data-artifact="response">📝 Cevap</button>`;
+                    }
+
+                    analysesHtml += `
+                        <div class="analysis-item">
+                            <div class="analysis-header">
+                                <span class="analysis-model">${escapeHtml(analysis.modelId || '-')}</span>
+                                <span class="analysis-date">${analysisDateStr}</span>
+                                <span class="analysis-time">⏱️ ${analysis.responseTime ? (analysis.responseTime / 1000).toFixed(1) + 's' : '-'}</span>
+                            </div>
+                            <div class="analysis-prompt-preview">${escapeHtml(analysis.promptPreview || analysis.prompt?.substring(0, 100) || '')}</div>
+                            ${analysisArtifactsHtml ? `<div class="analysis-artifacts">${analysisArtifactsHtml}</div>` : ''}
+                        </div>
+                    `;
+                });
+                analysesHtml += '</div>';
             }
 
             // Birleştirilmiş analizler de seçilebilir
@@ -500,20 +591,10 @@ const renderHistory = (scrapes, append = false) => {
                         <span class="history-date">${dateStr}</span>
                     </div>
                     <div class="history-meta">
-                        📊 ${totalEntries} toplam entry | 🔬 1 analiz
+                        📊 ${totalEntries} toplam entry | 🔬 ${analysisCount} analiz
                     </div>
                     ${sourceScrapesHtml}
-                    <div class="analyses-list">
-                        <div class="analysis-item">
-                            <div class="analysis-header">
-                                <span class="analysis-model">${escapeHtml(item.modelId || '-')}</span>
-                                <span class="analysis-date">${analysisDateStr}</span>
-                                <span class="analysis-time">⏱️ ${item.responseTime ? (item.responseTime / 1000).toFixed(1) + 's' : '-'}</span>
-                            </div>
-                            <div class="analysis-prompt-preview">${escapeHtml(item.promptPreview || item.prompt?.substring(0, 100) || '')}</div>
-                            ${analysisArtifactsHtml ? `<div class="analysis-artifacts">${analysisArtifactsHtml}</div>` : ''}
-                        </div>
-                    </div>
+                    ${analysesHtml}
                     <div class="history-actions">
                         <button class="btn-secondary btn-download-all-multi" data-multi-analysis-id="${escapeHtml(item.id)}">📥 Tümünü İndir (ZIP)</button>
                         <button class="btn-danger btn-delete" data-scrape-id="${escapeHtml(item.id)}">Sil</button>
@@ -705,14 +786,29 @@ const attachEventListeners = (scrapes) => {
                 const multiAnalysis = scrapes.find(s => s.id === multiAnalysisId);
                 if (!multiAnalysis) return;
 
+                // Yeni format: analyses array'den al, eski format: direkt item'dan al
+                let analysis;
+                if (analysisIdx !== null && multiAnalysis.analyses) {
+                    analysis = multiAnalysis.analyses[parseInt(analysisIdx)];
+                } else if (multiAnalysis.prompt) {
+                    // Eski format
+                    analysis = {
+                        prompt: multiAnalysis.prompt,
+                        response: multiAnalysis.response
+                    };
+                }
+
+                if (!analysis) return;
+
+                const idxSuffix = analysisIdx !== null ? `_${parseInt(analysisIdx) + 1}` : '';
                 if (artifact === 'prompt') {
-                    content = multiAnalysis.prompt || '';
-                    filename = `multi_analysis_prompt.md`;
+                    content = analysis.prompt || '';
+                    filename = `multi_analysis_prompt${idxSuffix}.md`;
                     mimeType = 'text/markdown';
                     previewType = 'markdown';
                 } else if (artifact === 'response' || !artifact) {
-                    content = multiAnalysis.response || '';
-                    filename = `multi_analysis_response.md`;
+                    content = analysis.response || '';
+                    filename = `multi_analysis_response${idxSuffix}.md`;
                     mimeType = 'text/markdown';
                 }
             } else if (scrapeId && analysisIdx !== null) {
@@ -994,15 +1090,23 @@ const downloadMultiScrapeArtifacts = async (multiAnalysis, allScrapes) => {
         }
     }
 
-    // Analiz sonuçları
-    if (multiAnalysis.response) {
-        zip.file('multi_analysis_response.md', multiAnalysis.response);
-        hasFiles = true;
-    }
-    if (multiAnalysis.prompt) {
-        zip.file('multi_analysis_prompt.txt', multiAnalysis.prompt);
-        hasFiles = true;
-    }
+    // Analiz sonuçları - yeni format (analyses array) veya eski format
+    const analyses = multiAnalysis.analyses || (multiAnalysis.prompt ? [{
+        prompt: multiAnalysis.prompt,
+        response: multiAnalysis.response
+    }] : []);
+
+    analyses.forEach((analysis, idx) => {
+        const idxSuffix = analyses.length > 1 ? `_${idx + 1}` : '';
+        if (analysis.response) {
+            zip.file(`multi_analysis_response${idxSuffix}.md`, analysis.response);
+            hasFiles = true;
+        }
+        if (analysis.prompt) {
+            zip.file(`multi_analysis_prompt${idxSuffix}.txt`, analysis.prompt);
+            hasFiles = true;
+        }
+    });
 
     if (!hasFiles) {
         alert('İndirilecek artifact bulunamadı.');

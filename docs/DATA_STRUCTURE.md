@@ -113,19 +113,14 @@ interface Analysis {
 
 ### 2. `multiScrapeAnalyses`
 **Tip:** `Array<MultiScrapeAnalysis>` | **Varsayılan:** `[]`  
-**Açıklama:** Birden fazla scrape'den birleştirilerek oluşturulan analizler. Entry'ler kopyalanmaz, sadece scrape referansları tutulur.
+**Açıklama:** Birden fazla kaynaktan birleştirilerek oluşturulan analizler. Entry'ler kopyalanmaz, sadece kaynak referansları tutulur. Aynı kaynak kombinasyonuna yapılan yeni analizler mevcut kayda eklenir.
 
 **Yapı:**
 ```typescript
 interface MultiScrapeAnalysis {
     id: string;                    // "multi-analysis-1704067200000"
-    timestamp: string;             // ISO 8601
-    prompt: string;                // Tam prompt
-    promptPreview: string;         // İlk 100 karakter
-    response: string;              // Tam yanıt
-    responsePreview: string;       // İlk 200 karakter
-    modelId: string;
-    responseTime: number;          // ms
+    timestamp: string;             // ISO 8601 (ilk oluşturulma zamanı)
+    lastUpdated?: string;          // ISO 8601 (son analiz ekleme zamanı)
     sourceScrapes: Array<{
         scrapeId: string;          // Kaynak scrape ID'si
         sourceEntriesHash: string; // Kaynak scrape'in hash'i (unique identifier)
@@ -134,14 +129,29 @@ interface MultiScrapeAnalysis {
         topicId: string;
         entryCount: number;
     }>;
+    analyses: Array<Analysis>;     // Aynı kaynak kombinasyonuna yapılan tüm analizler
+}
+
+// Analysis interface'i (ScrapeRecord ile aynı)
+interface Analysis {
+    id: string;                    // "analysis-1704067200000"
+    timestamp: string;             // ISO 8601
+    prompt: string;                // Tam prompt
+    promptPreview: string;         // İlk 100 karakter
+    response: string;              // Tam yanıt
+    responsePreview: string;       // İlk 200 karakter
+    modelId: string;
+    responseTime: number;          // ms
 }
 ```
 
 **Önemli Notlar:**
-- **Referans Bazlı:** Entry'ler kopyalanmaz, sadece scrape referansları tutulur.
-- **Unique Identifier:** Her kaynak scrape için `sourceEntriesHash` ile unique olduğu belli olur.
+- **Referans Bazlı:** Entry'ler kopyalanmaz, sadece kaynak referansları tutulur.
+- **Unique Identifier:** `sourceScrapes` içindeki `sourceEntriesHash`'ler sıralanıp birleştirilerek unique identifier oluşturulur.
+- **Aynı Kombinasyon:** Aynı kaynak hash kombinasyonuna yapılan yeni analizler mevcut kayda `analyses` array'ine eklenir.
 - **Temizleme:** `historyRetentionDays`'e göre otomatik (0 = sınırsız).
-- **ZIP İndirme:** Her kaynak scrape için ayrı JSON dosyası oluşturulur.
+- **ZIP İndirme:** Her kaynak için ayrı JSON, her analiz için ayrı md/txt dosyası oluşturulur.
+- **Eski Format Uyumluluğu:** Eski formatla (`prompt`, `response` direkt item üzerinde) uyumluluk korunur.
 
 **Kaynak:** `src/history.js`
 
