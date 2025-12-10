@@ -233,12 +233,49 @@
             border-radius: 4px;
         }
 
-        .analyses-list {
-            margin: 10px 0;
-            padding: 10px;
-            background: #f9f9f9;
+        .analyses-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            margin: 10px 0 0 0;
+            background: #f0f0f0;
+            border: none;
             border-radius: 4px;
             border-left: 3px solid #81c14b;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #555;
+            transition: background-color 0.2s;
+            width: 100%;
+            text-align: left;
+        }
+
+        .analyses-toggle:hover {
+            background: #e8e8e8;
+        }
+
+        .analyses-toggle-icon {
+            transition: transform 0.2s;
+            font-size: 10px;
+        }
+
+        .analyses-toggle.open .analyses-toggle-icon {
+            transform: rotate(90deg);
+        }
+
+        .analyses-list {
+            margin: 0;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 0 0 4px 4px;
+            border-left: 3px solid #81c14b;
+            display: none;
+        }
+
+        .analyses-list.open {
+            display: block;
         }
 
         .analysis-item {
@@ -728,6 +765,15 @@
             background: #404040;
         }
 
+        body.dark-theme .analyses-toggle {
+            background: #363636;
+            color: #ccc;
+        }
+
+        body.dark-theme .analyses-toggle:hover {
+            background: #404040;
+        }
+
         body.dark-theme .analyses-list {
             background: #2d2d2d;
             border-left-color: #81c14b;
@@ -1014,6 +1060,15 @@
 
             body:not(.light-theme):not(.dark-theme) .history-prompt {
                 color: #bbb;
+                background: #404040;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .analyses-toggle {
+                background: #363636;
+                color: #ccc;
+            }
+
+            body:not(.light-theme):not(.dark-theme) .analyses-toggle:hover {
                 background: #404040;
             }
 

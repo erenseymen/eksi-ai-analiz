@@ -587,10 +587,15 @@ const renderHistory = (scrapes, append = false) => {
             // Analiz sayısı
             const analysisCount = analyses.length;
 
-            // Analizler listesi HTML'i
+            // Analizler listesi HTML'i (toggle ile)
             let analysesHtml = '';
             if (analysisCount > 0) {
-                analysesHtml = '<div class="analyses-list">';
+                // Toggle butonu
+                analysesHtml = `<button class="analyses-toggle" data-target="analyses-${escapeHtml(item.id)}">
+                    <span class="analyses-toggle-icon">▶</span>
+                    <span>🔬 ${analysisCount} Analiz</span>
+                </button>`;
+                analysesHtml += `<div class="analyses-list" id="analyses-${escapeHtml(item.id)}">`;
                 analyses.forEach((analysis, idx) => {
                     const analysisDate = new Date(analysis.timestamp);
                     const analysisDateStr = analysisDate.toLocaleDateString('tr-TR', {
@@ -693,10 +698,16 @@ const renderHistory = (scrapes, append = false) => {
                 jsonButtonHtml = `<button class="btn-secondary btn-json" data-scrape-id="${escapeHtml(scrape.id)}" data-artifact="sourceEntries">📄 JSON</button>`;
             }
 
-            // Analizler listesi
+            // Analizler listesi (toggle ile)
             let analysesHtml = '';
             if (scrape.analyses && scrape.analyses.length > 0) {
-                analysesHtml = '<div class="analyses-list">';
+                const analysisCount = scrape.analyses.length;
+                // Toggle butonu
+                analysesHtml = `<button class="analyses-toggle" data-target="analyses-${escapeHtml(scrape.id)}">
+                    <span class="analyses-toggle-icon">▶</span>
+                    <span>🔬 ${analysisCount} Analiz</span>
+                </button>`;
+                analysesHtml += `<div class="analyses-list" id="analyses-${escapeHtml(scrape.id)}">`;
                 scrape.analyses.forEach((analysis, idx) => {
                     const analysisDate = new Date(analysis.timestamp);
                     const analysisDateStr = analysisDate.toLocaleDateString('tr-TR', {
@@ -782,6 +793,26 @@ const renderHistory = (scrapes, append = false) => {
  * @param {Array} scrapes - Unique scrapes listesi
  */
 const attachEventListeners = (scrapes) => {
+    // Analiz toggle butonları için tıklama
+    document.querySelectorAll('.analyses-toggle').forEach(toggleBtn => {
+        toggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const targetId = toggleBtn.getAttribute('data-target');
+            const targetList = document.getElementById(targetId);
+            
+            if (targetList) {
+                const isOpen = targetList.classList.contains('open');
+                if (isOpen) {
+                    targetList.classList.remove('open');
+                    toggleBtn.classList.remove('open');
+                } else {
+                    targetList.classList.add('open');
+                    toggleBtn.classList.add('open');
+                }
+            }
+        });
+    });
+
     // Seçilebilir öğeler için tıklama
     document.querySelectorAll('.history-item.selectable').forEach(item => {
         item.addEventListener('click', (e) => {
