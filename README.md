@@ -27,14 +27,11 @@ Ekşi Sözlük başlıklarını yapay zeka ile analiz eden tarayıcı eklentisi.
 
 ### Firefox
 
-1. [GitHub Releases](https://github.com/erenseymen/eksi-ai-analiz/releases) sayfasından en son sürümün **firefox** zip dosyasını indirin
-2. Firefox'ta `about:debugging#/runtime/this-firefox` sayfasına gidin
-3. "Geçici Eklenti Yükle" butonuna tıklayın
-4. İndirdiğiniz zip dosyasını seçin
-5. [Google AI Studio](https://aistudio.google.com/app/api-keys)'dan API key alın
-6. Eklenti ayarlarına API key'i girin
+1. [Firefox Add-ons](https://addons.mozilla.org/tr/firefox/addon/eksi-ai-analiz/) sayfasından eklentiyi yükleyin
+2. [Google AI Studio](https://aistudio.google.com/app/api-keys)'dan API key alın
+3. Eklenti ayarlarına API key'i girin
 
-> **Not:** Geçici eklentiler Firefox kapatıldığında kaldırılır. Kalıcı kurulum için eklentinin Firefox Add-ons'ta yayınlanmasını bekleyin.
+> **Alternatif (Geliştirici Kurulumu):** [GitHub Releases](https://github.com/erenseymen/eksi-ai-analiz/releases) sayfasından **firefox** zip dosyasını indirip `about:debugging#/runtime/this-firefox` sayfasından geçici olarak yükleyebilirsiniz.
 
 ## Kullanım
 
