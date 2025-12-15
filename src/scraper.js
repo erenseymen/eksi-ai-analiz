@@ -57,7 +57,7 @@ const fetchEntryById = async (entryId) => {
         const response = await fetch(url);
 
         if (!response.ok) {
-            console.warn(`Failed to fetch entry ${entryId}: ${response.status}`);
+            // 404 gibi beklenen hatalar için sessizce null döndür
             return null;
         }
 
@@ -70,7 +70,7 @@ const fetchEntryById = async (entryId) => {
             doc.querySelector('#entry-item-list > li');
 
         if (!entryItem) {
-            console.warn(`Entry element not found for ${entryId}`);
+            // Entry elementi bulunamadı, sessizce null döndür
             return null;
         }
 
