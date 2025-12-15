@@ -3,7 +3,7 @@
  * 
  * API çağrılarını, token kullanımını ve cache istatistiklerini takip eder.
  * 
- * Not: İstatistikler chrome.storage.sync kullanarak tüm cihazlarda senkronize edilir.
+ * Not: İstatistikler chrome.storage.local kullanarak sadece mevcut cihazda saklanır (senkronize edilmez).
  */
 
 // İstatistik sabitler
@@ -12,29 +12,31 @@ const MAX_STATS_HISTORY = 100; // Son 100 çağrıyı sakla
 
 // Chrome API mevcut mu kontrol et (file:// protokolünde çalışmaz)
 const isChromeApiAvailable = () => {
-    return typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync;
+    return typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local;
 };
 
 /**
- * Mevcut local storage'daki istatistikleri sync storage'a taşır (migration).
+ * Eski sync storage'daki istatistikleri local storage'a taşır (migration).
  * Sadece bir kez çalışır, sonraki çağrılarda hiçbir şey yapmaz.
  */
-const migrateStatsToSync = async () => {
+const migrateStatsFromSync = async () => {
     if (!isChromeApiAvailable()) return;
     try {
-        // Sync'te zaten veri varsa migration yapma
-        const syncResult = await chrome.storage.sync.get(STATS_STORAGE_KEY);
-        if (syncResult[STATS_STORAGE_KEY]) {
-            return; // Zaten sync'te veri var
-        }
-
-        // Local'den veri oku
+        // Local'de zaten veri varsa migration yapma
         const localResult = await chrome.storage.local.get(STATS_STORAGE_KEY);
         if (localResult[STATS_STORAGE_KEY]) {
-            // Sync'e taşı
-            await chrome.storage.sync.set({ [STATS_STORAGE_KEY]: localResult[STATS_STORAGE_KEY] });
-            // Local'den sil
-            await chrome.storage.local.remove(STATS_STORAGE_KEY);
+            return; // Zaten local'de veri var
+        }
+
+        // Sync'ten veri oku (eski versiyonlardan kalan veri varsa)
+        if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
+            const syncResult = await chrome.storage.sync.get(STATS_STORAGE_KEY);
+            if (syncResult[STATS_STORAGE_KEY]) {
+                // Local'e taşı
+                await chrome.storage.local.set({ [STATS_STORAGE_KEY]: syncResult[STATS_STORAGE_KEY] });
+                // Sync'ten sil
+                await chrome.storage.sync.remove(STATS_STORAGE_KEY);
+            }
         }
     } catch (err) {
         console.warn('Stats migration hatası:', err);
@@ -75,7 +77,7 @@ const recordApiCall = async (callData) => {
         stats.totals.apiCalls++;
         stats.totals.totalTokens += record.tokenEstimate;
 
-        await chrome.storage.sync.set({ [STATS_STORAGE_KEY]: stats });
+        await chrome.storage.local.set({ [STATS_STORAGE_KEY]: stats });
     } catch (err) {
         console.warn('Stats kaydetme hatası:', err);
     }
@@ -89,7 +91,7 @@ const recordCacheHit = async () => {
     try {
         const stats = await getUsageStats();
         stats.totals.cacheHits++;
-        await chrome.storage.sync.set({ [STATS_STORAGE_KEY]: stats });
+        await chrome.storage.local.set({ [STATS_STORAGE_KEY]: stats });
     } catch (err) {
         console.warn('Cache hit kaydetme hatası:', err);
     }
@@ -104,10 +106,10 @@ const getUsageStats = async () => {
         return { totals: { apiCalls: 0, totalTokens: 0 }, history: [] };
     }
     try {
-        // İlk çağrıda migration yap
-        await migrateStatsToSync();
+        // İlk çağrıda migration yap (sync'ten local'e)
+        await migrateStatsFromSync();
 
-        const result = await chrome.storage.sync.get(STATS_STORAGE_KEY);
+        const result = await chrome.storage.local.get(STATS_STORAGE_KEY);
         return result[STATS_STORAGE_KEY] || {
             totals: {
                 apiCalls: 0,
@@ -130,9 +132,11 @@ const getUsageStats = async () => {
 const clearUsageStats = async () => {
     if (!isChromeApiAvailable()) return;
     try {
-        await chrome.storage.sync.remove(STATS_STORAGE_KEY);
-        // Local'de eski veri varsa onu da temizle (migration sonrası)
         await chrome.storage.local.remove(STATS_STORAGE_KEY);
+        // Sync'te eski veri varsa onu da temizle (migration öncesi)
+        if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
+            await chrome.storage.sync.remove(STATS_STORAGE_KEY);
+        }
     } catch (err) {
         console.warn('Stats silme hatası:', err);
     }

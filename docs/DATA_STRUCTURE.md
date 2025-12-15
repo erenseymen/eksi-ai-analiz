@@ -4,8 +4,8 @@ Ekşi Sözlük AI Analiz eklentisinde kullanılan ve kaydedilen tüm verilerin y
 
 ## Genel Bakış
 
-- **`chrome.storage.sync`**: Tüm cihazlarda senkronize (kullanıcı ayarları, istatistikler)
-- **`chrome.storage.local`**: Sadece mevcut cihazda (scrape edilen entry'ler, analiz geçmişi)
+- **`chrome.storage.sync`**: Tüm cihazlarda senkronize (kullanıcı ayarları)
+- **`chrome.storage.local`**: Sadece mevcut cihazda (scrape edilen entry'ler, analiz geçmişi, istatistikler)
 
 ---
 
@@ -36,28 +36,6 @@ Ekşi Sözlük AI Analiz eklentisinde kullanılan ve kaydedilen tüm verilerin y
 **Tip:** `string` | **Varsayılan:** `'api'`  
 **Değerler:** `'api'`, `'prompts'`, `'models'`, `'stats'`  
 **Kaynak:** `src/options.js`
-
-### 6. `eksi_ai_usage_stats`
-**Tip:** `Object`  
-**Yapı:**
-```typescript
-interface UsageStats {
-    totals: {
-        apiCalls: number;      // Toplam API çağrı sayısı
-        totalTokens: number;   // Toplam token sayısı
-    };
-    history: Array<{
-        timestamp: number;      // Unix timestamp (ms)
-        modelId: string;
-        tokenEstimate: number;
-        responseTime: number;   // ms
-        fromCache: boolean;
-        topicTitle: string;
-    }>;
-}
-```
-**Notlar:** History max 100 kayıt (FIFO), ilk kullanımda local→sync migration yapılır.  
-**Kaynak:** `src/stats.js`
 
 ---
 
@@ -149,6 +127,32 @@ interface Analysis {
 **Değerler:** `0` = sınırsız, `1-365` = gün cinsinden  
 **Kaynak:** `src/analysis-history.js`, `src/history.js`
 
+### 3. `eksi_ai_usage_stats`
+**Tip:** `Object`  
+**Yapı:**
+```typescript
+interface UsageStats {
+    totals: {
+        apiCalls: number;      // Toplam API çağrı sayısı
+        totalTokens: number;   // Toplam token sayısı
+        cacheHits: number;     // Cache'den gösterilen analiz sayısı
+    };
+    history: Array<{
+        timestamp: number;      // Unix timestamp (ms)
+        modelId: string;
+        tokenEstimate: number;
+        responseTime: number;   // ms
+        fromCache: boolean;
+        topicTitle: string;
+    }>;
+}
+```
+**Notlar:** 
+- History max 100 kayıt (FIFO)
+- İlk kullanımda sync'ten local'e migration yapılır (eski versiyonlardan kalan veri varsa)
+- Sadece mevcut cihazda saklanır, senkronize edilmez
+**Kaynak:** `src/stats.js`
+
 ---
 
 ## Veri İlişkileri
@@ -185,7 +189,7 @@ MultiSourceScrapeRecord (Çoklu Kaynak)
 1. Prompt seçimi → `api.js` → Gemini API isteği
 2. `analysis-history.js` → `saveToHistory({ scrapeOnly: false, response: ... })`
 3. `chrome.storage.local` → `scrapedData[].analyses[]` güncellenir
-4. `stats.js` → `recordApiCall()` → `chrome.storage.sync` güncellenir
+4. `stats.js` → `recordApiCall()` → `chrome.storage.local` güncellenir
 
 **Çoklu Scrape Analizi:**
 1. Geçmiş sayfasında birden fazla scrape seçilir
@@ -193,7 +197,7 @@ MultiSourceScrapeRecord (Çoklu Kaynak)
 3. Gemini API isteği yapılır (birleştirilmiş entry'ler ile)
 4. `history.js` → `saveToHistoryFromPage({ sourceScrapes: [...] })`
 5. `chrome.storage.local` → `scrapedData[]` güncellenir (çoklu kaynak kaydı olarak, entry'ler kopyalanmaz, sadece referanslar)
-6. `stats.js` → `recordApiCall()` → `chrome.storage.sync` güncellenir
+6. `stats.js` → `recordApiCall()` → `chrome.storage.local` güncellenir
 
 **Ayarları Kaydetme:**
 1. Ayarlar değişikliği → `options.js` → `saveOptions()`
@@ -220,7 +224,7 @@ MultiSourceScrapeRecord (Çoklu Kaynak)
 
 ## Migration ve Uyumluluk
 
-**Stats Migration:** İlk kullanımda `eksi_ai_usage_stats` local→sync taşınır (`src/stats.js - migrateStatsToSync()`). Sync'te veri varsa migration yapılmaz.
+**Stats Migration:** İlk kullanımda `eksi_ai_usage_stats` sync→local taşınır (`src/stats.js - migrateStatsFromSync()`). Eski versiyonlardan kalan sync storage'daki veriler local'e taşınır. Local'de veri varsa migration yapılmaz.
 
 **MultiScrapeAnalyses Migration:** Eski `multiScrapeAnalyses` verileri otomatik olarak `scrapedData`'ya taşınır (`src/history.js - migrateMultiScrapeAnalyses()`). Migration sayfa yüklendiğinde otomatik çalışır.
 
@@ -234,8 +238,8 @@ MultiSourceScrapeRecord (Çoklu Kaynak)
 - `geminiApiKey`: Sync storage'da saklanır, sadece eklenti içinde kullanılır
 
 **Veri Kapsamı:**
-- **Sync:** Kullanıcı tercihleri, istatistikler (API key)
-- **Local:** Scrape edilen entry'ler, analiz sonuçları (cihaz bazlı)
+- **Sync:** Kullanıcı tercihleri (API key, model seçimi, prompt'lar, tema)
+- **Local:** Scrape edilen entry'ler, analiz sonuçları, istatistikler (cihaz bazlı)
 
 **Temizleme:** Kullanıcılar history sayfasından geçmişi, ayarlar sayfasından istatistikleri ve API anahtarını temizleyebilir.
 
@@ -306,13 +310,13 @@ await saveToHistoryFromPage({
 - Retention Days: Geçmiş saklama süresi (0 = sınırsız)
 
 **Quota Exceeded:**
-- Local Storage: Eski analiz geçmişini temizle
-- Sync Storage: İstatistik geçmişini temizle
+- Local Storage: Eski analiz geçmişini veya istatistik geçmişini temizle
+- Sync Storage: Ayarlar çok büyükse (nadir durum)
 - Retention Days: Saklama süresini azalt
 
 **Migration Sorunları:**
 - Local storage'dan `eksi_ai_usage_stats` kontrolü
-- Sync storage'da aynı key kontrolü
+- Sync storage'da eski veri varsa (migration öncesi versiyonlardan) kontrol edilir ve local'e taşınır
 - Gerekirse manuel taşıma
 
 ---
