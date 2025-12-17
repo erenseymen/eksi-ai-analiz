@@ -34,79 +34,6 @@ let selectedItems = new Set();
 /** @type {Object|null} Yeniden analiz modal'ı için saklanan kaynak verileri */
 let reanalyzeSourceData = null;
 
-// =============================================================================
-// MIGRATION
-// =============================================================================
-
-/**
- * Eski multiScrapeAnalyses verilerini scrapedData'ya taşır.
- * 
- * Migration sadece bir kez çalışır. multiScrapeAnalyses verileri
- * scrapedData'ya taşındıktan sonra storage'dan silinir.
- * 
- * @returns {Promise<void>}
- */
-const migrateMultiScrapeAnalyses = async () => {
-    return new Promise((resolve) => {
-        chrome.storage.local.get({ 
-            scrapedData: [],
-            multiScrapeAnalyses: []
-        }, (result) => {
-            const scrapedData = result.scrapedData || [];
-            const multiScrapeAnalyses = result.multiScrapeAnalyses || [];
-            
-            // Eğer taşınacak veri yoksa migration yapma
-            if (multiScrapeAnalyses.length === 0) {
-                resolve();
-                return;
-            }
-            
-            // MultiScrapeAnalyses kayıtlarını scrapedData formatına çevir
-            const migratedItems = multiScrapeAnalyses.map(multiAnalysis => {
-                // Kaynak hash'lerini birleştirerek unique identifier oluştur
-                const sourceHashes = (multiAnalysis.sourceScrapes || [])
-                    .map(s => s.sourceEntriesHash)
-                    .filter(h => h)
-                    .sort();
-                const combinedHash = sourceHashes.join('|');
-                
-                // Çoklu kaynak kaydı oluştur
-                return {
-                    id: multiAnalysis.id,
-                    sourceEntriesHash: combinedHash, // Tüm kaynak hash'lerinin birleşimi
-                    scrapedAt: multiAnalysis.timestamp,
-                    lastUpdated: multiAnalysis.lastUpdated || multiAnalysis.timestamp,
-                    sourceScrapes: multiAnalysis.sourceScrapes || [],
-                    analyses: multiAnalysis.analyses || (multiAnalysis.prompt ? [{
-                        id: multiAnalysis.id.replace('multi-analysis-', 'analysis-'),
-                        timestamp: multiAnalysis.timestamp,
-                        prompt: multiAnalysis.prompt,
-                        promptPreview: multiAnalysis.promptPreview || '',
-                        response: multiAnalysis.response,
-                        responsePreview: multiAnalysis.responsePreview || '',
-                        modelId: multiAnalysis.modelId || '',
-                        responseTime: multiAnalysis.responseTime || 0
-                    }] : [])
-                };
-            });
-            
-            // Mevcut scrapedData'ya ekle
-            const updatedScrapedData = [...scrapedData, ...migratedItems];
-            
-            // Storage'ı güncelle ve multiScrapeAnalyses'i sil
-            chrome.storage.local.set({ 
-                scrapedData: updatedScrapedData
-            }, () => {
-                // multiScrapeAnalyses'i sil
-                chrome.storage.local.remove('multiScrapeAnalyses', () => {
-                    console.log(`Migration tamamlandı: ${migratedItems.length} çoklu kaynak kaydı scrapedData'ya taşındı`);
-                    resolve();
-                });
-            });
-        });
-    });
-};
-
 /**
  * Saklama süresini storage'dan alır.
  * 
@@ -1624,9 +1551,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             restoreTheme();
         }
     });
-    
-    // Migration: Eski multiScrapeAnalyses verilerini scrapedData'ya taşı
-    await migrateMultiScrapeAnalyses();
     
     // Saklama süresini yükle
     currentRetentionDays = await getRetentionDays();
