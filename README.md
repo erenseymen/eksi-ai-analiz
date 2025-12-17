@@ -13,27 +13,20 @@ Ekşi Sözlük başlıklarını yapay zeka ile analiz eden tarayıcı eklentisi.
 - 📥 Entry'leri JSON olarak indirme
 - 🎯 Ekşi Sözlük'ün çeşitli sayfalarında doğru entry'leri toplama
 
-## Kurulum
+## İndir
 
-### Chrome / Edge / Brave
-
-**Önerilen Yöntem (Chrome Web Store):**
-
-1. [Chrome Web Store](https://chromewebstore.google.com/detail/ek%C5%9Fi-s%C3%B6zl%C3%BCk-ai-analiz/fjlkfppkffdjpcaegojbeeojjleohlpa)'dan eklentiyi yükleyin
-2. [Google AI Studio](https://aistudio.google.com/app/api-keys)'dan API key alın
-3. Eklenti ayarlarına API key'i girin
-
-> **Alternatif (Geliştirici Kurulumu):** [GitHub Releases](https://github.com/erenseymen/eksi-ai-analiz/releases) sayfasından en son sürümün **chrome** zip dosyasını indirip `chrome://extensions` (Edge için `edge://extensions`) sayfasından geliştirici modu ile yükleyebilirsiniz.
-
-### Firefox
-
-1. [Firefox Add-ons](https://addons.mozilla.org/tr/firefox/addon/eksi-ai-analiz/) sayfasından eklentiyi yükleyin
-2. [Google AI Studio](https://aistudio.google.com/app/api-keys)'dan API key alın
-3. Eklenti ayarlarına API key'i girin
-
-> **Alternatif (Geliştirici Kurulumu):** [GitHub Releases](https://github.com/erenseymen/eksi-ai-analiz/releases) sayfasından **firefox** zip dosyasını indirip `about:debugging#/runtime/this-firefox` sayfasından geçici olarak yükleyebilirsiniz.
+[![Chrome Web Store](https://img.shields.io/badge/Chrome_Web_Store-4285F4?style=for-the-badge&logo=GoogleChrome&logoColor=white)](https://chromewebstore.google.com/detail/ek%C5%9Fi-s%C3%B6zl%C3%BCk-ai-analiz/fjlkfppkffdjpcaegojbeeojjleohlpa)
+[![Firefox Add-ons](https://img.shields.io/badge/Firefox_Add--ons-FF7139?style=for-the-badge&logo=FirefoxBrowser&logoColor=white)](https://addons.mozilla.org/tr/firefox/addon/eksi-ai-analiz/)
 
 ## Kullanım
+
+### İlk Kurulum
+
+1. Eklentiyi yükledikten sonra, [Google AI Studio](https://aistudio.google.com/app/api-keys)'dan ücretsiz API anahtarı alın
+2. Eklenti ikonuna tıklayarak ayarlar sayfasına gidin
+3. API anahtarınızı girin ve kaydedin
+
+### Analiz Yapma
 
 1. Ekşi Sözlük başlığına gidin
 2. "Entry'leri Analiz Et" butonuna tıklayın
