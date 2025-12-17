@@ -103,13 +103,14 @@ interface Analysis {
 
 **Önemli Notlar:**
 - **Hash Sistemi:** 
-  - SHA-256 hash algoritması kullanılır
+  - SHA-256 hash algoritması kullanılır (`crypto.subtle.digest`)
   - Tüm entry objesi hash'lenir: `id`, `author`, `date`, `content`, `referenced_entries`
   - Entry'ler ID'ye göre sıralanarak deterministik hash üretilir
   - Referenced entries'ler de hash'e dahil edilir (nested yapı)
   - Aynı entry içeriğine sahip sourceEntries'ler aynı hash'i üretir
   - Aynı hash'li yeni scrape'ler mevcut kaydı günceller
   - Hash formatı: `sha256-{64 karakter hex string}` veya `empty` (boş array için)
+  - Hash hesaplama başarısız olursa hata fırlatılır (fallback yok)
 - **Tek Kaynak vs Çoklu Kaynak:** 
   - Tek kaynak kayıtları: `sourceEntries` array'i var, `sourceScrapes` yok
   - Çoklu kaynak kayıtları: `sourceScrapes` array'i var, `sourceEntries` yok (referans bazlı)
@@ -149,7 +150,6 @@ interface UsageStats {
 ```
 **Notlar:** 
 - History max 100 kayıt (FIFO)
-- İlk kullanımda sync'ten local'e migration yapılır (eski versiyonlardan kalan veri varsa)
 - Sadece mevcut cihazda saklanır, senkronize edilmez
 **Kaynak:** `src/stats.js`
 
@@ -222,11 +222,18 @@ MultiSourceScrapeRecord (Çoklu Kaynak)
 
 ---
 
-## Migration ve Uyumluluk
+## Export ve Import
 
-**Stats Migration:** İlk kullanımda `eksi_ai_usage_stats` sync→local taşınır (`src/stats.js - migrateStatsFromSync()`). Eski versiyonlardan kalan sync storage'daki veriler local'e taşınır. Local'de veri varsa migration yapılmaz.
+**Export Formatı:**
+- Export edilen JSON dosyalarında versiyon bilgisi yoktur
+- Format: `{ exportDate, scrapeCount, multiSourceScrapeCount, totalAnalyses, scrapedData }`
+- `scrapedData` array'i direkt olarak export edilir
 
-**MultiScrapeAnalyses Migration:** Eski `multiScrapeAnalyses` verileri otomatik olarak `scrapedData`'ya taşınır (`src/history.js - migrateMultiScrapeAnalyses()`). Migration sayfa yüklendiğinde otomatik çalışır.
+**Import Formatı:**
+- Sadece `scrapedData` array'i kontrol edilir
+- Versiyon kontrolü yapılmaz
+- `scrapedData` array'i mevcut değilse veya array değilse hata fırlatılır
+- Duplicate kontrolü `sourceEntriesHash`'e göre yapılır (tek ve çoklu kaynak için)
 
 **Varsayılan Değerler:** Tüm storage key'leri için varsayılan değerler tanımlı. Key yoksa varsayılan kullanılır.
 
@@ -314,11 +321,11 @@ await saveToHistoryFromPage({
 - Sync Storage: Ayarlar çok büyükse (nadir durum)
 - Retention Days: Saklama süresini azalt
 
-**Migration Sorunları:**
-- Local storage'dan `eksi_ai_usage_stats` kontrolü
-- Sync storage'da eski veri varsa (migration öncesi versiyonlardan) kontrol edilir ve local'e taşınır
-- Gerekirse manuel taşıma
+**Import/Export Sorunları:**
+- Import edilecek dosyada `scrapedData` array'i olmalı
+- Duplicate kayıtlar otomatik olarak atlanır (`sourceEntriesHash` kontrolü ile)
+- Export edilen dosyalar versiyon bilgisi içermez
 
 ---
 
-**Son Güncelleme:** 2025-12-10 | **Versiyon:** 2.2.0
+**Son Güncelleme:** 2025-12-17 | **Versiyon:** 2.2.0
