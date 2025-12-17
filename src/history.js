@@ -1250,7 +1250,6 @@ const exportHistory = async () => {
         const totalAnalyses = scrapedData.reduce((sum, scrape) => sum + (scrape.analyses ? scrape.analyses.length : 0), 0);
 
         const exportData = {
-            version: '2.2',
             exportDate: new Date().toISOString(),
             scrapeCount: regularScrapes.length,
             multiSourceScrapeCount: multiSourceScrapes.length,
@@ -1287,11 +1286,6 @@ const importHistory = async (file) => {
     try {
         const fileText = await file.text();
         const importData = JSON.parse(fileText);
-
-        // Sadece v2.2 formatını destekle
-        if (importData.version !== '2.2') {
-            throw new Error('Geçersiz dosya formatı. Sadece v2.2 formatı desteklenmektedir.');
-        }
 
         let scrapesToImport = [];
 
