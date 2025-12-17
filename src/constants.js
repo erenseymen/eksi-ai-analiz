@@ -35,8 +35,8 @@
 const MODELS = [
     {
         id: 'gemini-3-pro-preview',
-        name: '⭐ Gemini 3 Pro Preview',
-        description: 'Yeni nesil model, gelişmiş muhakeme yeteneği',
+        name: '⭐ Gemini 3 Pro',
+        description: 'Yeni nesil model, geniş kapsamlı muhakeme yeteneği',
         cost: '💰 Ücretli (Free tier\'da kullanılamaz)',
         contextWindow: 1048576,
         responseTime: '~30-40 saniye',
@@ -45,11 +45,11 @@ const MODELS = [
     },
     {
         id: 'gemini-3-flash-preview',
-        name: '⚡ Gemini 3 Flash Preview',
+        name: '⚡ Gemini 3 Flash (Önerilen)',
         description: 'Yeni nesil hızlı model, gelişmiş muhakeme yeteneği',
-        cost: '✅ Ücretsiz (Preview)',
+        cost: '✅ Ücretsiz',
         contextWindow: 1048576,
-        responseTime: '~20 saniye',
+        responseTime: '~20-30 saniye',
         isFree: true,
         apiVersion: 'v1beta'
     },
@@ -59,17 +59,17 @@ const MODELS = [
         description: 'Güçlü muhakeme yeteneği',
         cost: '💰 Ücretli (Free tier\'da kullanılamaz)',
         contextWindow: 1048576,
-        responseTime: '~30 saniye',
+        responseTime: '~40 saniye',
         isFree: false,
         apiVersion: 'v1'
     },
     {
         id: 'gemini-2.5-flash',
         name: '⚡ Gemini 2.5 Flash',
-        description: 'Muhakeme yeteneği olan en iyi ücretsiz seçenek',
+        description: 'Hızlı ve muhakeme yetenekli',
         cost: '✅ Ücretsiz',
         contextWindow: 1048576,
-        responseTime: '~20 saniye',
+        responseTime: '~30 saniye',
         isFree: true,
         apiVersion: 'v1'
     },
@@ -77,7 +77,7 @@ const MODELS = [
         id: 'gemini-2.5-flash-lite',
         name: '⚡ Gemini 2.5 Flash-Lite',
         description: 'Maksimum hız, basit görevler için',
-        cost: '✅ Ücretsiz (En hızlı)',
+        cost: '✅ Ücretsiz',
         contextWindow: 1048576,
         responseTime: '~10 saniye',
         isFree: true,
