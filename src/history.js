@@ -1288,100 +1288,15 @@ const importHistory = async (file) => {
         const fileText = await file.text();
         const importData = JSON.parse(fileText);
 
+        // Sadece v2.2 formatını destekle
+        if (importData.version !== '2.2') {
+            throw new Error('Geçersiz dosya formatı. Sadece v2.2 formatı desteklenmektedir.');
+        }
+
         let scrapesToImport = [];
 
-        // Format kontrolü - v2.2 (birleştirilmiş), v2.1 (multiScrapeAnalyses ile), v2.0 (yeni format) veya v1.0 (eski format)
-        if (importData.version === '2.2') {
-            // Yeni format - direkt scrapedData (tek ve çoklu kaynak birlikte)
-            if (importData.scrapedData && Array.isArray(importData.scrapedData)) {
-                scrapesToImport = importData.scrapedData;
-            }
-        } else if (importData.version === '2.1' || importData.version === '2.0') {
-            // Eski format - scrapedData ve multiScrapeAnalyses ayrı
-            if (importData.scrapedData && Array.isArray(importData.scrapedData)) {
-                scrapesToImport = importData.scrapedData;
-            }
-            // v2.1'de multiScrapeAnalyses de var - scrapedData'ya taşı
-            if (importData.multiScrapeAnalyses && Array.isArray(importData.multiScrapeAnalyses)) {
-                const migratedMultiScrapes = importData.multiScrapeAnalyses.map(multiAnalysis => {
-                    // Kaynak hash'lerini birleştirerek unique identifier oluştur
-                    const sourceHashes = (multiAnalysis.sourceScrapes || [])
-                        .map(s => s.sourceEntriesHash)
-                        .filter(h => h)
-                        .sort();
-                    const combinedHash = sourceHashes.join('|');
-                    
-                    return {
-                        id: multiAnalysis.id,
-                        sourceEntriesHash: combinedHash,
-                        scrapedAt: multiAnalysis.timestamp,
-                        lastUpdated: multiAnalysis.lastUpdated || multiAnalysis.timestamp,
-                        sourceScrapes: multiAnalysis.sourceScrapes || [],
-                        analyses: multiAnalysis.analyses || (multiAnalysis.prompt ? [{
-                            id: multiAnalysis.id.replace('multi-analysis-', 'analysis-'),
-                            timestamp: multiAnalysis.timestamp,
-                            prompt: multiAnalysis.prompt,
-                            promptPreview: multiAnalysis.promptPreview || '',
-                            response: multiAnalysis.response,
-                            responsePreview: multiAnalysis.responsePreview || '',
-                            modelId: multiAnalysis.modelId || '',
-                            responseTime: multiAnalysis.responseTime || 0
-                        }] : [])
-                    };
-                });
-                scrapesToImport = [...scrapesToImport, ...migratedMultiScrapes];
-            }
-        } else if (importData.history && Array.isArray(importData.history)) {
-            // Eski format - flat view'dan scrapedData'ya çevir
-            const newItemsMap = new Map(); // sourceEntriesHash -> scrape object
-
-            // Tüm hash'leri önce hesapla
-            const hashPromises = importData.history.map(async (item) => {
-                const sourceEntries = item.sourceEntries || [];
-                const sourceEntriesHash = await createSourceEntriesHash(sourceEntries);
-                return { item, sourceEntriesHash };
-            });
-
-            const itemsWithHashes = await Promise.all(hashPromises);
-
-            itemsWithHashes.forEach(({ item, sourceEntriesHash }) => {
-                if (!newItemsMap.has(sourceEntriesHash)) {
-                    // Yeni scrape oluştur
-                    newItemsMap.set(sourceEntriesHash, {
-                        id: item.scrapeOnly ? item.id : `scrape-${Date.now()}-${sourceEntriesHash}`,
-                        sourceEntriesHash: sourceEntriesHash,
-                        topicId: item.topicId || '',
-                        topicTitle: item.topicTitle,
-                        topicUrl: item.topicUrl,
-                        scrapedAt: item.scrapeOnly ? item.timestamp : new Date().toISOString(),
-                        entryCount: item.entryCount,
-                        sourceEntries: item.sourceEntries || [],
-                        wasStopped: item.wasStopped || false,
-                        analyses: []
-                    });
-                }
-
-                const scrape = newItemsMap.get(sourceEntriesHash);
-
-                if (!item.scrapeOnly) {
-                    // Analiz ekle
-                    scrape.analyses.push({
-                        id: item.id,
-                        timestamp: item.timestamp,
-                        prompt: item.prompt || '',
-                        promptPreview: item.promptPreview || '',
-                        response: item.response || '',
-                        responsePreview: item.responsePreview || '',
-                        modelId: item.modelId || '',
-                        responseTime: item.responseTime || 0
-                    });
-                } else {
-                    // Scrape-only ise, scrapedAt'i güncelle
-                    scrape.scrapedAt = item.timestamp;
-                }
-            });
-
-            scrapesToImport = Array.from(newItemsMap.values());
+        if (importData.scrapedData && Array.isArray(importData.scrapedData)) {
+            scrapesToImport = importData.scrapedData;
         } else {
             throw new Error('Geçersiz dosya formatı. Geçmiş verisi bulunamadı.');
         }
