@@ -55,34 +55,37 @@ Cevabında entry'lere referans verebilirsin (alıntı yapabilirsin). Link format
 const DEFAULT_PROMPTS = [
     {
         name: "Özet",
-        prompt: `Bu entry'leri analiz ederek kapsamlı bir özet hazırla.
+        prompt: `Bu entry'leri analiz ederek kapsamlı ve compact bir özet hazırla.
 
 ## Görev:
-- Ana konuları ve tartışma başlıklarını belirle
-- Farklı görüşler ve fikir ayrılıklarını dengeli bir şekilde sun
-- Mizahi, ironik veya dikkat çekici entry'leri vurgula
-- Özgün ve derinlemesine görüşleri öne çıkar
-- Entry'lerin kronolojik veya tematik akışını göz önünde bulundur
 
-## Format ve Dil:
-- Markdown formatında yaz (başlıklar, listeler, vurgular kullan)
-- Bilgi verici, tarafsız ve profesyonel bir dil kullan
-- Akıcı ve okunabilir bir metin oluştur
-- Spekülasyondan kaçın, yalnızca entry'lerdeki bilgileri kullan
-- Entry'lerden bol bol alıntı yap
+- Ana konuları ve tartışma başlıklarını belirle.
+- Farklı görüşler ve fikir ayrılıklarını dengeli bir şekilde sun.
+- Mizahi, ironik veya dikkat çekici entry'leri vurgula.
+- Özgün ve derinlemesine görüşleri öne çıkar.
+- Entry'lerin kronolojik veya tematik akışını göz önünde bulundur.
+- Entry'lerden bol bol alıntı yap.
 
-## Çıktı Kuralları:
-1. Yanıtın EN BAŞINDA, aşağıdaki şablona birebir uyarak bir TL;DR bölümü oluştur.
-2. Yanıtın geri kalanı bu bölümden sonra gelmelidir.
-3. Yanıtın sadece özet metni olsun, giriş/çıkış konuşmaları ("İşte özetiniz" vb.) içermesin.
-4. Yanıtın compact olsun.
+## Format ve Dil Kuralları:
 
-## TL;DR Şablonu:
-> **TL;DR:** [Buraya entry'lerin ana fikrini özetleyen 2-3 cümlelik metin gelecek]`
+- Markdown Yapısı: Başlıklar (iki veya üç hashtag kullanarak), listeler ve kalın yazılar kullan.
+- Dil: Bilgi verici ve tarafsız bir üslup benimse.
+- Kısıtlamalar: Giriş veya çıkış cümleleri (örneğin: İşte hazırladığım özet gibi) asla ekleme. Doğrudan özetle başla.
+- Compact Yapı: Metni gereksiz uzatmalardan kaçınarak bilgiyi yoğun bir şekilde sun.
+
+## Çıktı Yapısı (KESİN KURAL):
+
+Yanıtın mutlaka büyüktür işareti ile başlayan bir blokla (Markdown blockquote formatı) başlamalıdır. Başka hiçbir başlangıç formatı kabul edilemez.
+
+Örnek Başlangıç Şablonu:
+
+> **TL;DR:** [Buraya entrylerin ana noktalarını birkaç cümleyle özetleyen metin gelecek.]
+
+(Yukarıdaki TL;DR bloğundan sonra bir satır boşluk bırak ve ana özet metnine geç.)`
     },
     {
         name: "Blog",
-        prompt: `Bu entry'lere dayalı, kapsamlı ve okunabilir bir blog yazısı yaz.
+        prompt: `Bu entry'lere dayalı, kapsamlı ve compact bir blog yazısı yaz.
 
 ## Görev
 Entry'lerdeki farklı görüşleri, deneyimleri, mizahı ve eleştirileri sentezleyerek, konuyu derinlemesine ele alan bir blog yazısı oluştur.
@@ -93,6 +96,7 @@ Entry'lerdeki farklı görüşleri, deneyimleri, mizahı ve eleştirileri sentez
 - Farklı perspektifleri dengeli bir şekilde sun
 - Gerektiğinde örnekler, anekdotlar ve ilginç detaylar ekle
 - Spekülasyondan kaçın, yalnızca entry'lerdeki bilgileri kullan
+- Compact Yapı: Metni gereksiz uzatmalardan kaçınarak bilgiyi yoğun bir şekilde sun.
 
 ## İçerik Yapısı
 1. Giriş: Konuyu kısa bir özetle tanıt ve entry'lerden çıkan ana temaları belirt
@@ -110,8 +114,7 @@ Her alıntı şu formatta olsun:
 - Yanıt YALNIZCA blog yazısı olsun (Markdown formatında)
 - Başlık, alt başlıklar ve paragrafları uygun şekilde formatla
 - Entry'lerden bol bol alıntı yap, farklı görüşleri yansıt
-- Her alıntıda yazar, tarih ve link bilgilerini mutlaka ekle
-- Yanıtın compact olsun.`
+- Her alıntıda yazar, tarih ve link bilgilerini mutlaka ekle`
     },
     {
         name: "Şiir",
