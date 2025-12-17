@@ -19,7 +19,7 @@ Ekşi Sözlük AI Analiz eklentisinde kullanılan ve kaydedilen tüm verilerin y
 ### 2. `selectedModel`
 **Tip:** `string` | **Varsayılan:** `'gemini-2.5-flash'`  
 **Açıklama:** Seçili Gemini model ID'si.  
-**Değerler:** `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`, `gemini-3-pro-preview` (beta, ücretli)  
+**Değerler:** `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`, `gemini-3-pro-preview` (beta, ücretli), `gemini-3-flash-preview` (beta, ücretsiz)  
 **Kaynak:** `src/settings.js`, `src/options.js`, `src/model-select.js`
 
 ### 3. `prompts`

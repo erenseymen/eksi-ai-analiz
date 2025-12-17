@@ -44,6 +44,16 @@ const MODELS = [
         apiVersion: 'v1beta'
     },
     {
+        id: 'gemini-3-flash-preview',
+        name: '⚡ Gemini 3 Flash Preview',
+        description: 'Yeni nesil hızlı model, gelişmiş muhakeme yeteneği',
+        cost: '✅ Ücretsiz (Preview)',
+        contextWindow: 1048576,
+        responseTime: '~20 saniye',
+        isFree: true,
+        apiVersion: 'v1beta'
+    },
+    {
         id: 'gemini-2.5-pro',
         name: '⭐ Gemini 2.5 Pro',
         description: 'Güçlü muhakeme yeteneği',
