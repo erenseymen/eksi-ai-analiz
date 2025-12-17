@@ -17,13 +17,13 @@ Ekşi Sözlük başlıklarını yapay zeka ile analiz eden tarayıcı eklentisi.
 
 ### Chrome / Edge / Brave
 
-1. [GitHub Releases](https://github.com/erenseymen/eksi-ai-analiz/releases) sayfasından en son sürümün **chrome** zip dosyasını indirin
-2. Zip dosyasını bir klasöre çıkarın
-3. Tarayıcıda `chrome://extensions` (Edge için `edge://extensions`) sayfasına gidin
-4. Sağ üstteki "Geliştirici Modu"nu açın
-5. "Paketlenmemiş öğe yükle" butonuna tıklayın ve çıkardığınız klasörü seçin
-6. [Google AI Studio](https://aistudio.google.com/app/api-keys)'dan API key alın
-7. Eklenti ayarlarına API key'i girin
+**Önerilen Yöntem (Chrome Web Store):**
+
+1. [Chrome Web Store](https://chromewebstore.google.com/detail/ek%C5%9Fi-s%C3%B6zl%C3%BCk-ai-analiz/fjlkfppkffdjpcaegojbeeojjleohlpa)'dan eklentiyi yükleyin
+2. [Google AI Studio](https://aistudio.google.com/app/api-keys)'dan API key alın
+3. Eklenti ayarlarına API key'i girin
+
+> **Alternatif (Geliştirici Kurulumu):** [GitHub Releases](https://github.com/erenseymen/eksi-ai-analiz/releases) sayfasından en son sürümün **chrome** zip dosyasını indirip `chrome://extensions` (Edge için `edge://extensions`) sayfasından geliştirici modu ile yükleyebilirsiniz.
 
 ### Firefox
 
