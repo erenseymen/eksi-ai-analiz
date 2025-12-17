@@ -229,13 +229,6 @@ const createSourceEntriesHash = async (sourceEntries) => {
         return `sha256-${hashHex}`;
     } catch (error) {
         console.error('SHA-256 hash hesaplama hatası:', error);
-        // Fallback: basit hash (eski yöntem)
-        let hash = 0;
-        for (let i = 0; i < jsonString.length; i++) {
-            const char = jsonString.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash;
-        }
-        return `fallback-${Math.abs(hash).toString(36)}`;
+        throw new Error('Hash hesaplama başarısız oldu. crypto.subtle desteklenmiyor olabilir.');
     }
 };
