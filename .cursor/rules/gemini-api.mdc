@@ -22,6 +22,7 @@ Bu proje Google Gemini API kullanarak Ekşi Sözlük entry'lerini analiz eder.
 | `gemini-2.5-flash` | Gemini 2.5 Flash | Muhakeme yeteneği olan en iyi ücretsiz seçenek | v1 |
 | `gemini-2.5-flash-lite` | Gemini 2.5 Flash-Lite | En hızlı, düşük maliyet, basit görevler | v1 |
 | `gemini-3-pro-preview` | Gemini 3 Pro Preview | Beta, ücretli, yeni nesil muhakeme | v1beta |
+| `gemini-3-flash-preview` | Gemini 3 Flash Preview | Beta, ücretsiz, yeni nesil hızlı model | v1beta |
 
 ## API Endpoints
 
