@@ -807,20 +807,10 @@ const attachEventListeners = (scrapes) => {
             // Multi-analysis için
             if (multiAnalysisId) {
                 const multiAnalysis = scrapes.find(s => s.id === multiAnalysisId);
-                if (!multiAnalysis) return;
+                if (!multiAnalysis || !multiAnalysis.analyses) return;
 
-                // Yeni format: analyses array'den al, eski format: direkt item'dan al
-                let analysis;
-                if (analysisIdx !== null && multiAnalysis.analyses) {
-                    analysis = multiAnalysis.analyses[parseInt(analysisIdx)];
-                } else if (multiAnalysis.prompt) {
-                    // Eski format
-                    analysis = {
-                        prompt: multiAnalysis.prompt,
-                        response: multiAnalysis.response
-                    };
-                }
-
+                if (analysisIdx === null) return;
+                const analysis = multiAnalysis.analyses[parseInt(analysisIdx)];
                 if (!analysis) return;
 
                 const timestamp = formatTimestampForFilename(analysis.timestamp);
