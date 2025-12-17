@@ -68,12 +68,17 @@ const DEFAULT_PROMPTS = [
 - Markdown formatında yaz (başlıklar, listeler, vurgular kullan)
 - Bilgi verici, tarafsız ve profesyonel bir dil kullan
 - Akıcı ve okunabilir bir metin oluştur
-- Gereksiz spekülasyon veya çıkarımdan kaçın
+- Spekülasyondan kaçın, yalnızca entry'lerdeki bilgileri kullan
 - Entry'lerden bol bol alıntı yap
 
-## Çıktı:
-- Yanıtın sadece özet metni olsun, ek açıklama veya meta bilgi içermesin.
-- Yanıtın compact olsun.`
+## Çıktı Kuralları:
+1. Yanıtın EN BAŞINDA, aşağıdaki şablona birebir uyarak bir TL;DR bölümü oluştur.
+2. Yanıtın geri kalanı bu bölümden sonra gelmelidir.
+3. Yanıtın sadece özet metni olsun, giriş/çıkış konuşmaları ("İşte özetiniz" vb.) içermesin.
+4. Yanıtın compact olsun.
+
+## TL;DR Şablonu:
+> **TL;DR:** [Buraya entry'lerin ana fikrini özetleyen 2-3 cümlelik metin gelecek]`
     },
     {
         name: "Blog",
