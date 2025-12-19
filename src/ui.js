@@ -1094,30 +1094,45 @@ const startAuthorAnalysis = async () => {
     container.innerHTML = '<span class="eksi-ai-loading">Yazar entry\'leri toplanıyor...</span>';
     
     try {
-        // Yazar entry'leri linkini bul
+        let entries = [];
+        
+        // Strateji 1: "entry'ler" linkini bul ve oradan topla
         const entriesLink = document.querySelector('a[href*="/son-entryleri?nick="]');
-        if (!entriesLink) {
-            container.innerHTML = '<div class="eksi-ai-warning">Yazar entry\'leri bulunamadı.</div>';
+        
+        if (entriesLink) {
+            try {
+                const response = await fetch(entriesLink.href);
+                if (response.ok) {
+                    const text = await response.text();
+                    const doc = new DOMParser().parseFromString(text, 'text/html');
+                    const { entries: extractedEntries } = extractEntriesFromDoc(doc);
+                    entries = extractedEntries;
+                }
+            } catch (fetchErr) {
+                console.warn('Yazar entryleri fetch edilemedi, profil sayfasından denenecek.');
+            }
+        }
+        
+        // Strateji 2: Profil sayfasında hali hazırda görünen entry'leri al (sabitlenmiş veya son entry'ler)
+        if (entries.length === 0) {
+            const { entries: pageEntries } = extractEntriesFromDoc(document);
+            entries = pageEntries;
+        }
+        
+        if (entries.length === 0) {
+            container.innerHTML = '<div class="eksi-ai-warning">Yazarın entry\'leri toplanamadı. Profil gizli veya bir hata oluştu.</div>';
             return;
         }
         
-        const response = await fetch(entriesLink.href);
-        const text = await response.text();
-        const doc = new DOMParser().parseFromString(text, 'text/html');
-        
-        const statusSpan = container.querySelector('.eksi-ai-loading');
-        const { entries } = extractEntriesFromDoc(doc);
-        
-        // İlk 50 entry'yi al
+        // En fazla 50 entry'yi analiz et
         allEntries = entries.slice(0, 50);
         topicTitle = `${authorName} - Yazar Analizi (${allEntries.length} entry)`;
+        topicId = `author-${authorName}`;
         
-        if (allEntries.length > 0) {
-            await renderActions(container, shouldStopScraping);
-            addToggleVisibilityButton('eksi-ai-author-btn', 'eksi-ai-author-container');
-        } else {
-            container.innerHTML = '<div class="eksi-ai-warning">Hiç entry toplanamadı.</div>';
-        }
+        await renderActions(container, shouldStopScraping);
+        addToggleVisibilityButton('eksi-ai-author-btn', 'eksi-ai-author-container');
+        updateCachedResultsButtonState('eksi-ai-author-btn', 'eksi-ai-author-container');
+        
     } catch (err) {
         container.innerHTML = `<div class="eksi-ai-warning">Hata: ${escapeHtml(err.message)}</div>`;
     } finally {

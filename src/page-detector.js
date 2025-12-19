@@ -71,7 +71,7 @@ const detectPageType = () => {
         return 'channel-page';
     }
 
-    // Yazar profil sayfası
+    // Yazar profil sayfası (/biri/nick veya /biri/nick/usertopic vb.)
     if (path.startsWith('/biri/')) {
         return 'author-page';
     }
