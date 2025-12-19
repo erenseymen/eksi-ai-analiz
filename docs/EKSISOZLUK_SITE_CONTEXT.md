@@ -29,164 +29,50 @@
   - "pena": YouTube kanalı
   - "ekşişeyler": https://eksiseyler.com
 
-## Sayfa Yapıları
+## Sayfa Yapıları ve Seçiciler (Selectors)
 
-### Ana Sayfa (`/`)
-- Sol sidebar: Gündem başlıkları listesi
-  - Her başlık: başlık adı + entry sayısı
-  - "daha da ..." linki ile sayfalama
-- Ana içerik: Rastgele seçilmiş başlıklar ve entry'leri
-  - Her başlık için birkaç entry gösterilir
-  - Entry'ler kısaltılmış olabilir ("devamını okuyayım" linki)
-- Sağ sidebar: Reklamlar, sosyal medya widget'ları
+Eklenti geliştirme sürecinde kullanılan temel DOM seçicileri ve sayfa yapıları:
 
-### Başlık Sayfası (`/baslik-adi--id`)
-- **URL Formatı**: `/baslik-adi--id` (örn: `/yapay-zeka--42117`)
-- **Başlık Başlığı**: H1 etiketi ile başlık adı
-- **Şükela Filtresi**: 
-  - Dropdown ile sayfa seçimi (1, 2, 3...)
-  - Toplam sayfa sayısı gösterilir
-- **Entry Listesi**:
-  - Her entry bir `<li>` elementi
-  - Entry içeriği (metin)
-  - Entry metadata:
-    - Yazar adı (link: `/biri/yazar-adi`)
-    - Tarih (link: `/entry/entry-id`)
-    - Yazar avatar (varsa)
-  - Entry aksiyonları:
-    - "share" - Paylaş
-    - "diğer" - Diğer seçenekler
-    - "şükela!" - Beğen
-    - "çok kötü" - Beğenme
-- **Sayfalama**: Alt kısımda sayfa navigasyonu
+### Başlık Sayfası (`topic-page`)
+- **URL**: `/baslik-adi--id`
+- **Başlık**: `h1` veya `#topic h1`
+- **Entry Listesi**: `#entry-item-list > li`
+- **Entry İçeriği**: `.content` (HTML formatında, kısaltılmış URL'ler içerebilir)
+- **Yazar**: `.entry-author` veya `a[href^="/biri/"]`
+- **Tarih/Link**: `.entry-date` veya `a[href^="/entry/"]`
+- **Sayfalama**: `.pager` elementi, `data-pagecount` ve `data-currentpage` attribute'ları
 
-### Gündem Sayfası (`/basliklar/gundem`)
-- Başlıklar listesi
-- Her başlık için entry sayısı gösterilir
-- Sayfalama: `?p=2` parametresi ile
+### Gündem Sayfası (`gundem-page`)
+- **URL**: `/basliklar/gundem`
+- **Navigasyon Başlığı**: `nav h2`
+- **Başlık Linkleri**: `nav ul li a[href*="?a=popular"]` (Başlık adı ve popülerlik parametresi içerir)
+- **Karakteristik**: Sol sidebar'daki popüler başlıkların listelendiği sayfa.
 
-### Arama
-- Arama kutusuna yazılan terim direkt başlık sayfasına yönlendirir
-- Eğer başlık bulunursa o başlığın sayfası açılır
-- Arama sonuçları URL'de slug formatında: `/arama-terimi--id`
+### DEBE Sayfası (`debe-page`)
+- **URL**: `/debe`
+- **Navigasyon Başlığı**: `nav h2`
+- **Entry Linkleri**: `nav ul li a[href*="?debe=true"]`
+- **Karakteristik**: Dünün en beğenilen entry'lerinin (Dünün En Beğenilen Entry'leri) listesi.
 
-## Entry Yapısı
-
-### Entry İçeriği
-- Metin içeriği (HTML formatında)
-- İç linkler: `(bkz: başlık adı)` formatında
-- Entry linkleri: `/?q=baslik-adi` formatında
-- Uzun entry'ler: "devamını okuyayım" butonu ile genişletilir
-
-### Entry Metadata
-- **Yazar**: `/biri/yazar-adi` linki
-- **Tarih**: `/entry/entry-id` linki (tam entry sayfasına götürür)
-- **Avatar**: Yazar profil resmi (varsa)
-- **Oylama**: Şükela (beğen) / Çok kötü (beğenme) butonları
-
-### Entry Aksiyonları
-- Share (paylaş)
-- Diğer (dropdown menü)
-- Şükela! (beğen)
-- Çok kötü (beğenme)
-
-## URL Yapıları
-
-### Başlık URL'leri
-- Format: `/baslik-adi--id`
-- Örnek: `/yapay-zeka--42117`
-- Query parametreleri:
-  - `?p=2` - Sayfa numarası
-  - `?a=popular` - Popüler sıralama
-
-### Entry URL'leri
-- Format: `/entry/entry-id`
-- Örnek: `/entry/165091532`
-
-### Yazar Profil URL'leri
-- Format: `/biri/yazar-adi`
-- Örnek: `/biri/phi-fenomen`
-
-### Kanal URL'leri
-- Format: `/basliklar/kanal/kanal-adi`
-- Örnek: `/basliklar/kanal/spor`
-
-## Özel Özellikler
-
-### Şükela Sistemi
-- Entry'leri beğenme/beğenmeme sistemi
-- Şükela filtresi ile en beğenilen entry'ler görüntülenebilir
-- Sayfa bazlı filtreleme mevcut
-
-### Debe
-- En beğenilen entry'lerin listesi
-- `/debe` sayfasında gösterilir
-
-### Kanallar
-- Konu bazlı başlık kategorileri
-- Her kanal kendi sayfasına sahip
-- Örnek kanallar: spor, ilişkiler, yaşam, siyaset, anket, vb.
-
-### Ekşi Şeyler Entegrasyonu
-- Bazı entry'lerde "ekşi şeyler'deki derlemeye git" linki
-- https://eksiseyler.com adresine yönlendirir
-
-## Reklam Yapısı
-- Iframe içinde gösterilen reklamlar
-- Sponsorlu içerikler "sponsorlu" etiketi ile işaretlenir
-- Reklamlar sidebar ve içerik arasında yerleştirilir
-
-## Footer
-- İletişim, şeffaflık raporları, sözlük kuralları
-- Reklam, kariyer, kullanım koşulları
-- Gizlilik politikası, SSS, istatistikler
-- Sosyal medya linkleri: Instagram, X (Twitter), Bluesky, Facebook
-
-## Cookie/Gizlilik
-- Cookie onay dialog'u mevcut
-- "tümünü kabul et" / "tümünü reddet" seçenekleri
-- Çerez politikası linki: `/entry/65310835`
-
-## Teknik Detaylar
-
-### HTML Yapısı
-- Semantic HTML5 elementleri kullanılıyor
-- `<main>`, `<nav>`, `<header>`, `<footer>` etiketleri
-- Accessibility için ARIA ref'leri mevcut
-- Responsive tasarım (iframe'ler mobil uyumlu)
-
-### Entry Sayfalama
-- Dropdown ile sayfa seçimi
-- Toplam sayfa sayısı gösterilir
-- "»" ile sonraki sayfaya geçiş
-- URL'de `?p=2` parametresi ile sayfa değişimi
-
-### Dinamik İçerik
-- JavaScript ile dinamik yükleme
-- Entry'ler "devamını okuyayım" ile genişletilebilir
-- Sayfa navigasyonu AJAX ile çalışabilir
+### Yazar Profil Sayfası (`author-page`)
+- **URL**: `/biri/yazar-adi`
+- **Yazar Adı**: `main h1`
+- **Entry'ler Linki**: `a[href*="/son-entryleri?nick="]` (Yazarın tüm entry'lerine giden link)
 
 ## Eklenti Geliştirme İçin Önemli Notlar
 
-### Selector'lar
-- Entry'ler: `list[ref=e216] > listitem` yapısında
-- Başlık başlığı: `heading[level=1]` içinde
-- Yazar linki: `/biri/yazar-adi` formatında
-- Entry linki: `/entry/entry-id` formatında
+### Selector'lar ve DOM Yapısı
+- Entry içeriği çıkarılırken `.content` içindeki `<br>` etiketleri yeni satıra (`\n`) dönüştürülmelidir.
+- Ekşi Sözlük uzun URL'leri link metninde `...` ile kısaltır; gerçek URL `href` attribute'undan alınmalıdır.
+- "Gizli bakınız"lar (`*` işaretli linkler) `title` attribute'unda asıl referansı barındırır.
 
-### İçerik Çıkarma
-- Entry metni: `generic[ref=e218]` veya benzeri içinde
-- Yazar bilgisi: `link[href*="/biri/"]` ile bulunabilir
-- Tarih: `link[href*="/entry/"]` ile bulunabilir
-
-### Navigasyon
-- Başlık linkleri: `link[href*="--"]` pattern'i ile bulunabilir
-- Arama: Form submit ile çalışır
-- Sayfalama: Query parametreleri ile (`?p=2`)
+### Navigasyon ve Scraping
+- Sayfalama `?p=N` parametresi ile yönetilir.
+- `focusto=ID` parametresi, belirli bir entry'nin bulunduğu sayfaya odaklanmayı sağlar.
+- Çok sayfalı başlıklarda her sayfa `fetch` edilerek entry'ler birleştirilir.
 
 ### Özel Durumlar
-- Uzun entry'ler "devamını okuyayım" ile genişletilir
-- Bazı entry'ler ekşi şeyler'e link içerir
-- Reklamlar iframe içinde, bunlar filtrelenmeli
-- Cookie dialog'u sayfa yüklendiğinde görünebilir
+- **Uzun Entry'ler**: Bazı sayfalarda entry'ler "devamını okuyayım" butonu ile gizlenmiş olabilir, tam metin için entry'nin kendi sayfasına gidilmesi gerekebilir.
+- **Tema Tespiti**: `document.body` üzerindeki arka plan rengi analiz edilerek Karanlık/Aydınlık mod tespiti yapılır.
+- **Rate Limiting**: Çok fazla sayfayı ardarda fetch etmek `429 Too Many Requests` hatasına yol açabilir, exponential backoff kullanılmalıdır.
 
