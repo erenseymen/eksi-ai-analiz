@@ -27,6 +27,7 @@
 const init = () => {
     const pageType = detectPageType();
 
+    // Sayfa tipine göre UI'ı hazırla
     switch (pageType) {
         case 'topic-page':
             initTopicPage();
@@ -57,9 +58,6 @@ const init = () => {
             // Desteklenmeyen sayfa tiplerinde buton gösterme
             break;
     }
-    
-    // Klavye kısayollarını etkinleştir
-    setupKeyboardShortcuts();
 };
 
 /**
@@ -117,39 +115,6 @@ const initAuthorPage = () => {
     const authorHeading = document.querySelector('main h1');
     if (!authorHeading || document.getElementById('eksi-ai-author-btn')) return;
     createAuthorAnalysisButton(authorHeading);
-};
-
-/**
- * Klavye kısayollarını ayarlar.
- */
-const setupKeyboardShortcuts = () => {
-    document.addEventListener('keydown', (e) => {
-        // Ctrl+Shift+A: Analiz başlat
-        if (e.ctrlKey && e.shiftKey && e.key === 'A') {
-            e.preventDefault();
-            const mainBtn = document.getElementById('eksi-ai-main-btn') || 
-                           document.getElementById('eksi-ai-entry-btn') ||
-                           document.getElementById('eksi-ai-topic-list-btn') ||
-                           document.getElementById('eksi-ai-gundem-btn') ||
-                           document.getElementById('eksi-ai-debe-btn') ||
-                           document.getElementById('eksi-ai-author-btn');
-            if (mainBtn) mainBtn.click();
-        }
-        
-        // Ctrl+Shift+S: Özet çıkar
-        if (e.ctrlKey && e.shiftKey && e.key === 'S') {
-            e.preventDefault();
-            const ozetBtn = document.getElementById('btn-prompt-0');
-            if (ozetBtn) ozetBtn.click();
-        }
-        
-        // Ctrl+Shift+B: Blog yazısı oluştur
-        if (e.ctrlKey && e.shiftKey && e.key === 'B') {
-            e.preventDefault();
-            const blogBtn = document.getElementById('btn-prompt-1');
-            if (blogBtn) blogBtn.click();
-        }
-    });
 };
 
 // =============================================================================
