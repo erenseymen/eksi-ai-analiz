@@ -105,6 +105,7 @@ const callGeminiApi = async (apiKey, modelId, prompt, signal) => {
  * 
  * SSE (Server-Sent Events) kullanarak yanıtı parça parça alır.
  * Her parça geldiğinde callback fonksiyonunu çağırır.
+ * Ağ hataları için otomatik yeniden deneme yapar.
  * 
  * @param {string} apiKey - Gemini API anahtarı
  * @param {string} modelId - Kullanılacak model ID'si
@@ -123,28 +124,37 @@ const callGeminiApiStreaming = async (apiKey, modelId, prompt, signal, onChunk) 
     // streamGenerateContent endpoint'i + SSE formatı için alt=sse
     const url = `https://generativelanguage.googleapis.com/${apiVersion}/models/${modelId}:streamGenerateContent?alt=sse&key=${apiKey}`;
 
-    try {
-        // Request body oluştur
-        let requestBody;
+    // Request body oluştur
+    let requestBody;
 
-        if (apiVersion === 'v1beta') {
-            requestBody = {
-                systemInstruction: {
-                    parts: [{ text: SYSTEM_PROMPT }]
-                },
-                contents: [{
-                    parts: [{ text: prompt }]
-                }]
-            };
-        } else {
-            const combinedPrompt = `${SYSTEM_PROMPT}\n\n${prompt}`;
-            requestBody = {
-                contents: [{
-                    parts: [{ text: combinedPrompt }]
-                }]
-            };
+    if (apiVersion === 'v1beta') {
+        requestBody = {
+            systemInstruction: {
+                parts: [{ text: SYSTEM_PROMPT }]
+            },
+            contents: [{
+                parts: [{ text: prompt }]
+            }]
+        };
+    } else {
+        const combinedPrompt = `${SYSTEM_PROMPT}\n\n${prompt}`;
+        requestBody = {
+            contents: [{
+                parts: [{ text: combinedPrompt }]
+            }]
+        };
+    }
+
+    // Retry callback - kullanıcıya bildirim
+    const onRetry = (attempt, delay, err) => {
+        if (onChunk) {
+            const waitSec = Math.ceil(delay / 1000);
+            onChunk('', `⏳ Bağlantı hatası. ${waitSec} saniye sonra tekrar deneniyor... (${attempt}/3)\n`);
         }
+    };
 
+    // Fetch işlemi (retry destekli)
+    const makeRequest = async () => {
         const response = await fetch(url, {
             method: 'POST',
             headers: {
@@ -155,13 +165,28 @@ const callGeminiApiStreaming = async (apiKey, modelId, prompt, signal, onChunk) 
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
-            const errorMsg = errorData.error?.message || 'API request failed';
+            // Rate limit kontrolü
+            if (response.status === 429) {
+                const delay = getRateLimitDelay(response);
+                const error = new Error(`Rate limit aşıldı. ${Math.ceil(delay / 1000)} saniye bekleyin.`);
+                error.status = 429;
+                throw error;
+            }
+            
+            const errorData = await response.json().catch(() => ({}));
+            const errorMsg = errorData.error?.message || `API isteği başarısız (${response.status})`;
             const fullError = errorData.error?.details
                 ? `${errorMsg}\n\n${JSON.stringify(errorData.error.details, null, 2)}`
                 : errorMsg;
             throw new Error(fullError);
         }
+
+        return response;
+    };
+
+    try {
+        // Retry mekanizması ile istek yap
+        const response = await retryWithBackoff(makeRequest, MAX_RETRIES, onRetry);
 
         // SSE stream'ini oku
         const reader = response.body.getReader();

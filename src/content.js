@@ -34,11 +34,17 @@ const init = () => {
         case 'entry-page':
             initEntryPage();
             break;
-        case 'home-page':
         case 'gundem-page':
-        case 'olay-page':
+            initGundemPage();
+            break;
         case 'debe-page':
+            initDebePage();
+            break;
         case 'author-page':
+            initAuthorPage();
+            break;
+        case 'home-page':
+        case 'olay-page':
         case 'channel-page':
         case 'statistics-page':
             // Bu sayfalarda buton gösterme
@@ -47,6 +53,9 @@ const init = () => {
             // Desteklenmeyen sayfa tiplerinde buton gösterme
             break;
     }
+    
+    // Klavye kısayollarını etkinleştir
+    setupKeyboardShortcuts();
 };
 
 /**
@@ -72,6 +81,68 @@ const initEntryPage = () => {
     const heading = document.querySelector('#topic h1') || document.querySelector('h1');
     if (!heading) return;
     createSingleEntryButton(heading);
+};
+
+/**
+ * Gündem sayfası için UI'ı hazırlar.
+ * Sol paneldeki başlıkları toplu analiz etme özelliği ekler.
+ */
+const initGundemPage = () => {
+    const gundemHeading = document.querySelector('nav h2');
+    if (!gundemHeading || document.getElementById('eksi-ai-gundem-btn')) return;
+    createGundemAnalysisButton(gundemHeading);
+};
+
+/**
+ * DEBE sayfası için UI'ı hazırlar.
+ * Dünün en beğenilen entry'lerini toplu analiz etme özelliği ekler.
+ */
+const initDebePage = () => {
+    const debeHeading = document.querySelector('nav h2');
+    if (!debeHeading || document.getElementById('eksi-ai-debe-btn')) return;
+    createDebeAnalysisButton(debeHeading);
+};
+
+/**
+ * Yazar profil sayfası için UI'ı hazırlar.
+ * Yazarın son entry'lerini analiz etme özelliği ekler.
+ */
+const initAuthorPage = () => {
+    const authorHeading = document.querySelector('main h1');
+    if (!authorHeading || document.getElementById('eksi-ai-author-btn')) return;
+    createAuthorAnalysisButton(authorHeading);
+};
+
+/**
+ * Klavye kısayollarını ayarlar.
+ */
+const setupKeyboardShortcuts = () => {
+    document.addEventListener('keydown', (e) => {
+        // Ctrl+Shift+A: Analiz başlat
+        if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+            e.preventDefault();
+            const mainBtn = document.getElementById('eksi-ai-main-btn') || 
+                           document.getElementById('eksi-ai-entry-btn') ||
+                           document.getElementById('eksi-ai-gundem-btn') ||
+                           document.getElementById('eksi-ai-debe-btn') ||
+                           document.getElementById('eksi-ai-author-btn');
+            if (mainBtn) mainBtn.click();
+        }
+        
+        // Ctrl+Shift+S: Özet çıkar
+        if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+            e.preventDefault();
+            const ozetBtn = document.getElementById('btn-prompt-0');
+            if (ozetBtn) ozetBtn.click();
+        }
+        
+        // Ctrl+Shift+B: Blog yazısı oluştur
+        if (e.ctrlKey && e.shiftKey && e.key === 'B') {
+            e.preventDefault();
+            const blogBtn = document.getElementById('btn-prompt-1');
+            if (blogBtn) blogBtn.click();
+        }
+    });
 };
 
 // =============================================================================
@@ -131,7 +202,11 @@ init();
 
 // Tema gözlemcisini başlat
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupThemeObserver);
+    document.addEventListener('DOMContentLoaded', () => {
+        setupThemeObserver();
+        createFAB();
+    });
 } else {
     setupThemeObserver();
+    createFAB();
 }

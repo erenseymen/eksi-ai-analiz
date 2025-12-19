@@ -15,6 +15,156 @@ const updateContainerTheme = (container) => {
     }
 };
 
+// =============================================================================
+// FLOATING ACTION BUTTON (FAB)
+// =============================================================================
+
+/**
+ * Sabit konumlu FAB butonunu oluşturur.
+ * Desteklenen sayfa tiplerinde sağ alt köşede görünür.
+ */
+const createFAB = () => {
+    if (document.getElementById('eksi-ai-fab')) return;
+    
+    const pageType = detectPageType();
+    const supportedPages = ['topic-page', 'entry-page', 'gundem-page', 'debe-page', 'author-page'];
+    
+    if (!supportedPages.includes(pageType)) return;
+    
+    const fab = document.createElement('div');
+    fab.id = 'eksi-ai-fab';
+    fab.className = 'eksi-ai-fab';
+    updateContainerTheme(fab);
+    
+    // FAB menüsü
+    const menu = document.createElement('div');
+    menu.className = 'eksi-ai-fab-menu';
+    menu.innerHTML = `
+        <div class="eksi-ai-fab-item">
+            <button class="eksi-ai-fab-btn" data-action="analyze">📊 Analiz Et<span class="eksi-ai-shortcut-badge">Ctrl+Shift+A</span></button>
+        </div>
+        <div class="eksi-ai-fab-item">
+            <button class="eksi-ai-fab-btn" data-action="summary">📝 Özet<span class="eksi-ai-shortcut-badge">Ctrl+Shift+S</span></button>
+        </div>
+        <div class="eksi-ai-fab-item">
+            <button class="eksi-ai-fab-btn" data-action="blog">✍️ Blog<span class="eksi-ai-shortcut-badge">Ctrl+Shift+B</span></button>
+        </div>
+    `;
+    
+    // Ana FAB butonu
+    const mainBtn = document.createElement('button');
+    mainBtn.className = 'eksi-ai-fab-main';
+    mainBtn.innerHTML = '✨';
+    mainBtn.setAttribute('aria-label', 'AI Analiz Menüsü');
+    
+    // Tooltip
+    const tooltip = document.createElement('div');
+    tooltip.className = 'eksi-ai-fab-tooltip';
+    tooltip.textContent = 'AI Analiz';
+    
+    fab.appendChild(menu);
+    fab.appendChild(mainBtn);
+    fab.appendChild(tooltip);
+    document.body.appendChild(fab);
+    
+    // FAB tıklama olayı
+    mainBtn.onclick = () => {
+        mainBtn.classList.toggle('open');
+        menu.classList.toggle('open');
+    };
+    
+    // Menü buton olayları
+    menu.querySelectorAll('.eksi-ai-fab-btn').forEach(btn => {
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            const action = btn.getAttribute('data-action');
+            handleFABAction(action);
+            mainBtn.classList.remove('open');
+            menu.classList.remove('open');
+        };
+    });
+    
+    // Dışarı tıklandığında menüyü kapat
+    document.addEventListener('click', (e) => {
+        if (!fab.contains(e.target)) {
+            mainBtn.classList.remove('open');
+            menu.classList.remove('open');
+        }
+    });
+};
+
+/**
+ * FAB buton aksiyonlarını işler.
+ * @param {string} action - Aksiyon tipi (analyze, summary, blog)
+ */
+const handleFABAction = (action) => {
+    const pageType = detectPageType();
+    
+    // Ana analiz butonunu bul
+    let mainBtn = null;
+    switch (pageType) {
+        case 'topic-page':
+            mainBtn = document.getElementById('eksi-ai-main-btn');
+            break;
+        case 'entry-page':
+            mainBtn = document.getElementById('eksi-ai-entry-btn');
+            break;
+        case 'gundem-page':
+            mainBtn = document.getElementById('eksi-ai-gundem-btn');
+            break;
+        case 'debe-page':
+            mainBtn = document.getElementById('eksi-ai-debe-btn');
+            break;
+        case 'author-page':
+            mainBtn = document.getElementById('eksi-ai-author-btn');
+            break;
+    }
+    
+    if (!mainBtn) return;
+    
+    switch (action) {
+        case 'analyze':
+            mainBtn.click();
+            break;
+        case 'summary':
+            // Önce analiz başlat, sonra özet butonuna tıkla
+            if (allEntries.length === 0) {
+                mainBtn.click();
+                // Entry'ler toplandıktan sonra özet butonuna tıkla
+                const checkInterval = setInterval(() => {
+                    const summaryBtn = document.getElementById('btn-prompt-0');
+                    if (summaryBtn) {
+                        clearInterval(checkInterval);
+                        setTimeout(() => summaryBtn.click(), 500);
+                    }
+                }, 500);
+                // 30 saniye sonra durdur
+                setTimeout(() => clearInterval(checkInterval), 30000);
+            } else {
+                const summaryBtn = document.getElementById('btn-prompt-0');
+                if (summaryBtn) summaryBtn.click();
+            }
+            break;
+        case 'blog':
+            // Önce analiz başlat, sonra blog butonuna tıkla
+            if (allEntries.length === 0) {
+                mainBtn.click();
+                const checkInterval = setInterval(() => {
+                    const blogBtn = document.getElementById('btn-prompt-1');
+                    if (blogBtn) {
+                        clearInterval(checkInterval);
+                        setTimeout(() => blogBtn.click(), 500);
+                    }
+                }, 500);
+                setTimeout(() => clearInterval(checkInterval), 30000);
+            } else {
+                const blogBtn = document.getElementById('btn-prompt-1');
+                if (blogBtn) blogBtn.click();
+            }
+            break;
+    }
+};
+
 const createAnalysisButton = async (h1Element, topicId = null, useCurrentPage = false) => {
     if (!h1Element) return;
     const existingBtnId = topicId ? `eksi-ai-main-btn-${topicId}` : 'eksi-ai-main-btn';
@@ -823,4 +973,301 @@ const scrapeEntries = async () => {
     else { const sp = new URLSearchParams(existingParams); sp.set('p', startPage.toString()); if (statusSpan) statusSpan.textContent = `Sayfa ${startPage}/${totalPages} taranıyor...`; const r = await fetch(`${baseUrl}?${sp.toString()}`); const { entries } = extractEntriesFromDoc(new DOMParser().parseFromString(await r.text(), 'text/html')); allEntries.push(...entries); }
     for (let i = startPage + 1; i <= totalPages; i++) { if (shouldStopScraping) { if (statusSpan) statusSpan.textContent = `Durduruldu. ${allEntries.length} entry.`; break; } if (statusSpan) statusSpan.textContent = `Sayfa ${i}/${totalPages} taranıyor...`; const p = new URLSearchParams(existingParams); p.set('p', i.toString()); const r = await fetch(`${baseUrl}?${p.toString()}`); const { entries } = extractEntriesFromDoc(new DOMParser().parseFromString(await r.text(), 'text/html')); allEntries.push(...entries); }
     if (!shouldStopScraping) await fetchAllReferencedEntries(statusSpan);
+};
+
+// =============================================================================
+// GÜNDEM SAYFASI DESTEĞİ
+// =============================================================================
+
+/**
+ * Gündem sayfası için analiz butonu oluşturur.
+ * @param {HTMLElement} heading - Gündem başlık elementi
+ */
+const createGundemAnalysisButton = (heading) => {
+    if (!heading || document.getElementById('eksi-ai-gundem-btn')) return;
+    
+    const btn = document.createElement('button');
+    btn.id = 'eksi-ai-gundem-btn';
+    btn.className = 'eksi-ai-btn';
+    btn.textContent = "📊 Gündemi Analiz Et";
+    btn.style.marginLeft = '10px';
+    btn.style.marginTop = '5px';
+    btn.onclick = startGundemAnalysis;
+    
+    heading.parentNode.insertBefore(btn, heading.nextSibling);
+    
+    const container = document.createElement('div');
+    container.id = 'eksi-ai-gundem-container';
+    container.className = 'eksi-ai-container';
+    container.style.display = 'none';
+    updateContainerTheme(container);
+    btn.parentNode.insertBefore(container, btn.nextSibling);
+};
+
+/**
+ * Gündem başlıklarını toplar ve analiz eder.
+ */
+const startGundemAnalysis = async () => {
+    const btn = document.getElementById('eksi-ai-gundem-btn');
+    const container = document.getElementById('eksi-ai-gundem-container');
+    if (!btn || !container) return;
+    
+    shouldStopScraping = false;
+    responseCache.clear();
+    lastCustomPrompt = null;
+    
+    btn.textContent = 'Durdur';
+    btn.onclick = stopScraping;
+    container.style.display = 'block';
+    container.innerHTML = '<span class="eksi-ai-loading">Gündem başlıkları toplanıyor...</span>';
+    
+    try {
+        // Gündem listesindeki başlıkları bul
+        const gundemLinks = document.querySelectorAll('nav ul li a[href*="?a=popular"]');
+        const topics = [];
+        
+        gundemLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            const title = link.textContent.replace(/\d+$/, '').trim();
+            if (href && title) {
+                topics.push({ title, url: `https://eksisozluk.com${href}` });
+            }
+        });
+        
+        if (topics.length === 0) {
+            container.innerHTML = '<div class="eksi-ai-warning">Gündem başlıkları bulunamadı.</div>';
+            return;
+        }
+        
+        const statusSpan = container.querySelector('.eksi-ai-loading');
+        allEntries = [];
+        topicTitle = `Gündem Özeti (${topics.length} başlık)`;
+        
+        // Her başlıktan ilk 5 entry'yi topla
+        const entriesPerTopic = 5;
+        for (let i = 0; i < topics.length; i++) {
+            if (shouldStopScraping) break;
+            
+            const topic = topics[i];
+            if (statusSpan) statusSpan.textContent = `${topic.title} taranıyor... (${i + 1}/${topics.length})`;
+            
+            try {
+                const response = await fetch(topic.url);
+                const text = await response.text();
+                const doc = new DOMParser().parseFromString(text, 'text/html');
+                const { entries } = extractEntriesFromDoc(doc);
+                
+                // İlk N entry'yi ekle, başlık bilgisiyle birlikte
+                entries.slice(0, entriesPerTopic).forEach(entry => {
+                    entry.topicTitle = topic.title;
+                    allEntries.push(entry);
+                });
+            } catch (err) {
+                // Hata durumunda devam et
+            }
+        }
+        
+        if (allEntries.length > 0) {
+            await renderActions(container, shouldStopScraping);
+            addToggleVisibilityButton('eksi-ai-gundem-btn', 'eksi-ai-gundem-container');
+        } else {
+            container.innerHTML = '<div class="eksi-ai-warning">Hiç entry toplanamadı.</div>';
+        }
+    } catch (err) {
+        container.innerHTML = `<div class="eksi-ai-warning">Hata: ${escapeHtml(err.message)}</div>`;
+    } finally {
+        btn.textContent = "📊 Gündemi Analiz Et";
+        btn.onclick = startGundemAnalysis;
+    }
+};
+
+// =============================================================================
+// DEBE SAYFASI DESTEĞİ
+// =============================================================================
+
+/**
+ * DEBE sayfası için analiz butonu oluşturur.
+ * @param {HTMLElement} heading - DEBE başlık elementi
+ */
+const createDebeAnalysisButton = (heading) => {
+    if (!heading || document.getElementById('eksi-ai-debe-btn')) return;
+    
+    const btn = document.createElement('button');
+    btn.id = 'eksi-ai-debe-btn';
+    btn.className = 'eksi-ai-btn';
+    btn.textContent = "⭐ DEBE'yi Analiz Et";
+    btn.style.marginLeft = '10px';
+    btn.style.marginTop = '5px';
+    btn.onclick = startDebeAnalysis;
+    
+    heading.parentNode.insertBefore(btn, heading.nextSibling);
+    
+    const container = document.createElement('div');
+    container.id = 'eksi-ai-debe-container';
+    container.className = 'eksi-ai-container';
+    container.style.display = 'none';
+    updateContainerTheme(container);
+    btn.parentNode.insertBefore(container, btn.nextSibling);
+};
+
+/**
+ * DEBE entry'lerini toplar ve analiz eder.
+ */
+const startDebeAnalysis = async () => {
+    const btn = document.getElementById('eksi-ai-debe-btn');
+    const container = document.getElementById('eksi-ai-debe-container');
+    if (!btn || !container) return;
+    
+    shouldStopScraping = false;
+    responseCache.clear();
+    lastCustomPrompt = null;
+    
+    btn.textContent = 'Durdur';
+    btn.onclick = stopScraping;
+    container.style.display = 'block';
+    container.innerHTML = '<span class="eksi-ai-loading">DEBE entry\'leri toplanıyor...</span>';
+    
+    try {
+        // DEBE listesindeki entry linklerini bul
+        const debeLinks = document.querySelectorAll('nav ul li a[href*="?debe=true"]');
+        const entries = [];
+        
+        const statusSpan = container.querySelector('.eksi-ai-loading');
+        
+        for (let i = 0; i < debeLinks.length; i++) {
+            if (shouldStopScraping) break;
+            
+            const link = debeLinks[i];
+            const href = link.getAttribute('href');
+            const topicTitle = link.textContent.trim();
+            
+            if (statusSpan) statusSpan.textContent = `Entry ${i + 1}/${debeLinks.length} alınıyor...`;
+            
+            try {
+                const response = await fetch(`https://eksisozluk.com${href}`);
+                const text = await response.text();
+                const doc = new DOMParser().parseFromString(text, 'text/html');
+                
+                const entryItem = doc.querySelector('#entry-item-list > li');
+                if (entryItem) {
+                    const contentElement = entryItem.querySelector('.content');
+                    const content = extractContentWithFullUrls(contentElement);
+                    const author = entryItem.querySelector('.entry-author')?.innerText.trim();
+                    const date = entryItem.querySelector('.entry-date')?.innerText.trim();
+                    const id = entryItem.getAttribute('data-id');
+                    
+                    if (content) {
+                        entries.push({
+                            id,
+                            author,
+                            date,
+                            content,
+                            topicTitle
+                        });
+                    }
+                }
+            } catch (err) {
+                // Hata durumunda devam et
+            }
+        }
+        
+        allEntries = entries;
+        topicTitle = `DEBE Özeti (${entries.length} entry)`;
+        
+        if (allEntries.length > 0) {
+            await renderActions(container, shouldStopScraping);
+            addToggleVisibilityButton('eksi-ai-debe-btn', 'eksi-ai-debe-container');
+        } else {
+            container.innerHTML = '<div class="eksi-ai-warning">Hiç entry toplanamadı.</div>';
+        }
+    } catch (err) {
+        container.innerHTML = `<div class="eksi-ai-warning">Hata: ${escapeHtml(err.message)}</div>`;
+    } finally {
+        btn.textContent = "⭐ DEBE'yi Analiz Et";
+        btn.onclick = startDebeAnalysis;
+    }
+};
+
+// =============================================================================
+// YAZAR PROFİL SAYFASI DESTEĞİ
+// =============================================================================
+
+/**
+ * Yazar profil sayfası için analiz butonu oluşturur.
+ * @param {HTMLElement} heading - Yazar başlık elementi
+ */
+const createAuthorAnalysisButton = (heading) => {
+    if (!heading || document.getElementById('eksi-ai-author-btn')) return;
+    
+    const authorName = heading.textContent.trim();
+    
+    const btn = document.createElement('button');
+    btn.id = 'eksi-ai-author-btn';
+    btn.className = 'eksi-ai-btn';
+    btn.textContent = "👤 Yazarı Analiz Et";
+    btn.style.marginLeft = '10px';
+    btn.style.marginTop = '5px';
+    btn.onclick = startAuthorAnalysis;
+    
+    heading.parentNode.insertBefore(btn, heading.nextSibling);
+    
+    const container = document.createElement('div');
+    container.id = 'eksi-ai-author-container';
+    container.className = 'eksi-ai-container';
+    container.style.display = 'none';
+    container.setAttribute('data-author', authorName);
+    updateContainerTheme(container);
+    btn.parentNode.insertBefore(container, btn.nextSibling);
+};
+
+/**
+ * Yazar entry'lerini toplar ve analiz eder.
+ */
+const startAuthorAnalysis = async () => {
+    const btn = document.getElementById('eksi-ai-author-btn');
+    const container = document.getElementById('eksi-ai-author-container');
+    if (!btn || !container) return;
+    
+    const authorName = container.getAttribute('data-author') || 'Yazar';
+    
+    shouldStopScraping = false;
+    responseCache.clear();
+    lastCustomPrompt = null;
+    
+    btn.textContent = 'Durdur';
+    btn.onclick = stopScraping;
+    container.style.display = 'block';
+    container.innerHTML = '<span class="eksi-ai-loading">Yazar entry\'leri toplanıyor...</span>';
+    
+    try {
+        // Yazar entry'leri linkini bul
+        const entriesLink = document.querySelector('a[href*="/son-entryleri?nick="]');
+        if (!entriesLink) {
+            container.innerHTML = '<div class="eksi-ai-warning">Yazar entry\'leri bulunamadı.</div>';
+            return;
+        }
+        
+        const response = await fetch(entriesLink.href);
+        const text = await response.text();
+        const doc = new DOMParser().parseFromString(text, 'text/html');
+        
+        const statusSpan = container.querySelector('.eksi-ai-loading');
+        const { entries } = extractEntriesFromDoc(doc);
+        
+        // İlk 50 entry'yi al
+        allEntries = entries.slice(0, 50);
+        topicTitle = `${authorName} - Yazar Analizi (${allEntries.length} entry)`;
+        
+        if (allEntries.length > 0) {
+            await renderActions(container, shouldStopScraping);
+            addToggleVisibilityButton('eksi-ai-author-btn', 'eksi-ai-author-container');
+        } else {
+            container.innerHTML = '<div class="eksi-ai-warning">Hiç entry toplanamadı.</div>';
+        }
+    } catch (err) {
+        container.innerHTML = `<div class="eksi-ai-warning">Hata: ${escapeHtml(err.message)}</div>`;
+    } finally {
+        btn.textContent = "👤 Yazarı Analiz Et";
+        btn.onclick = startAuthorAnalysis;
+    }
 };

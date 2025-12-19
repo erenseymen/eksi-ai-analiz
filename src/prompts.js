@@ -117,8 +117,81 @@ Her alıntı şu formatta olsun:
 - Her alıntıda yazar, tarih ve link bilgilerini mutlaka ekle`
     },
     {
-        name: "Şiir",
-        prompt: `Şiir yaz`
+        name: "Tartışmalı",
+        prompt: `Bu entry'lerdeki tartışmalı ve karşıt görüşleri analiz et.
+
+## Görev:
+- Entry'lerdeki farklı bakış açılarını ve fikir ayrılıklarını tespit et
+- Karşıt görüşleri dengeli bir şekilde sun
+- Hangi konularda uzlaşı, hangi konularda ayrışma olduğunu belirt
+- Eleştiri ve savunma argümanlarını kategorize et
+
+## Çıktı Formatı:
+1. **Temel Tartışma Noktaları**: Ana anlaşmazlık konuları
+2. **Karşıt Görüşler Tablosu**: Farklı tarafların argümanları
+3. **Ortak Zemin**: Üzerinde anlaşılan noktalar
+4. **Sonuç**: Genel değerlendirme
+
+Entry'lerden bol bol alıntı yap ve kaynak göster.`
+    },
+    {
+        name: "Mizah",
+        prompt: `Bu entry'lerdeki en komik, ironik ve esprili içerikleri derle.
+
+## Görev:
+- En güldürücü ve zekice yazılmış entry'leri seç
+- İronileri ve ince espriyapanları vurgula
+- Sözcük oyunlarını ve kelime şakalarını belirt
+- Komik anekdot ve hikayeleri özetle
+
+## Çıktı Formatı:
+Her komik entry için:
+- Entry'nin komik kısmını alıntıla
+- Neden komik olduğunu kısaca açıkla
+- Yazar ve link bilgisini ekle
+
+En iyiden başlayarak sırala. Minimum 5, maksimum 15 entry seç.`
+    },
+    {
+        name: "Bilgi",
+        prompt: `Bu entry'lerdeki bilgilendirici ve faydalı içerikleri çıkar.
+
+## Görev:
+- Somut bilgi, tavsiye ve deneyim paylaşımlarını tespit et
+- Pratik önerileri ve nasıl yapılır bilgilerini derle
+- Kaynak ve referansları listele
+- Uzman görüşlerini ve profesyonel tavsiyeleri vurgula
+
+## Çıktı Formatı:
+1. **Temel Bilgiler**: Konuyla ilgili faktlar
+2. **Pratik Tavsiyeler**: Uygulanabilir öneriler
+3. **Deneyim Paylaşımları**: Gerçek yaşam deneyimleri
+4. **Kaynaklar**: Referans verilen linkler ve kaynaklar
+
+Entry'lerden alıntılarla destekle.`
+    },
+    {
+        name: "Duygu Analizi",
+        prompt: `Bu entry'lerin duygusal tonunu analiz et.
+
+## Görev:
+- Her entry'nin duygusal tonunu belirle (pozitif/negatif/nötr)
+- Genel duygu dağılımını yüzdelik olarak hesapla
+- En pozitif ve en negatif entry'leri vurgula
+- Zaman içinde duygu değişimini analiz et (tarihlere göre)
+
+## Çıktı Formatı:
+1. **Duygu Dağılımı**:
+   - 😊 Pozitif: %X
+   - 😐 Nötr: %Y
+   - 😞 Negatif: %Z
+
+2. **En Pozitif Entry'ler**: (Top 3, alıntılarla)
+3. **En Negatif Entry'ler**: (Top 3, alıntılarla)
+4. **Zamana Göre Trend**: Duygu değişimi analizi
+5. **Öne Çıkan Duygular**: Öfke, hayal kırıklığı, umut, heyecan vb.
+
+Sonuçları görselleştirmek için emoji ve semboller kullan.`
     }
 ];
 

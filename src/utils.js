@@ -63,6 +63,12 @@ const addToCache = (key, value) => {
 /** @type {number} Maksimum yeniden deneme sayısı (ağ hataları için) */
 const MAX_RETRIES = 3;
 
+/** @type {number} Temel bekleme süresi (ms) */
+const BASE_DELAY = 1000;
+
+/** @type {number} Maksimum bekleme süresi (ms) */
+const MAX_DELAY = 30000;
+
 /**
  * Geçici ağ hataları için yeniden deneme yapar.
  * 
@@ -71,30 +77,85 @@ const MAX_RETRIES = 3;
  * 
  * @param {Function} fn - Çalıştırılacak async fonksiyon
  * @param {number} [retries=MAX_RETRIES] - Maksimum deneme sayısı
+ * @param {Function} [onRetry] - Her yeniden denemede çağrılacak callback (attempt, delay, error)
  * @returns {Promise<*>} Fonksiyonun sonucu
  * @throws {Error} Tüm denemeler başarısız olursa
  */
-const retryWithBackoff = async (fn, retries = MAX_RETRIES) => {
+const retryWithBackoff = async (fn, retries = MAX_RETRIES, onRetry = null) => {
+    let lastError;
+    
     for (let attempt = 0; attempt < retries; attempt++) {
         try {
             return await fn();
         } catch (err) {
+            lastError = err;
+            
             // Abort hataları yeniden denenmez
             if (err.name === 'AbortError' || err.message?.includes('aborted')) {
                 throw err;
             }
+            
             // Quota hataları yeniden denenmez
             if (err.message?.includes('quota') || err.message?.includes('429')) {
                 throw err;
             }
-            // Son deneme ise hatayı fırlat
-            if (attempt === retries - 1) {
+            
+            // 4xx hatalar (quota hariç) genellikle yeniden denenmez
+            if (err.message?.includes('400') || err.message?.includes('401') || 
+                err.message?.includes('403') || err.message?.includes('404')) {
                 throw err;
             }
-            // Exponential backoff ile bekle (1s, 2s, 4s)
-            await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+            
+            // Son deneme ise hatayı fırlat
+            if (attempt === retries - 1) {
+                throw new Error(`${retries} deneme sonrası başarısız: ${err.message}`);
+            }
+            
+            // Exponential backoff ile bekleme süresi hesapla
+            // Jitter ekleyerek thundering herd problemini önle
+            const baseDelay = BASE_DELAY * Math.pow(2, attempt);
+            const jitter = Math.random() * 0.3 * baseDelay; // %30 jitter
+            const delay = Math.min(baseDelay + jitter, MAX_DELAY);
+            
+            // Callback'i çağır (varsa)
+            if (onRetry) {
+                onRetry(attempt + 1, delay, err);
+            }
+            
+            // Bekle
+            await new Promise(r => setTimeout(r, delay));
         }
     }
+    
+    throw lastError;
+};
+
+/**
+ * Rate limit durumunda bekleme süresi hesaplar.
+ * 
+ * @param {Response} response - HTTP yanıtı
+ * @returns {number} Beklenmesi gereken süre (ms)
+ */
+const getRateLimitDelay = (response) => {
+    // Retry-After header'ını kontrol et
+    const retryAfter = response.headers?.get('Retry-After');
+    
+    if (retryAfter) {
+        // Saniye cinsinden değer
+        const seconds = parseInt(retryAfter);
+        if (!isNaN(seconds)) {
+            return seconds * 1000;
+        }
+        
+        // HTTP-date formatı
+        const date = new Date(retryAfter);
+        if (!isNaN(date.getTime())) {
+            return Math.max(0, date.getTime() - Date.now());
+        }
+    }
+    
+    // Varsayılan: 60 saniye
+    return 60000;
 };
 
 // =============================================================================
