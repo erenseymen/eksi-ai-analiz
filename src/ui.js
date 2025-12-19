@@ -840,8 +840,6 @@ const createGundemAnalysisButton = (heading) => {
     btn.id = 'eksi-ai-gundem-btn';
     btn.className = 'eksi-ai-btn';
     btn.textContent = "📊 Gündemi Analiz Et";
-    btn.style.marginLeft = '10px';
-    btn.style.marginTop = '5px';
     btn.onclick = startGundemAnalysis;
     
     heading.parentNode.insertBefore(btn, heading.nextSibling);
@@ -946,8 +944,6 @@ const createDebeAnalysisButton = (heading) => {
     btn.id = 'eksi-ai-debe-btn';
     btn.className = 'eksi-ai-btn';
     btn.textContent = "⭐ DEBE'yi Analiz Et";
-    btn.style.marginLeft = '10px';
-    btn.style.marginTop = '5px';
     btn.onclick = startDebeAnalysis;
     
     heading.parentNode.insertBefore(btn, heading.nextSibling);
@@ -1055,8 +1051,6 @@ const createAuthorAnalysisButton = (heading) => {
     btn.id = 'eksi-ai-author-btn';
     btn.className = 'eksi-ai-btn';
     btn.textContent = "👤 Yazarı Analiz Et";
-    btn.style.marginLeft = '10px';
-    btn.style.marginTop = '5px';
     btn.onclick = startAuthorAnalysis;
     
     heading.parentNode.insertBefore(btn, heading.nextSibling);

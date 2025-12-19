@@ -85,20 +85,22 @@ const initEntryPage = () => {
 
 /**
  * Gündem sayfası için UI'ı hazırlar.
- * Sol paneldeki başlıkları toplu analiz etme özelliği ekler.
+ * Sağ taraftaki (main) başlığı bulur ve butonu oraya ekler.
  */
 const initGundemPage = () => {
-    const gundemHeading = document.querySelector('nav h2');
+    // Navigasyon (sol) h2'sini değil, ana içerik (sağ) başlığını hedefle
+    const gundemHeading = document.querySelector('#title, #topic h1, main h1, #content h1');
     if (!gundemHeading || document.getElementById('eksi-ai-gundem-btn')) return;
     createGundemAnalysisButton(gundemHeading);
 };
 
 /**
  * DEBE sayfası için UI'ı hazırlar.
- * Dünün en beğenilen entry'lerini toplu analiz etme özelliği ekler.
+ * Sağ taraftaki (main) başlığı bulur ve butonu oraya ekler.
  */
 const initDebePage = () => {
-    const debeHeading = document.querySelector('nav h2');
+    // Navigasyon (sol) h2'sini değil, ana içerik (sağ) başlığını hedefle
+    const debeHeading = document.querySelector('#title, #topic h1, main h1, #content h1');
     if (!debeHeading || document.getElementById('eksi-ai-debe-btn')) return;
     createDebeAnalysisButton(debeHeading);
 };
