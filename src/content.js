@@ -202,11 +202,7 @@ init();
 
 // Tema gözlemcisini başlat
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        setupThemeObserver();
-        createFAB();
-    });
+    document.addEventListener('DOMContentLoaded', setupThemeObserver);
 } else {
     setupThemeObserver();
-    createFAB();
 }
