@@ -14,3 +14,4 @@ Her yanıtın sonunda, eğer dosyalarda değişiklik yapıldıysa, bu değişikl
 2. Commit mesajı Türkçe ve açıklayıcı olmalı (bkz: language.mdc)
 3. Conventional commits formatını kullan (feat:, fix:, docs:, refactor:, chore: vb.)
 4. Sadece gerçek değişiklik yapıldığında commit et, sadece okuma veya analiz yapıldığında commit etme
+5. Gerekirse, .gitignore dosyasını da düzenlemeyi unutma
