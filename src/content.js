@@ -35,7 +35,11 @@ const init = () => {
             initEntryPage();
             break;
         case 'gundem-page':
-            initGundemPage();
+        case 'bugun-page':
+        case 'olay-page':
+        case 'channel-page':
+        case 'caylaklar-bugun-page':
+            initTopicListPage();
             break;
         case 'debe-page':
             initDebePage();
@@ -84,14 +88,14 @@ const initEntryPage = () => {
 };
 
 /**
- * Gündem sayfası için UI'ı hazırlar.
+ * Başlık listesi sayfaları (gündem, bugün, olay, kanal, çaylaklar) için UI'ı hazırlar.
  * Sağ taraftaki (main) başlığı bulur ve butonu oraya ekler.
  */
-const initGundemPage = () => {
+const initTopicListPage = () => {
     // Navigasyon (sol) h2'sini değil, ana içerik (sağ) başlığını hedefle
-    const gundemHeading = document.querySelector('#title, #topic h1, main h1, #content h1');
-    if (!gundemHeading || document.getElementById('eksi-ai-gundem-btn')) return;
-    createGundemAnalysisButton(gundemHeading);
+    const heading = document.querySelector('#title, #topic h1, main h1, #content h1');
+    if (!heading || document.getElementById('eksi-ai-topic-list-btn')) return;
+    createTopicListAnalysisButton(heading);
 };
 
 /**
@@ -125,6 +129,7 @@ const setupKeyboardShortcuts = () => {
             e.preventDefault();
             const mainBtn = document.getElementById('eksi-ai-main-btn') || 
                            document.getElementById('eksi-ai-entry-btn') ||
+                           document.getElementById('eksi-ai-topic-list-btn') ||
                            document.getElementById('eksi-ai-gundem-btn') ||
                            document.getElementById('eksi-ai-debe-btn') ||
                            document.getElementById('eksi-ai-author-btn');

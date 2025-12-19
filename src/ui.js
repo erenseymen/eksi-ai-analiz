@@ -395,6 +395,12 @@ const renderActions = async (container, wasStopped = false) => {
         mainBtnId = `eksi-ai-main-btn-${topicId}`;
     } else if (containerId === 'eksi-ai-container') {
         mainBtnId = 'eksi-ai-main-btn';
+    } else if (containerId === 'eksi-ai-gundem-container' || containerId === 'eksi-ai-topic-list-container') {
+        mainBtnId = document.getElementById('eksi-ai-topic-list-btn') ? 'eksi-ai-topic-list-btn' : 'eksi-ai-gundem-btn';
+    } else if (containerId === 'eksi-ai-debe-container') {
+        mainBtnId = 'eksi-ai-debe-btn';
+    } else if (containerId === 'eksi-ai-author-container') {
+        mainBtnId = 'eksi-ai-author-btn';
     }
     
     if (mainBtnId) {
@@ -826,26 +832,26 @@ const scrapeEntries = async () => {
 };
 
 // =============================================================================
-// GÜNDEM SAYFASI DESTEĞİ
+// BAŞLIK LİSTESİ SAYFALARI (Gündem, Bugün, Kanal vb.)
 // =============================================================================
 
 /**
- * Gündem sayfası için analiz butonu oluşturur.
- * @param {HTMLElement} heading - Gündem başlık elementi
+ * Başlık listesi sayfaları için analiz butonu oluşturur.
+ * @param {HTMLElement} heading - Başlık elementi
  */
-const createGundemAnalysisButton = (heading) => {
-    if (!heading || document.getElementById('eksi-ai-gundem-btn')) return;
+const createTopicListAnalysisButton = (heading) => {
+    if (!heading || document.getElementById('eksi-ai-topic-list-btn')) return;
     
     const btn = document.createElement('button');
-    btn.id = 'eksi-ai-gundem-btn';
+    btn.id = 'eksi-ai-topic-list-btn';
     btn.className = 'eksi-ai-btn';
-    btn.textContent = "📊 Gündemi Analiz Et";
-    btn.onclick = startGundemAnalysis;
+    btn.textContent = "📊 Listeyi Analiz Et";
+    btn.onclick = startTopicListAnalysis;
     
     heading.parentNode.insertBefore(btn, heading.nextSibling);
     
     const container = document.createElement('div');
-    container.id = 'eksi-ai-gundem-container';
+    container.id = 'eksi-ai-topic-list-container';
     container.className = 'eksi-ai-container';
     container.style.display = 'none';
     updateContainerTheme(container);
@@ -853,11 +859,11 @@ const createGundemAnalysisButton = (heading) => {
 };
 
 /**
- * Gündem başlıklarını toplar ve analiz eder.
+ * Listedeki başlıkları toplar ve analiz eder.
  */
-const startGundemAnalysis = async () => {
-    const btn = document.getElementById('eksi-ai-gundem-btn');
-    const container = document.getElementById('eksi-ai-gundem-container');
+const startTopicListAnalysis = async () => {
+    const btn = document.getElementById('eksi-ai-topic-list-btn');
+    const container = document.getElementById('eksi-ai-topic-list-container');
     if (!btn || !container) return;
     
     shouldStopScraping = false;
@@ -867,29 +873,31 @@ const startGundemAnalysis = async () => {
     btn.textContent = 'Durdur';
     btn.onclick = stopScraping;
     container.style.display = 'block';
-    container.innerHTML = '<span class="eksi-ai-loading">Gündem başlıkları toplanıyor...</span>';
+    container.innerHTML = '<span class="eksi-ai-loading">Başlıklar toplanıyor...</span>';
     
     try {
-        // Gündem listesindeki başlıkları bul
-        const gundemLinks = document.querySelectorAll('nav ul li a[href*="?a=popular"]');
+        // Sol listedeki başlıkları bul (nav içindeki başlık linkleri)
+        const topicLinks = document.querySelectorAll('nav ul li a[href*="--"]');
         const topics = [];
         
-        gundemLinks.forEach(link => {
+        topicLinks.forEach(link => {
             const href = link.getAttribute('href');
-            const title = link.textContent.replace(/\d+$/, '').trim();
+            // Sayısal entry sayısını temizle (örn: "başlık 42" -> "başlık")
+            const title = link.textContent.replace(/\s\d+$/, '').trim();
             if (href && title) {
-                topics.push({ title, url: `https://eksisozluk.com${href}` });
+                topics.push({ title, url: href.startsWith('http') ? href : `https://eksisozluk.com${href}` });
             }
         });
         
         if (topics.length === 0) {
-            container.innerHTML = '<div class="eksi-ai-warning">Gündem başlıkları bulunamadı.</div>';
+            container.innerHTML = '<div class="eksi-ai-warning">Başlık listesi bulunamadı.</div>';
             return;
         }
         
         const statusSpan = container.querySelector('.eksi-ai-loading');
         allEntries = [];
-        topicTitle = `Gündem Özeti (${topics.length} başlık)`;
+        const pageType = detectPageType();
+        topicTitle = `Liste Özeti (${topics.length} başlık)`;
         
         // Her başlıktan ilk 5 entry'yi topla
         const entriesPerTopic = 5;
@@ -901,6 +909,8 @@ const startGundemAnalysis = async () => {
             
             try {
                 const response = await fetch(topic.url);
+                if (!response.ok) continue;
+                
                 const text = await response.text();
                 const doc = new DOMParser().parseFromString(text, 'text/html');
                 const { entries } = extractEntriesFromDoc(doc);
@@ -917,15 +927,15 @@ const startGundemAnalysis = async () => {
         
         if (allEntries.length > 0) {
             await renderActions(container, shouldStopScraping);
-            addToggleVisibilityButton('eksi-ai-gundem-btn', 'eksi-ai-gundem-container');
+            addToggleVisibilityButton('eksi-ai-topic-list-btn', 'eksi-ai-topic-list-container');
         } else {
             container.innerHTML = '<div class="eksi-ai-warning">Hiç entry toplanamadı.</div>';
         }
     } catch (err) {
         container.innerHTML = `<div class="eksi-ai-warning">Hata: ${escapeHtml(err.message)}</div>`;
     } finally {
-        btn.textContent = "📊 Gündemi Analiz Et";
-        btn.onclick = startGundemAnalysis;
+        btn.textContent = "📊 Listeyi Analiz Et";
+        btn.onclick = startTopicListAnalysis;
     }
 };
 

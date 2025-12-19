@@ -42,11 +42,16 @@ Eklenti geliştirme sürecinde kullanılan temel DOM seçicileri ve sayfa yapıl
 - **Tarih/Link**: `.entry-date` veya `a[href^="/entry/"]`
 - **Sayfalama**: `.pager` elementi, `data-pagecount` ve `data-currentpage` attribute'ları
 
-### Gündem Sayfası (`gundem-page`)
-- **URL**: `/basliklar/gundem`
+### Başlık Listesi Sayfaları (`topic-list-page`)
+- **URL'ler**: 
+  - Gündem: `/basliklar/gundem`
+  - Bugün: `/basliklar/bugun`
+  - Olay: `/basliklar/olay`
+  - Çaylaklar Bugün: `/basliklar/caylaklar/bugun`
+  - Kanallar: `/basliklar/kanal/*`
 - **Navigasyon Başlığı**: `nav h2`
-- **Başlık Linkleri**: `nav ul li a[href*="?a=popular"]` (Başlık adı ve popülerlik parametresi içerir)
-- **Karakteristik**: Sol sidebar'daki popüler başlıkların listelendiği sayfa.
+- **Başlık Linkleri**: `nav ul li a[href*="--"]` (Herhangi bir başlık linki)
+- **Karakteristik**: Sol panelde başlıkların listelendiği ve sağda rastgele/ilk başlığın gösterildiği sayfalar. Eklenti bu sayfalarda listedeki tüm başlıkları toplu analiz edebilir.
 
 ### DEBE Sayfası (`debe-page`)
 - **URL**: `/debe`

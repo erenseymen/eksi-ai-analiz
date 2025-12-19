@@ -46,6 +46,16 @@ const detectPageType = () => {
         return 'gundem-page';
     }
 
+    // Bugün sayfası
+    if (path === '/basliklar/bugun') {
+        return 'bugun-page';
+    }
+
+    // Çaylaklar bugün sayfası
+    if (path === '/basliklar/caylaklar/bugun') {
+        return 'caylaklar-bugun-page';
+    }
+
     // Olay sayfası
     if (path === '/basliklar/olay') {
         return 'olay-page';
